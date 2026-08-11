@@ -16,19 +16,31 @@
 		"Other"
 	],
 	"activationEvents": [],
+	"extensionKind": [
+		"workspace"
+	],
 	"main": "./dist/node/extension.js",
 	"browser": "./dist/web/extension.js",
-	"contributes": {},
+	"contributes": {
+		"markdown.markdownItPlugins": true,
+		"markdown.previewStyles": [
+			"./dist/preview/preview.css"
+		],
+		"markdown.previewScripts": [
+			"./dist/preview/preview.js"
+		]
+	},
 	"scripts": {
 		"vscode:prepublish": "pnpm run build",
 		"build": "node esbuild.js --production",
 		"compile": "pnpm run typecheck && pnpm run lint && node esbuild.js",
-		"watch": "npm-run-all -p watch:*",
+		"watch": "npm-run-all -p watch:node watch:preview watch:tsc watch:web",
 		"watch:node": "node esbuild.js --watch --target=node",
+		"watch:preview": "node esbuild.js --watch --target=preview",
 		"watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
 		"watch:web": "node esbuild.js --watch --target=web",
-		"compile-tests": "tsc -p . --outDir out",
-		"watch-tests": "tsc -p . -w --outDir out",
+		"compile-tests": "tsc -p tsconfig.extension-tests.json",
+		"watch-tests": "tsc -p tsconfig.extension-tests.json -w",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"lint": "npm-run-all -s lint:code lint:markdown",
@@ -38,7 +50,9 @@
 		"lint:markdown": "markdownlint-cli2",
 		"lint:markdown:fix": "markdownlint-cli2 --fix",
 		"typecheck": "tsc --noEmit",
-		"test": "node --test test/commands.test.mjs test/manifest.test.mjs",
+		"test": "pnpm run test:contracts && pnpm run test:unit",
+		"test:contracts": "node --test test/commands.test.mjs test/harness.test.mjs test/manifest.test.mjs test/presentation.test.mjs",
+		"test:unit": "vitest run",
 		"test:extension": "pnpm run compile-tests && pnpm run build && node scripts/run-extension-tests.mjs",
 		"test:package": "node --test test/package-content.test.mjs",
 		"package": "node scripts/package.mjs"
@@ -46,6 +60,9 @@
 	"packageManager": "pnpm@11.18.0",
 	"devDependencies": {
 		"@eslint/js": "^10.0.0",
+		"@types/linkify-it": "5.0.0",
+		"@types/markdown-it": "14.1.2",
+		"@types/markdown-it-footnote": "3.0.4",
 		"@types/mocha": "^10.0.10",
 		"@types/node": "24.x",
 		"@types/vscode": "^1.125.0",
@@ -56,10 +73,22 @@
 		"eslint": "^10.5.0",
 		"fflate": "^0.8.2",
 		"globals": "^17.0.0",
+		"happy-dom": "20.10.6",
+		"markdown-it": "14.3.0",
 		"markdownlint-cli2": "0.23.2",
 		"npm-run-all": "^4.1.5",
 		"prettier": "^3.6.2",
 		"typescript": "^6.0.3",
-		"typescript-eslint": "^8.61.1"
+		"typescript-eslint": "^8.61.1",
+		"vitest": "4.1.9"
+	},
+	"dependencies": {
+		"linkify-it": "5.0.2",
+		"markdown-it-deflist": "4.0.0",
+		"markdown-it-footnote": "4.0.0",
+		"markdown-it-github-alerts": "1.0.1",
+		"markdown-it-task-lists": "2.1.1",
+		"mermaid": "11.16.0",
+		"smol-toml": "1.7.1"
 	}
 }

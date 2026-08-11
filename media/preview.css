@@ -1,0 +1,388 @@
+.better-markdown-preview-layout {
+	display: grid;
+	grid-template-columns: minmax(12rem, 1fr) minmax(0, 54rem) minmax(12rem, 1fr);
+	column-gap: 2rem;
+	align-items: start;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.better-markdown-preview-layout > .markdown-body {
+	grid-column: 2;
+	min-width: 0;
+	width: 100%;
+	font-size: var(--markdown-font-size, 14px);
+	line-height: var(--markdown-line-height, 22px);
+}
+
+.better-markdown-preview-layout
+	> .markdown-body
+	> :where(p, ul, ol, blockquote, dl) {
+	max-width: 78ch;
+}
+
+.better-markdown-preview-toc {
+	grid-column: 1;
+	grid-row: 1;
+	position: sticky;
+	top: 1.5rem;
+	justify-self: end;
+	width: min(100%, 15rem);
+	max-height: calc(100vh - 3rem);
+	overflow: auto;
+	padding: 0.75rem;
+	border: 1px solid var(--vscode-panel-border);
+	border-radius: 0.45rem;
+	background: var(--vscode-sideBar-background);
+	color: var(--vscode-sideBar-foreground);
+	box-sizing: border-box;
+}
+
+.better-markdown-preview-toc-title {
+	display: block;
+	margin-bottom: 0.45rem;
+	font-size: 0.85em;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--vscode-descriptionForeground);
+}
+
+.better-markdown-preview-toc ol {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.better-markdown-preview-toc li + li {
+	margin-top: 0.2rem;
+}
+
+.better-markdown-preview-toc-level-2 {
+	padding-left: 0.75rem;
+}
+
+.better-markdown-preview-toc-level-3 {
+	padding-left: 1.5rem;
+}
+
+.better-markdown-preview-toc a,
+.better-markdown-preview-toc-dialog a {
+	display: block;
+	padding: 0.2rem 0.35rem;
+	border-left: 2px solid transparent;
+	color: var(--vscode-textLink-foreground);
+	text-decoration: none;
+	overflow-wrap: anywhere;
+}
+
+.better-markdown-preview-toc a:hover,
+.better-markdown-preview-toc-dialog a:hover,
+.better-markdown-preview-toc a.better-markdown-preview-toc-active,
+.better-markdown-preview-toc-dialog a.better-markdown-preview-toc-active {
+	border-left-color: var(--vscode-focusBorder);
+	color: var(--vscode-textLink-activeForeground);
+}
+
+.better-markdown-preview-toc-trigger {
+	display: none;
+	position: fixed;
+	right: 1rem;
+	bottom: 1rem;
+	z-index: 10;
+	padding: 0.45rem 0.7rem;
+	border: 1px solid var(--vscode-button-border, transparent);
+	border-radius: 999px;
+	background: var(--vscode-button-background);
+	color: var(--vscode-button-foreground);
+	font: inherit;
+	cursor: pointer;
+}
+
+.better-markdown-preview-toc-dialog {
+	position: fixed;
+	width: min(26rem, calc(100vw - 2rem));
+	max-height: min(70vh, 34rem);
+	margin: auto;
+	padding: 1rem;
+	border: 1px solid var(--vscode-panel-border);
+	border-radius: 0.5rem;
+	background: var(--vscode-editorWidget-background);
+	color: var(--vscode-editorWidget-foreground);
+	box-shadow: 0 0.5rem 2rem var(--vscode-widget-shadow);
+}
+
+.better-markdown-preview-toc-dialog::backdrop {
+	background: var(--vscode-diffEditor-unchangedRegionShadow);
+}
+
+.better-markdown-preview-toc-dialog ol {
+	list-style: none;
+	padding: 0;
+}
+
+.better-markdown-preview-frontmatter {
+	margin: 1rem 0;
+	border: 1px solid var(--vscode-panel-border);
+	border-radius: 0.4rem;
+	background: var(--vscode-textCodeBlock-background);
+}
+
+.better-markdown-preview-frontmatter summary {
+	padding: 0.5rem 0.75rem;
+	cursor: pointer;
+	color: var(--vscode-descriptionForeground);
+}
+
+.better-markdown-preview-frontmatter pre {
+	margin: 0;
+	border: 0;
+	border-top: 1px solid var(--vscode-panel-border);
+	border-radius: 0;
+}
+
+.better-markdown-preview-columns {
+	display: flex;
+	gap: 1rem;
+	margin: 1rem 0;
+	min-width: 0;
+}
+
+.better-markdown-preview-column {
+	flex: 1 1 0;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.better-markdown-preview-column[data-bmp-column-width] {
+	flex: 0 1 var(--bmp-column-width);
+}
+
+.better-markdown-preview-alert {
+	margin: 1rem 0;
+	padding: 0.75rem 1rem;
+	border: 1px solid currentcolor;
+	border-left-width: 0.25rem;
+	border-radius: 0.35rem;
+}
+
+.better-markdown-preview-alert-title {
+	margin: 0 0 0.4rem;
+	font-weight: 600;
+}
+
+.better-markdown-preview-alert-note {
+	color: var(
+		--vscode-markdownAlert-note\.foreground,
+		var(--vscode-markdownAlert-note-foreground, var(--vscode-editor-foreground))
+	);
+}
+
+.better-markdown-preview-alert-tip {
+	color: var(
+		--vscode-markdownAlert-tip\.foreground,
+		var(--vscode-markdownAlert-tip-foreground, var(--vscode-editor-foreground))
+	);
+}
+
+.better-markdown-preview-alert-important {
+	color: var(
+		--vscode-markdownAlert-important\.foreground,
+		var(
+			--vscode-markdownAlert-important-foreground,
+			var(--vscode-editor-foreground)
+		)
+	);
+}
+
+.better-markdown-preview-alert-warning {
+	color: var(
+		--vscode-markdownAlert-warning\.foreground,
+		var(
+			--vscode-markdownAlert-warning-foreground,
+			var(--vscode-editor-foreground)
+		)
+	);
+}
+
+.better-markdown-preview-alert-caution {
+	color: var(
+		--vscode-markdownAlert-caution\.foreground,
+		var(
+			--vscode-markdownAlert-caution-foreground,
+			var(--vscode-editor-foreground)
+		)
+	);
+}
+
+.better-markdown-preview-code {
+	margin: 1rem 0;
+	min-width: 0;
+	border: 1px solid var(--vscode-panel-border);
+	border-radius: 0.4rem;
+	overflow: hidden;
+	background: var(--vscode-textCodeBlock-background);
+}
+
+.better-markdown-preview-code figcaption {
+	padding: 0.45rem 0.75rem;
+	border-bottom: 1px solid var(--vscode-panel-border);
+	font-family: var(--vscode-editor-font-family);
+	font-size: 0.9em;
+	color: var(--vscode-descriptionForeground);
+}
+
+.better-markdown-preview-code pre {
+	margin: 0;
+	border: 0;
+	border-radius: 0;
+	overflow: auto;
+}
+
+.better-markdown-preview-code-line {
+	display: inline-block;
+	min-width: 100%;
+	box-sizing: border-box;
+	box-decoration-break: clone;
+	-webkit-box-decoration-break: clone;
+}
+
+.better-markdown-preview-code[data-bmp-line-numbers='true'] {
+	counter-reset: bmp-code-line;
+}
+
+.better-markdown-preview-code[data-bmp-line-numbers='true']
+	.better-markdown-preview-code-line {
+	counter-increment: bmp-code-line;
+}
+
+.better-markdown-preview-code[data-bmp-line-numbers='true']
+	.better-markdown-preview-code-line::before {
+	content: counter(bmp-code-line);
+	display: inline-block;
+	width: 2.75em;
+	margin-right: 0.8em;
+	color: var(--vscode-editorLineNumber-foreground);
+	text-align: right;
+	user-select: none;
+}
+
+.better-markdown-preview-code-line-highlighted {
+	background: var(--vscode-editor-rangeHighlightBackground);
+}
+
+.better-markdown-preview-code-line-added {
+	background: var(--vscode-diffEditor-insertedLineBackground);
+}
+
+.better-markdown-preview-code-line-removed {
+	background: var(--vscode-diffEditor-removedLineBackground);
+}
+
+.better-markdown-preview-code-word {
+	border: 1px solid var(--vscode-editor-findMatchBorder);
+	border-radius: 0.2rem;
+	background: var(--vscode-editor-findMatchHighlightBackground);
+	color: inherit;
+}
+
+.better-markdown-preview-mermaid {
+	min-height: 3rem;
+	overflow: auto;
+	border: 1px solid var(--vscode-panel-border);
+	background: var(--vscode-editor-background);
+	color: var(--vscode-editor-foreground);
+	text-align: center;
+}
+
+.better-markdown-preview-mermaid[data-bmp-mermaid-state='failed'] {
+	border-color: var(--vscode-inputValidation-errorBorder);
+	text-align: left;
+}
+
+.better-markdown-preview-mermaid svg,
+.markdown-body img,
+.markdown-body video {
+	max-width: 100%;
+	height: auto;
+}
+
+.markdown-body table {
+	display: block;
+	width: max-content;
+	max-width: 100%;
+	overflow-x: auto;
+}
+
+.markdown-body pre {
+	max-width: 100%;
+	overflow: auto;
+}
+
+.markdown-body .contains-task-list,
+.markdown-body .task-list-item {
+	list-style: none;
+}
+
+.markdown-body .task-list-item::marker {
+	content: '';
+}
+
+.markdown-body .task-list-item-checkbox {
+	margin: 0 0.45em 0 0;
+	vertical-align: -0.1em;
+}
+
+.markdown-body :where(a, button, summary):focus-visible {
+	outline: 2px solid var(--vscode-focusBorder);
+	outline-offset: 2px;
+}
+
+@media (max-width: 82rem) {
+	.better-markdown-preview-layout {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		max-width: 54rem;
+		margin-inline: auto;
+	}
+
+	.better-markdown-preview-toc {
+		position: static;
+		order: -1;
+		align-self: stretch;
+		width: 100%;
+		max-height: none;
+	}
+
+	.better-markdown-preview-toc-trigger-visible {
+		display: block;
+	}
+}
+
+@media (max-width: 44rem), print {
+	.better-markdown-preview-columns {
+		flex-direction: column;
+	}
+
+	.better-markdown-preview-column {
+		flex-basis: auto;
+		width: 100%;
+	}
+}
+
+@media print {
+	.better-markdown-preview-toc-trigger,
+	.better-markdown-preview-toc-dialog {
+		display: none !important;
+	}
+
+	.better-markdown-preview-mermaid {
+		break-inside: avoid;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.better-markdown-preview-layout * {
+		scroll-behavior: auto !important;
+	}
+}

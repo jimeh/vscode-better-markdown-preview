@@ -4,8 +4,10 @@
 
 Use the narrowest task that proves the behavior under development:
 
-- `mise run test` checks fast manifest contracts.
-- `mise run build` compiles production desktop and web bundles.
+- `mise run test` checks manifest contracts plus focused parser and preview DOM
+  behavior.
+- `mise run build` compiles production desktop, web, preview runtime, Mermaid,
+  and CSS bundles.
 - `mise run test:extension` compiles tests, builds both targets, and runs the
   named activation smoke test on the declared VS Code engine floor.
 - `mise run package:validate` produces a VSIX and asserts its exact runtime
@@ -29,6 +31,18 @@ the new test by name or count.
 Presentation-only changes should additionally be exercised in a real VS Code
 preview across light, dark, and high-contrast themes. Record manual or visual
 evidence when automated assertions would not meaningfully prove the result.
+
+The parser suite lives beside `src/markdown/compose.ts`; its GFM boundary cases
+cover native linkification both enabled and disabled, including VS Code's
+`fuzzyLink: false` configuration. The DOM suite uses a controlled browser DOM
+and Mermaid adapter to cover conditional loading,
+failure fallback, theme rerender, reused Mermaid blocks, body replacement, TOC
+focus behavior, and source-preserving code presentation. These focused suites
+do not replace the real Extension Host activation test or runtime presentation
+inspection.
+
+`test/fixtures/kitchen-sink.md` is the shared manual/runtime document for light,
+dark, high-contrast, wide, and narrow preview checks.
 
 ## CI
 

@@ -3,6 +3,7 @@
 .vscode-test/**
 artifacts/**
 docs/**
+media/**
 out/**
 node_modules/**
 scripts/**
@@ -23,7 +24,9 @@ pnpm-lock.yaml
 pnpm-workspace.yaml
 vsc-extension-quickstart.md
 **/tsconfig.json
+**/tsconfig.*.json
 **/eslint.config.mjs
+**/vitest.config.mjs
 **/*.map
 **/*.ts
 **/.vscode-test.*

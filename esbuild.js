@@ -39,21 +39,56 @@ function esbuildProblemMatcherPlugin(target) {
 const targets = [
 	{
 		name: 'node',
+		group: 'node',
+		entryPoints: ['src/extension.ts'],
 		platform: 'node',
 		format: 'cjs',
 		outfile: 'dist/node/extension.js',
+		external: ['vscode'],
 	},
 	{
 		name: 'web',
+		group: 'web',
+		entryPoints: ['src/extension.ts'],
 		platform: 'browser',
 		format: 'cjs',
 		outfile: 'dist/web/extension.js',
+		external: ['vscode'],
+	},
+	{
+		name: 'preview-script',
+		group: 'preview',
+		entryPoints: ['src/preview/index.ts'],
+		platform: 'browser',
+		format: 'iife',
+		outfile: 'dist/preview/preview.js',
+		external: ['./mermaid-runtime.js'],
+	},
+	{
+		name: 'mermaid',
+		group: 'preview',
+		entryPoints: ['src/preview/mermaid-runtime.ts'],
+		platform: 'browser',
+		format: 'esm',
+		outfile: 'dist/preview/mermaid-runtime.js',
+		external: [],
+	},
+	{
+		name: 'preview-css',
+		group: 'preview',
+		entryPoints: ['media/preview.css'],
+		platform: 'browser',
+		outfile: 'dist/preview/preview.css',
+		external: [],
 	},
 ];
 
 async function main() {
 	const selectedTargets = requestedTarget
-		? targets.filter((target) => target.name === requestedTarget)
+		? targets.filter(
+				(target) =>
+					target.name === requestedTarget || target.group === requestedTarget,
+			)
 		: targets;
 
 	if (selectedTargets.length === 0) {
@@ -63,13 +98,13 @@ async function main() {
 	const contexts = await Promise.all(
 		selectedTargets.map((target) =>
 			esbuild.context({
-				entryPoints: ['src/extension.ts'],
+				entryPoints: target.entryPoints,
 				bundle: true,
-				format: target.format,
+				...(target.format ? { format: target.format } : {}),
 				minify: production,
 				outfile: target.outfile,
 				platform: target.platform,
-				external: ['vscode'],
+				external: target.external,
 				logLevel: 'silent',
 				plugins: [esbuildProblemMatcherPlugin(target.name)],
 				sourcemap: !production,

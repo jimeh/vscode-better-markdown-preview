@@ -1,12 +1,52 @@
 # Better Markdown Preview
 
-Better Markdown Preview will enhance Visual Studio Code's built-in Markdown
-preview while preserving its theme, security, resource resolution, and editor
-synchronization behavior.
+Better Markdown Preview enhances Visual Studio Code's built-in Markdown preview
+without replacing it. Native source synchronization, resource resolution,
+security settings, code-copy controls, syntax highlighting, and user preview
+styles continue to work.
 
-The repository currently contains the generated extension foundation and its
-validation harness. It deliberately contributes no Markdown rendering behavior
-yet.
+It adds:
+
+- Complete visible GFM behavior, including task lists, literal autolinks, and
+  tag filtering.
+- GitHub alerts, footnotes, definition lists, and collapsed TOML frontmatter.
+- Responsive Pandoc-style columns and locally bundled Mermaid diagrams.
+- Code-block titles, highlighted lines and words, line numbers, and diff-line
+  annotations while retaining VS Code's native highlighter.
+- A responsive H1-H3 table of contents with active-heading tracking.
+- A clean layout driven entirely by the active VS Code theme, including high
+  contrast and print presentation.
+
+Open a Markdown file and run **Markdown: Open Preview** or **Markdown: Open
+Preview to the Side**. The built-in preview is enhanced automatically.
+
+## Extended syntax
+
+TOML frontmatter uses exact `+++` delimiter lines at the start of a document.
+Columns use the supported Pandoc fenced-div subset:
+
+```markdown
+:::: {.columns}
+::: {.column width=40%}
+Left column
+:::
+::: {.column}
+Right column
+:::
+::::
+```
+
+Rich code metadata follows the language identifier:
+
+````markdown
+```ts title="src/example.ts" {1,3-5} /needle/ showLineNumbers
+const needle = true; // [!code ++]
+```
+````
+
+Only an exact lowercase `mermaid` fence renders as a diagram. Mermaid is loaded
+from the extension package only when the document contains such a block; source
+remains visible if loading or rendering fails.
 
 ## Development
 
@@ -22,7 +62,8 @@ mise run verify
 Use `mise tasks` to discover the complete task surface. The most common loops
 are:
 
-- `mise run dev` watches the desktop and web bundles.
+- `mise run dev` watches the desktop, web, preview runtime, Mermaid, CSS, and
+  TypeScript targets.
 - `mise run check` runs the fast formatter, linter, type, and unit gate.
 - `mise run test:extension` exercises activation in a real Extension Host.
 - `mise run package:validate` builds and inspects the VSIX.

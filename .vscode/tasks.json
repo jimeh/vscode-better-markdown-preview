@@ -5,13 +5,30 @@
 	"tasks": [
 		{
 			"label": "watch",
-			"dependsOn": ["pnpm: watch:node", "pnpm: watch:tsc", "pnpm: watch:web"],
+			"dependsOn": [
+				"pnpm: watch:node",
+				"pnpm: watch:preview",
+				"pnpm: watch:tsc",
+				"pnpm: watch:web"
+			],
 			"presentation": {
 				"reveal": "never"
 			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
+			}
+		},
+		{
+			"type": "shell",
+			"command": "pnpm run watch:preview",
+			"group": "build",
+			"problemMatcher": "$esbuild-watch",
+			"isBackground": true,
+			"label": "pnpm: watch:preview",
+			"presentation": {
+				"group": "watch",
+				"reveal": "never"
 			}
 		},
 		{

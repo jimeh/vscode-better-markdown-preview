@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"esModuleInterop": true,
+		"lib": ["ES2022"],
+		"module": "Node16",
+		"moduleResolution": "Node16",
+		"outDir": "out",
+		"rootDir": "src",
+		"sourceMap": true,
+		"strict": true,
+		"target": "ES2022",
+		"types": ["node", "mocha", "vscode"]
+	},
+	"include": ["src/test/**/*.ts"]
+}
