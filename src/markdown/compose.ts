@@ -13,12 +13,11 @@ const columnsOpen = /^(:{4,})[ \t]+\{\.columns\}[ \t]*$/;
 const columnOpen =
 	/^(:{3,})[ \t]+\{\.column(?:[ \t]+width=(?:"((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%"|'((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%'|((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%))?\}[ \t]*$/;
 const colonClose = /^(:{3,})[ \t]*$/;
-const gfmWwwLinkifier = new LinkifyIt().set({ fuzzyEmail: false });
+const gfmLinkifier = new LinkifyIt();
 let nestedBlockParseDepth = 0;
 type FenceRenderRule = NonNullable<MarkdownIt['renderer']['rules']['fence']>;
 
 export function extendMarkdownIt(md: MarkdownIt): MarkdownIt {
-	md.options.linkify = true;
 	md.use(taskLists, { enabled: false });
 	md.use(definitionList);
 	md.use(footnote);
@@ -29,22 +28,22 @@ export function extendMarkdownIt(md: MarkdownIt): MarkdownIt {
 	});
 	installTomlFrontmatter(md);
 	installColumns(md);
-	installGfmWwwAutolinks(md);
+	installGfmAutolinks(md);
 	installGfmTagFilter(md);
 	installFenceRenderer(md);
 	return md;
 }
 
-function installGfmWwwAutolinks(md: MarkdownIt): void {
+function installGfmAutolinks(md: MarkdownIt): void {
 	md.core.ruler.after(
 		'linkify',
-		'better_markdown_preview_gfm_www_autolink',
+		'better_markdown_preview_gfm_autolink',
 		(state) => {
 			for (const blockToken of state.tokens) {
 				if (
 					blockToken.type !== 'inline' ||
 					!blockToken.children ||
-					!gfmWwwLinkifier.pretest(blockToken.content)
+					!gfmLinkifier.pretest(blockToken.content)
 				) {
 					continue;
 				}
@@ -74,8 +73,16 @@ function installGfmWwwAutolinks(md: MarkdownIt): void {
 					if (htmlLinkLevel > 0 || current.type !== 'text') {
 						continue;
 					}
-					let matches = (gfmWwwLinkifier.match(current.content) ?? []).filter(
-						(match) => match.schema === '' && /^www\./i.test(match.raw),
+					let matches = (gfmLinkifier.match(current.content) ?? []).filter(
+						(match) => {
+							const schema = match.schema.toLowerCase();
+							return (
+								schema === 'http:' ||
+								schema === 'https:' ||
+								schema === 'mailto:' ||
+								(schema === '' && /^www\./i.test(match.raw))
+							);
+						},
 					);
 					if (
 						matches[0]?.index === 0 &&
@@ -109,9 +116,20 @@ function installGfmWwwAutolinks(md: MarkdownIt): void {
 						open.info = 'auto';
 						replacement.push(open);
 						const text = new state.Token('text', '', 0);
-						text.content = state.md
-							.normalizeLinkText(`http://${match.text}`)
-							.replace(/^http:\/\//, '');
+						if (match.schema === '') {
+							text.content = state.md
+								.normalizeLinkText(`http://${match.text}`)
+								.replace(/^http:\/\//, '');
+						} else if (
+							match.schema.toLowerCase() === 'mailto:' &&
+							!/^mailto:/i.test(match.text)
+						) {
+							text.content = state.md
+								.normalizeLinkText(`mailto:${match.text}`)
+								.replace(/^mailto:/, '');
+						} else {
+							text.content = state.md.normalizeLinkText(match.text);
+						}
 						text.level = level;
 						replacement.push(text);
 						const close = new state.Token('link_close', 'a', -1);
@@ -140,7 +158,7 @@ function installGfmWwwAutolinks(md: MarkdownIt): void {
 
 function installGfmTagFilter(md: MarkdownIt): void {
 	md.core.ruler.after(
-		'better_markdown_preview_gfm_www_autolink',
+		'better_markdown_preview_gfm_autolink',
 		'better_markdown_preview_tagfilter',
 		(state) => {
 			const visit = (tokens: Token[]): void => {
@@ -378,9 +396,14 @@ function parseColumns(
 				return undefined;
 			}
 			const childClose = colonClose.exec(child);
-			if (childClose && childClose[1].length === delimiter.length) {
-				closeLine = childLine;
-				break;
+			if (childClose) {
+				if (childClose[1].length === outerLength) {
+					return undefined;
+				}
+				if (childClose[1].length === delimiter.length) {
+					closeLine = childLine;
+					break;
+				}
 			}
 		}
 		if (closeLine < 0) {

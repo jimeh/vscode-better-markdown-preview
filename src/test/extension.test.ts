@@ -24,11 +24,12 @@ suite('Better Markdown Preview extension', () => {
 		const markdown = api.extendMarkdownIt(
 			new MarkdownIt({ html: true, linkify: false }),
 		);
-		assert.strictEqual(markdown.options.linkify, true);
 		const html = markdown.render(
-			'- [x] native preview extension\n\nhttps://example.com\n',
+			'- [x] native preview extension\n\nhttps://example.com dev@example.com www.example.com\n',
 		);
 		assert.match(html, /task-list-item/);
 		assert.match(html, /href="https:\/\/example\.com"/);
+		assert.match(html, /href="mailto:dev@example\.com"/);
+		assert.match(html, /href="http:\/\/www\.example\.com"/);
 	});
 });

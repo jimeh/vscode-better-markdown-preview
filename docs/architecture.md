@@ -15,11 +15,11 @@ the native renderer itself.
 ## Rendering Boundary
 
 `src/markdown/compose.ts` installs standard Markdown-It plugins for task lists,
-definition lists, footnotes, and GitHub alerts. It enables Markdown-It's native
-linkify rule even when the preview setting disabled it, preserving native
-scheme and email handling. VS Code disables fuzzy links on the supplied
-linkifier, so a narrow `linkify-it` pass adds only GFM `www.` literals while
-retaining native normalization, validation, nesting, and HTML-anchor guards.
+definition lists, footnotes, and GitHub alerts. Markdown-It's native linkify
+rule runs first when enabled. A narrow post-native `linkify-it` pass fills
+missing GFM HTTP, HTTPS, email, and `www.` literals independently of that
+setting, while filtering bare domains and other schemes and retaining native
+normalization, validation, nesting, and HTML-anchor guards.
 VS Code 1.125 collapses some backslash-escaped punctuation before contributed
 core rules run, so an escaped `www\.` is indistinguishable from authored
 `www.` at this boundary. Local rules cover GFM tag filtering, TOML

@@ -21,6 +21,35 @@ describe('Markdown composition', () => {
 		expect(html).not.toContain('<script>');
 	});
 
+	test('fills all GFM literal autolinks when native linkify is disabled', () => {
+		const md = new MarkdownIt({ html: true, linkify: false });
+		extendMarkdownIt(md);
+		md.options.linkify = false;
+		const html = md.render(
+			'https://example.com/a_(b) http://plain.example dev@example.com www.example.com ftp://excluded.example example.com\n',
+		);
+		expect(html).toContain('href="https://example.com/a_(b)"');
+		expect(html).toContain('href="http://plain.example"');
+		expect(html).toContain('href="mailto:dev@example.com"');
+		expect(html).toContain('href="http://www.example.com"');
+		expect(html).not.toContain('href="ftp://excluded.example"');
+		expect(html).not.toContain('href="http://example.com"');
+	});
+
+	test('does not duplicate GFM literal autolinks when native linkify is enabled', () => {
+		const html = render(
+			'https://example.com dev@example.com www.example.com\n',
+			(md) => {
+				md.options.linkify = true;
+				md.linkify.set({ fuzzyLink: false });
+			},
+		);
+		expect(html.match(/<a /g)).toHaveLength(3);
+		expect(html.match(/href="https:\/\/example\.com"/g)).toHaveLength(1);
+		expect(html.match(/href="mailto:dev@example\.com"/g)).toHaveLength(1);
+		expect(html.match(/href="http:\/\/www\.example\.com"/g)).toHaveLength(1);
+	});
+
 	test('normalizes autolinks and leaves validator-rejected protocols literal', () => {
 		expect(render('Visit https://münich.example/path.\n')).toContain(
 			'href="https://xn--mnich-kva.example/path"',
@@ -49,7 +78,7 @@ describe('Markdown composition', () => {
 		expect(html.match(/<a /g)).toHaveLength(2);
 	});
 
-	test('adds only GFM www literals when VS Code disables fuzzy links', () => {
+	test('preserves GFM boundaries when VS Code disables fuzzy links', () => {
 		const html = render(
 			'www.example.com www.münich.com https://scheme.example dev@example.com example.com www\\.escaped.com [www.linked.com](https://target.example)\n\n<a href="/raw">www.inside.com</a>\n',
 			(md) => md.linkify.set({ fuzzyLink: false }),
@@ -155,6 +184,7 @@ describe('Markdown composition', () => {
 			':::: {.columns}\n::: {.column width=0%}\nA\n:::\n::: {.column}\nB\n:::\n::::\n',
 			':::: {.columns}\n::: {.column nope=yes}\nA\n:::\n::: {.column}\nB\n:::\n::::\n',
 			':::: {.columns}\n::: {.column}\n::: {.column}\nNested\n:::\n:::\n::: {.column}\nB\n:::\n::::\n',
+			':::: {.columns}\n::: {.column}\nA\n:::: \nStill A\n:::\n::: {.column}\nB\n:::\n::::\n',
 		]) {
 			expect(render(malformed)).not.toContain(
 				'better-markdown-preview-columns',

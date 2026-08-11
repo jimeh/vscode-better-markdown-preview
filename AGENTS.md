@@ -45,8 +45,9 @@ Better Markdown Preview extends VS Code's built-in Markdown preview. Read
   container-looking lines inside backtick or tilde fences are code, not nested
   column syntax.
 - VS Code 1.125 configures its supplied Markdown-It's linkifier with
-  `fuzzyLink: false`; enabling the native linkify rule covers schemes and email,
-  but GFM `www.` literals need the extension's narrow linkify pass.
+  `fuzzyLink: false` and reapplies per-render options after contributed plugins.
+  The extension's narrow post-native pass must therefore fill missing GFM HTTP,
+  HTTPS, email, and `www.` literals without mutating `md.options.linkify`.
 - VS Code 1.125 collapses backslash-escaped punctuation into plain inline text
   before contributed core rules run. When the resulting token is identical to
   authored text (for example `www\.example.com` versus `www.example.com`), do

@@ -33,8 +33,9 @@ preview across light, dark, and high-contrast themes. Record manual or visual
 evidence when automated assertions would not meaningfully prove the result.
 
 The parser suite lives beside `src/markdown/compose.ts`; its GFM boundary cases
-also reproduce VS Code's `fuzzyLink: false` configuration. The DOM suite uses a
-controlled browser DOM and Mermaid adapter to cover conditional loading,
+cover native linkification both enabled and disabled, including VS Code's
+`fuzzyLink: false` configuration. The DOM suite uses a controlled browser DOM
+and Mermaid adapter to cover conditional loading,
 failure fallback, theme rerender, reused Mermaid blocks, body replacement, TOC
 focus behavior, and source-preserving code presentation. These focused suites
 do not replace the real Extension Host activation test or runtime presentation
