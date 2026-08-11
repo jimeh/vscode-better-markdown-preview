@@ -1,0 +1,20 @@
+{
+	"config": {
+		"MD012": {
+			"maximum": 2,
+		},
+		"MD013": false,
+		"MD024": {
+			"siblings_only": true,
+		},
+	},
+	"globs": ["**/*.md"],
+	"ignores": [
+		".vscode-test/**",
+		"CLAUDE.md",
+		"artifacts/**",
+		"dist/**",
+		"node_modules/**",
+		"out/**",
+	],
+}
