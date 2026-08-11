@@ -77,9 +77,10 @@
 
 .better-markdown-preview-toc a:hover,
 .better-markdown-preview-toc-dialog a:hover,
-.better-markdown-preview-toc-active {
-	border-left-color: var(--vscode-focusBorder) !important;
-	color: var(--vscode-textLink-activeForeground) !important;
+.better-markdown-preview-toc a.better-markdown-preview-toc-active,
+.better-markdown-preview-toc-dialog a.better-markdown-preview-toc-active {
+	border-left-color: var(--vscode-focusBorder);
+	color: var(--vscode-textLink-activeForeground);
 }
 
 .better-markdown-preview-toc-trigger {
@@ -159,7 +160,7 @@
 .better-markdown-preview-alert {
 	margin: 1rem 0;
 	padding: 0.75rem 1rem;
-	border: 1px solid currentColor;
+	border: 1px solid currentcolor;
 	border-left-width: 0.25rem;
 	border-radius: 0.35rem;
 }
