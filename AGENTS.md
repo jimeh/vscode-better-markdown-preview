@@ -1,0 +1,55 @@
+# Better Markdown Preview Agent Guide
+
+## Start Here
+
+Better Markdown Preview extends VS Code's built-in Markdown preview. Read
+`docs/architecture.md` before changing extension boundaries and
+`docs/testing.md` before choosing validation.
+
+## Project Map
+
+- `src/extension.ts`: shared, browser-safe extension lifecycle entry point.
+- `src/test/`: tests executed in a real VS Code Extension Host.
+- `test/`: fast manifest and packaged-artifact contract tests.
+- `scripts/`: small cross-platform harness helpers.
+- `docs/plans/`: accepted implementation contracts; do not treat them as
+  proof that later phases shipped.
+- `esbuild.js`: paired desktop and web bundles.
+- `mise.toml`: canonical tool versions and task surface.
+
+## Working Rules
+
+- Use pnpm, not npm or yarn. Keep `pnpm-lock.yaml` authoritative and install
+  with `--frozen-lockfile` outside intentional dependency updates.
+- Keep extension code browser-safe unless desktop and web entry points are
+  deliberately split. Building both targets is an architectural check.
+- Treat `package.json` contribution points as public product behavior. Update
+  manifest tests whenever contributions change intentionally.
+- Keep preview enhancements inside VS Code's supported Markdown extension
+  hooks; do not replace the built-in preview with a custom webview.
+- Generated output belongs in `dist/`, `out/`, `artifacts/`, or `.vscode-test/`
+  and must stay untracked.
+- `.vscode-test/` contains a complete downloaded VS Code distribution, including
+  its own tool configs. Keep it excluded from repository-wide format and lint
+  discovery.
+- Use `mise run check` during implementation and `mise run verify` on the
+  intended final head. Run focused tasks while iterating.
+
+## Dependencies and Automation
+
+New package releases cool down for seven days before pnpm resolves them. For an
+urgent reviewed security fix, add only the exact package to
+`minimumReleaseAgeExclude` in `pnpm-workspace.yaml`, update the lockfile, and
+remove the exception once the release ages in.
+
+Dependency install scripts are denied unless `allowBuilds` grants the package
+explicitly. Pnpm may add placeholder decisions for newly encountered build
+scripts; replace each placeholder with a reviewed boolean before handoff.
+
+VSCE normalizes packaged README and changelog paths to lowercase and renames the
+license to `LICENSE.txt`. Package-content assertions should target the archive's
+normalized names, not the source filenames.
+
+GitHub Actions must declare restricted permissions and pin every action to a
+full commit SHA. `mise run ci:workflows` enforces syntax, security posture, and
+pin freshness.

@@ -1,0 +1,95 @@
+[settings]
+minimum_release_age = "7d"
+
+[tools]
+actionlint = "1.7.12"
+node = "24.18.0"
+pinact = "4.1.0"
+pnpm = "11.18.0"
+taplo = "0.10.0"
+zizmor = "1.29.0"
+
+[tasks.setup]
+description = "Install pinned tools and locked dependencies"
+run = ["mise install", "pnpm install --frozen-lockfile"]
+
+[tasks.dev]
+description = "Watch desktop and web extension builds"
+run = "pnpm run watch"
+
+[tasks.build]
+description = "Build production desktop and web extension bundles"
+run = "pnpm run build"
+
+[tasks.format]
+description = "Format source, configuration, and documentation"
+run = ["pnpm run format", "taplo format mise.toml"]
+
+[tasks."format:check"]
+description = "Check source, configuration, and documentation formatting"
+run = ["pnpm run format:check", "taplo format --check mise.toml"]
+
+[tasks.lint]
+description = "Run static analysis"
+run = "pnpm run lint"
+
+[tasks."lint:fix"]
+description = "Apply safe static-analysis fixes"
+run = "pnpm run lint:fix"
+
+[tasks.typecheck]
+description = "Check TypeScript types without emitting files"
+run = "pnpm run typecheck"
+
+[tasks.check]
+description = "Run the fast local handoff gate"
+run = [
+  "mise run format:check",
+  "mise run lint",
+  "mise run typecheck",
+  "mise run test",
+]
+
+[tasks.test]
+description = "Run fast unit and manifest contract tests"
+run = "pnpm test"
+
+[tasks."test:extension"]
+description = "Build and run the Extension Host activation smoke test"
+run = "pnpm run test:extension"
+
+[tasks.package]
+description = "Build a VSIX in artifacts/"
+run = "pnpm run package"
+
+[tasks."package:validate"]
+description = "Package and inspect the VSIX contents"
+run = ["mise run package", "pnpm run test:package"]
+
+[tasks."ci:workflows"]
+description = "Check workflow syntax, security, and action pins"
+run = ["actionlint", "zizmor --offline .", "pinact run --check"]
+
+[tasks.verify]
+description = "Run the intended-final-head local validation gate"
+run = [
+  "mise run check",
+  "mise run test:extension",
+  "mise run package:validate",
+  "mise run ci:workflows",
+]
+
+[tasks.doctor]
+description = "Report pinned development tool versions"
+run = [
+  "node --version",
+  "pnpm --version",
+  "actionlint -version",
+  "pinact --version",
+  "taplo --version",
+  "zizmor --version",
+]
+
+[tasks.clean]
+description = "Remove generated build, test, and package output"
+run = "node scripts/clean.mjs"
