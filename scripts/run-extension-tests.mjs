@@ -1,14 +1,17 @@
 import { spawn } from 'node:child_process';
-import { pnpmCommand } from './lib/commands.mjs';
+import { pnpmInvocation } from './lib/commands.mjs';
 
 const needsVirtualDisplay =
 	process.platform === 'linux' && !process.env.DISPLAY;
-const command = needsVirtualDisplay ? 'xvfb-run' : pnpmCommand();
-const args = needsVirtualDisplay
-	? ['-a', 'pnpm', 'exec', 'vscode-test']
-	: ['exec', 'vscode-test'];
+const invocation = needsVirtualDisplay
+	? {
+			command: 'xvfb-run',
+			args: ['-a', 'pnpm', 'exec', 'vscode-test'],
+			options: { stdio: 'inherit' },
+		}
+	: pnpmInvocation(['exec', 'vscode-test']);
 
-const child = spawn(command, args, { stdio: 'inherit' });
+const child = spawn(invocation.command, invocation.args, invocation.options);
 
 child.on('error', (error) => {
 	console.error(`Failed to start Extension Host tests: ${error.message}`);

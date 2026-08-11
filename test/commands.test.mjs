@@ -1,9 +1,32 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { pnpmCommand } from '../scripts/lib/commands.mjs';
+import { pnpmInvocation } from '../scripts/lib/commands.mjs';
 
-test('pnpm command selection uses the Windows command shim only on Windows', () => {
-	assert.equal(pnpmCommand('win32'), 'pnpm.cmd');
-	assert.equal(pnpmCommand('darwin'), 'pnpm');
-	assert.equal(pnpmCommand('linux'), 'pnpm');
+test('pnpm invocation enables the shell only on Windows', () => {
+	const args = ['exec', 'vscode-test'];
+
+	assert.deepEqual(pnpmInvocation(args, 'win32'), {
+		command: 'pnpm',
+		args,
+		options: {
+			shell: true,
+			stdio: 'inherit',
+		},
+	});
+	assert.deepEqual(pnpmInvocation(args, 'darwin'), {
+		command: 'pnpm',
+		args,
+		options: {
+			shell: false,
+			stdio: 'inherit',
+		},
+	});
+	assert.deepEqual(pnpmInvocation(args, 'linux'), {
+		command: 'pnpm',
+		args,
+		options: {
+			shell: false,
+			stdio: 'inherit',
+		},
+	});
 });

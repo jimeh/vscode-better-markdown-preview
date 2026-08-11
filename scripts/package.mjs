@@ -1,21 +1,18 @@
 import { mkdir } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
-import { pnpmCommand } from './lib/commands.mjs';
+import { pnpmInvocation } from './lib/commands.mjs';
 
 await mkdir('artifacts', { recursive: true });
 
-const child = spawn(
-	pnpmCommand(),
-	[
-		'exec',
-		'vsce',
-		'package',
-		'--no-dependencies',
-		'--out',
-		'artifacts/better-markdown-preview.vsix',
-	],
-	{ stdio: 'inherit' },
-);
+const invocation = pnpmInvocation([
+	'exec',
+	'vsce',
+	'package',
+	'--no-dependencies',
+	'--out',
+	'artifacts/better-markdown-preview.vsix',
+]);
+const child = spawn(invocation.command, invocation.args, invocation.options);
 
 child.on('error', (error) => {
 	console.error(`Failed to package extension: ${error.message}`);

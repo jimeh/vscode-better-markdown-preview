@@ -7,52 +7,23 @@ const archiveUrl = new URL(
 	'../artifacts/better-markdown-preview.vsix',
 	import.meta.url,
 );
+const expectedEntries = [
+	'[Content_Types].xml',
+	'extension.vsixmanifest',
+	'extension/LICENSE.txt',
+	'extension/changelog.md',
+	'extension/dist/node/extension.js',
+	'extension/dist/web/extension.js',
+	'extension/package.json',
+	'extension/readme.md',
+].sort();
 
-test('VSIX contains both runtime bundles and excludes development files', async () => {
+test('VSIX contains exactly the expected runtime archive', async () => {
 	const archive = unzipSync(new Uint8Array(await readFile(archiveUrl)));
-	const entries = new Set(Object.keys(archive));
-	const requiredFiles = [
-		'extension/LICENSE.txt',
-		'extension/changelog.md',
-		'extension/dist/node/extension.js',
-		'extension/dist/web/extension.js',
-		'extension/package.json',
-		'extension/readme.md',
-	];
 
-	for (const file of requiredFiles) {
-		assert.ok(entries.has(file), `expected ${file} in the VSIX`);
+	assert.deepEqual(Object.keys(archive).sort(), expectedEntries);
+	for (const file of expectedEntries) {
 		assert.ok(archive[file].byteLength > 0, `expected ${file} to be non-empty`);
-	}
-
-	const forbiddenPrefixes = [
-		'extension/.github/',
-		'extension/.vscode/',
-		'extension/docs/',
-		'extension/scripts/',
-		'extension/src/',
-		'extension/test/',
-	];
-	const forbiddenFiles = [
-		'extension/.markdownlint-cli2.jsonc',
-		'extension/AGENTS.md',
-		'extension/CLAUDE.md',
-		'extension/esbuild.js',
-		'extension/mise.toml',
-		'extension/pnpm-lock.yaml',
-		'extension/pnpm-workspace.yaml',
-		'extension/tsconfig.json',
-	];
-
-	for (const entry of entries) {
-		assert.ok(
-			!forbiddenPrefixes.some((prefix) => entry.startsWith(prefix)),
-			`did not expect development path ${entry} in the VSIX`,
-		);
-	}
-
-	for (const file of forbiddenFiles) {
-		assert.ok(!entries.has(file), `did not expect ${file} in the VSIX`);
 	}
 
 	const packagedManifest = JSON.parse(

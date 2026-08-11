@@ -1,3 +1,10 @@
-export function pnpmCommand(platform = process.platform) {
-	return platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+export function pnpmInvocation(args, platform = process.platform) {
+	return {
+		command: 'pnpm',
+		args,
+		options: {
+			shell: platform === 'win32',
+			stdio: 'inherit',
+		},
+	};
 }

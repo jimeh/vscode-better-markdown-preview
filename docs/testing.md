@@ -7,9 +7,9 @@ Use the narrowest task that proves the behavior under development:
 - `mise run test` checks fast manifest contracts.
 - `mise run build` compiles production desktop and web bundles.
 - `mise run test:extension` compiles tests, builds both targets, and runs the
-  named activation smoke test in a VS Code Extension Host.
-- `mise run package:validate` produces a VSIX and asserts its runtime contents
-  and development-file exclusions.
+  named activation smoke test on the declared VS Code engine floor.
+- `mise run package:validate` produces a VSIX and asserts its exact runtime
+  contents.
 - `mise run ci:workflows` validates workflow syntax, security, and action pins.
 
 `mise run check` is the fast handoff gate. `mise run verify` runs all of the
@@ -17,7 +17,7 @@ above sequentially and is the local gate for an intended final revision.
 
 On a headless Linux host, the Extension Host helper uses `xvfb-run`; on macOS,
 Windows, or a Linux desktop it launches the test CLI directly. The first run
-may download the VS Code test runtime into `.vscode-test/`.
+may download VS Code 1.125.0 into `.vscode-test/`.
 
 ## Adding Behavior
 

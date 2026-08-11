@@ -4,5 +4,8 @@ allowBuilds:
   keytar: false
 enablePrePostScripts: true
 minimumReleaseAge: 10080
+overrides:
+  diff: ^8.0.4
+  serialize-javascript: ^7.0.6
 saveExact: true
 strictPeerDependencies: true
