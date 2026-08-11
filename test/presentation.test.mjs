@@ -31,3 +31,18 @@ test('task lists and rich code lines preserve the owned layout contract', () => 
 	);
 	assert.match(css, /@media \(max-width: 82rem\)/);
 });
+
+test('explicit and implicit columns retain distinct Airplan flex semantics', () => {
+	assert.match(css, /\.better-markdown-preview-column \{[\s\S]*?flex: 1 1 0;/);
+	assert.match(
+		css,
+		/\.better-markdown-preview-column\[data-bmp-column-width\] \{[\s\S]*?flex: 0 1 var\(--bmp-column-width\);/,
+	);
+});
+
+test('wide tables use the Airplan overflow contract', () => {
+	assert.match(
+		css,
+		/\.markdown-body table \{[\s\S]*?display: block;[\s\S]*?width: max-content;[\s\S]*?max-width: 100%;[\s\S]*?overflow-x: auto;/,
+	);
+});

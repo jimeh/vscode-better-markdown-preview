@@ -21,6 +21,60 @@ describe('Markdown composition', () => {
 		expect(html).not.toContain('<script>');
 	});
 
+	test('normalizes autolinks and leaves validator-rejected protocols literal', () => {
+		expect(render('Visit https://münich.example/path.\n')).toContain(
+			'href="https://xn--mnich-kva.example/path"',
+		);
+
+		const rejected = render(
+			'Keep blocked://unsafe.example literal.\n',
+			(md) => {
+				md.linkify.add('blocked:', { validate: /^\/\/[a-z.]+/ });
+				const validateLink = md.validateLink;
+				md.validateLink = (url) =>
+					!url.startsWith('blocked:') && validateLink(url);
+			},
+		);
+		expect(rejected).toContain('blocked://unsafe.example');
+		expect(rejected).not.toContain('<a');
+	});
+
+	test('uses native linkify guards for escapes and existing anchors', () => {
+		const html = render(
+			'Escaped http\\://escaped.example and [existing](https://existing.example).\n\n<a href="/raw">https://inside.example</a>\n',
+		);
+		expect(html).not.toContain('href="http://escaped.example"');
+		expect(html).toContain('href="https://existing.example"');
+		expect(html).toContain('<a href="/raw">https://inside.example</a>');
+		expect(html.match(/<a /g)).toHaveLength(2);
+	});
+
+	test('adds only GFM www literals when VS Code disables fuzzy links', () => {
+		const html = render(
+			'www.example.com www.münich.com https://scheme.example dev@example.com example.com www\\.escaped.com [www.linked.com](https://target.example)\n\n<a href="/raw">www.inside.com</a>\n',
+			(md) => md.linkify.set({ fuzzyLink: false }),
+		);
+		expect(html).toContain('href="http://www.example.com"');
+		expect(html).toContain('href="http://www.xn--mnich-kva.com"');
+		expect(html).toContain('href="https://scheme.example"');
+		expect(html).toContain('href="mailto:dev@example.com"');
+		expect(html).not.toContain('href="http://example.com"');
+		expect(html).not.toContain('href="http://www.escaped.com"');
+		expect(html).toContain(
+			'<a href="https://target.example">www.linked.com</a>',
+		);
+		expect(html).toContain('<a href="/raw">www.inside.com</a>');
+
+		const rejected = render('www.blocked.com\n', (md) => {
+			md.linkify.set({ fuzzyLink: false });
+			const validateLink = md.validateLink;
+			md.validateLink = (url) =>
+				url !== 'http://www.blocked.com' && validateLink(url);
+		});
+		expect(rejected).not.toContain('<a');
+		expect(rejected).toContain('www.blocked.com');
+	});
+
 	test('tag filtering escapes only disallowed tag starts inside mixed HTML blocks', () => {
 		const html = render(
 			'<section>Allowed</section>\n<script>alert(1)</script>\n<span>Still allowed</span>\n',
@@ -69,11 +123,24 @@ describe('Markdown composition', () => {
 		);
 	});
 
+	test('does not recognize TOML frontmatter in nested Markdown parses', () => {
+		for (const nested of [
+			'> +++\n> title = "quote"\n> +++\n',
+			'- +++\n  title = "list"\n  +++\n',
+			':::: {.columns}\n::: {.column}\n+++\ntitle = "column"\n+++\n:::\n::: {.column}\nOther\n:::\n::::\n',
+		]) {
+			expect(render(nested)).not.toContain(
+				'better-markdown-preview-frontmatter',
+			);
+		}
+	});
+
 	test('renders valid columns and leaves malformed structures literal', () => {
 		const validSource =
 			':::: {.columns}\n::: {.column width=40%}\n**Left**\n:::\n::: {.column}\nRight\n:::\n::::\n';
 		const valid = render(validSource);
 		expect(valid).toContain('better-markdown-preview-columns');
+		expect(valid).toContain('data-bmp-column-width="40"');
 		expect(valid).toContain('--bmp-column-width: 40%');
 		expect(valid).toContain('<strong>Left</strong>');
 		const md = new MarkdownIt({ html: true });
@@ -88,8 +155,6 @@ describe('Markdown composition', () => {
 			':::: {.columns}\n::: {.column width=0%}\nA\n:::\n::: {.column}\nB\n:::\n::::\n',
 			':::: {.columns}\n::: {.column nope=yes}\nA\n:::\n::: {.column}\nB\n:::\n::::\n',
 			':::: {.columns}\n::: {.column}\n::: {.column}\nNested\n:::\n:::\n::: {.column}\nB\n:::\n::::\n',
-			':::: {.columns}\n::: {.column}\nA\n::: \n::: {.column}\nB\n:::\n::::\n',
-			':::: {.columns}\n::: {.column}\nA\n:::\n::: {.column}\nB\n:::\n:::: \n',
 		]) {
 			expect(render(malformed)).not.toContain(
 				'better-markdown-preview-columns',
@@ -110,6 +175,17 @@ describe('Markdown composition', () => {
 		).not.toContain('better-markdown-preview-columns');
 	});
 
+	test('accepts spaced closers and ignores container syntax inside code fences', () => {
+		for (const fence of ['```', '~~~']) {
+			const html = render(
+				`:::: {.columns}\n::: {.column width=40%}\n${fence}text\n::: {.column}\n::::\n${fence}\nA\n::: \t\n::: {.column}\nB\n:::  \n::::\t\n`,
+			);
+			expect(html).toContain('better-markdown-preview-columns');
+			expect(html).toContain('<code class="language-text">');
+			expect(html).toContain('::: {.column}');
+		}
+	});
+
 	test('matches only exact lowercase Mermaid fences and escapes fallback source', () => {
 		const html = render('```mermaid\ngraph TD\nA[<unsafe>]-->B\n```\n');
 		expect(html).toContain('data-bmp-mermaid-source');
@@ -127,6 +203,36 @@ describe('Markdown composition', () => {
 		expect(render('```mermaid extra\ngraph TD\n```\n')).not.toContain(
 			'data-bmp-mermaid-source',
 		);
+	});
+
+	test('preserves VS Code source-map attributes on owned block wrappers', () => {
+		const html = render(
+			'+++\ntitle = "Mapped"\n+++\n\n```mermaid\ngraph TD\nA-->B\n```\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n',
+			(md) => {
+				md.core.ruler.push('source_map_like_vscode', (state) => {
+					for (const token of state.tokens) {
+						if (token.map && token.type !== 'inline') {
+							token.attrSet('data-line', String(token.map[0]));
+							token.attrJoin('class', 'code-line');
+							token.attrJoin('dir', 'auto');
+						}
+					}
+				});
+			},
+		);
+		expect(html).toMatch(
+			/<details(?=[^>]*better-markdown-preview-frontmatter)(?=[^>]*data-line="0")[^>]*>/,
+		);
+		expect(html).toMatch(
+			/<pre(?=[^>]*better-markdown-preview-mermaid)(?=[^>]*data-line="4")[^>]*>/,
+		);
+		expect(html).toMatch(
+			/<div(?=[^>]*better-markdown-preview-columns)(?=[^>]*data-line="9")[^>]*>/,
+		);
+		expect(html).toMatch(
+			/<div(?=[^>]*better-markdown-preview-column)(?=[^>]*data-line="10")[^>]*>/,
+		);
+		expect(html).toMatch(/<p[^>]*data-line="11"[^>]*>Left<\/p>/);
 	});
 
 	test('delegates highlighting and wraps recognized rich fence metadata safely', () => {

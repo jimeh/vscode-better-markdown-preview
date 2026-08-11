@@ -15,10 +15,15 @@ the native renderer itself.
 ## Rendering Boundary
 
 `src/markdown/compose.ts` installs standard Markdown-It plugins for task lists,
-definition lists, footnotes, and GitHub alerts. Local rules cover the behaviors
-that are specific to this extension: GFM literal autolinks and tag filtering,
-TOML frontmatter, responsive columns, exact Mermaid fences, and rich fence
-metadata.
+definition lists, footnotes, and GitHub alerts. It enables Markdown-It's native
+linkify rule even when the preview setting disabled it, preserving native
+scheme and email handling. VS Code disables fuzzy links on the supplied
+linkifier, so a narrow `linkify-it` pass adds only GFM `www.` literals while
+retaining native normalization, validation, nesting, and HTML-anchor guards.
+VS Code 1.125 collapses some backslash-escaped punctuation before contributed
+core rules run, so an escaped `www\.` is indistinguishable from authored
+`www.` at this boundary. Local rules cover GFM tag filtering, TOML
+frontmatter, responsive columns, exact Mermaid fences, and rich fence metadata.
 
 Renderer wrappers retain and invoke the rule already installed on the supplied
 Markdown-It instance. In particular, fenced code delegates to VS Code's native
@@ -34,8 +39,8 @@ ordinary Markdown rather than partially transforming a document.
 
 `src/preview/runtime.ts` owns idempotent DOM enhancement. It wraps the existing
 `.markdown-body` in a layout without replacing that element, preserves heading
-and `data-line` nodes, rebuilds the TOC after content replacement, and augments
-rich code blocks while retaining their authored text.
+and `data-line` nodes, rebuilds the TOC after content replacement or body
+retargeting, and augments rich code blocks while retaining their authored text.
 
 `media/preview.css` uses VS Code webview color variables and body theme classes;
 it does not own a light or dark palette. VS Code loads user `markdown.styles`

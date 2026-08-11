@@ -32,12 +32,13 @@ Presentation-only changes should additionally be exercised in a real VS Code
 preview across light, dark, and high-contrast themes. Record manual or visual
 evidence when automated assertions would not meaningfully prove the result.
 
-The parser suite lives beside `src/markdown/compose.ts` and renders with native
-linkification disabled so extension-owned autolinks are explicit. The DOM suite
-uses a controlled browser DOM and Mermaid adapter to cover conditional loading,
-failure fallback, theme rerender, body replacement, TOC focus behavior, and
-source-preserving code presentation. These focused suites do not replace the
-real Extension Host activation test or runtime presentation inspection.
+The parser suite lives beside `src/markdown/compose.ts`; its GFM boundary cases
+also reproduce VS Code's `fuzzyLink: false` configuration. The DOM suite uses a
+controlled browser DOM and Mermaid adapter to cover conditional loading,
+failure fallback, theme rerender, reused Mermaid blocks, body replacement, TOC
+focus behavior, and source-preserving code presentation. These focused suites
+do not replace the real Extension Host activation test or runtime presentation
+inspection.
 
 `test/fixtures/kitchen-sink.md` is the shared manual/runtime document for light,
 dark, high-contrast, wide, and narrow preview checks.

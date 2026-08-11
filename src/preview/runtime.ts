@@ -98,7 +98,9 @@ function createController(
 		}
 		const theme = readTheme(document);
 		for (const block of pending) {
-			if (!mermaidSources.has(block)) {
+			if (block.dataset.bmpMermaidState === 'source') {
+				mermaidSources.set(block, block.textContent ?? '');
+			} else if (!mermaidSources.has(block)) {
 				mermaidSources.set(block, block.textContent ?? '');
 			}
 			const source = mermaidSources.get(block) ?? '';
@@ -148,12 +150,18 @@ function createController(
 		});
 	};
 
+	const containsMarkdownBody = (node: Node): boolean =>
+		node.nodeType === Node.ELEMENT_NODE &&
+		((node as Element).matches('.markdown-body') ||
+			Boolean((node as Element).querySelector('.markdown-body')));
 	const contentObserver = new MutationObserver((mutations) => {
 		if (
 			mutations.some(
 				(mutation) =>
 					mutation.type === 'childList' &&
-					(mutation.target as Element).closest?.('.markdown-body'),
+					(Boolean((mutation.target as Element).closest?.('.markdown-body')) ||
+						Array.from(mutation.addedNodes).some(containsMarkdownBody) ||
+						Array.from(mutation.removedNodes).some(containsMarkdownBody)),
 			)
 		) {
 			schedule();
@@ -171,15 +179,26 @@ function createController(
 
 	const updateActiveHeading = (): void => {
 		scrollFrame = 0;
-		const headings = Array.from(
-			document.querySelectorAll<HTMLElement>(
-				'.markdown-body h1[id], .markdown-body h2[id], .markdown-body h3[id]',
+		const trackedLinks = Array.from(
+			document.querySelectorAll<HTMLAnchorElement>(
+				'[data-bmp-toc] [data-bmp-heading-id]',
 			),
 		);
-		let active = headings[0];
-		for (const heading of headings) {
-			if (heading.getBoundingClientRect().top <= 96) {
-				active = heading;
+		const headings = trackedLinks
+			.map((link) => document.getElementById(link.dataset.bmpHeadingId ?? ''))
+			.filter((heading): heading is HTMLElement => heading !== null);
+		let active: HTMLElement | undefined = headings[0];
+		const scrollHeight = document.documentElement.scrollHeight;
+		const atBottom =
+			scrollHeight > 0 &&
+			Math.ceil(window.scrollY + window.innerHeight) >= scrollHeight;
+		if (atBottom) {
+			active = headings.at(-1);
+		} else {
+			for (const heading of headings) {
+				if (heading.getBoundingClientRect().top <= 96) {
+					active = heading;
+				}
 			}
 		}
 		for (const link of document.querySelectorAll<HTMLAnchorElement>(

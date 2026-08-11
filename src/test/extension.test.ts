@@ -21,9 +21,14 @@ suite('Better Markdown Preview extension', () => {
 		const api = (await extension.activate()) as MarkdownExtensionApi;
 
 		assert.strictEqual(extension.isActive, true);
-		const html = api
-			.extendMarkdownIt(new MarkdownIt({ html: true, linkify: false }))
-			.render('- [x] native preview extension\n');
+		const markdown = api.extendMarkdownIt(
+			new MarkdownIt({ html: true, linkify: false }),
+		);
+		assert.strictEqual(markdown.options.linkify, true);
+		const html = markdown.render(
+			'- [x] native preview extension\n\nhttps://example.com\n',
+		);
 		assert.match(html, /task-list-item/);
+		assert.match(html, /href="https:\/\/example\.com"/);
 	});
 });

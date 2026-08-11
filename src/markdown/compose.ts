@@ -1,5 +1,6 @@
 import type MarkdownIt from 'markdown-it';
 import type Token from 'markdown-it/lib/token.mjs';
+import LinkifyIt from 'linkify-it';
 import definitionList from 'markdown-it-deflist';
 import footnote from 'markdown-it-footnote';
 import githubAlerts from 'markdown-it-github-alerts';
@@ -11,9 +12,13 @@ const blockedGfmTags =
 const columnsOpen = /^(:{4,})[ \t]+\{\.columns\}[ \t]*$/;
 const columnOpen =
 	/^(:{3,})[ \t]+\{\.column(?:[ \t]+width=(?:"((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%"|'((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%'|((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%))?\}[ \t]*$/;
+const colonClose = /^(:{3,})[ \t]*$/;
+const gfmWwwLinkifier = new LinkifyIt().set({ fuzzyEmail: false });
+let nestedBlockParseDepth = 0;
 type FenceRenderRule = NonNullable<MarkdownIt['renderer']['rules']['fence']>;
 
 export function extendMarkdownIt(md: MarkdownIt): MarkdownIt {
+	md.options.linkify = true;
 	md.use(taskLists, { enabled: false });
 	md.use(definitionList);
 	md.use(footnote);
@@ -24,81 +29,118 @@ export function extendMarkdownIt(md: MarkdownIt): MarkdownIt {
 	});
 	installTomlFrontmatter(md);
 	installColumns(md);
-	installGfmAutolinks(md);
+	installGfmWwwAutolinks(md);
 	installGfmTagFilter(md);
 	installFenceRenderer(md);
 	return md;
 }
 
-function installGfmAutolinks(md: MarkdownIt): void {
-	const linkify = md.linkify;
+function installGfmWwwAutolinks(md: MarkdownIt): void {
 	md.core.ruler.after(
-		'inline',
-		'better_markdown_preview_autolinks',
+		'linkify',
+		'better_markdown_preview_gfm_www_autolink',
 		(state) => {
-			for (const block of state.tokens) {
-				if (!block.children) {
+			for (const blockToken of state.tokens) {
+				if (
+					blockToken.type !== 'inline' ||
+					!blockToken.children ||
+					!gfmWwwLinkifier.pretest(blockToken.content)
+				) {
 					continue;
 				}
-				let linkDepth = 0;
-				const children: Token[] = [];
-				for (const child of block.children) {
-					if (child.type === 'link_open') {
-						linkDepth += 1;
+				const tokens = blockToken.children;
+				let htmlLinkLevel = 0;
+				for (let index = tokens.length - 1; index >= 0; index -= 1) {
+					const current = tokens[index];
+					if (current.type === 'link_close') {
+						index -= 1;
+						while (
+							index >= 0 &&
+							(tokens[index].level !== current.level ||
+								tokens[index].type !== 'link_open')
+						) {
+							index -= 1;
+						}
+						continue;
 					}
-					if (child.type !== 'text' || linkDepth > 0) {
-						children.push(child);
-					} else {
-						children.push(...linkifyText(child, state.Token, linkify));
+					if (current.type === 'html_inline') {
+						if (/^<a[>\s]/i.test(current.content) && htmlLinkLevel > 0) {
+							htmlLinkLevel -= 1;
+						}
+						if (/^<\/a\s*>/i.test(current.content)) {
+							htmlLinkLevel += 1;
+						}
 					}
-					if (child.type === 'link_close') {
-						linkDepth -= 1;
+					if (htmlLinkLevel > 0 || current.type !== 'text') {
+						continue;
 					}
+					let matches = (gfmWwwLinkifier.match(current.content) ?? []).filter(
+						(match) => match.schema === '' && /^www\./i.test(match.raw),
+					);
+					if (
+						matches[0]?.index === 0 &&
+						index > 0 &&
+						tokens[index - 1].type === 'text_special'
+					) {
+						matches = matches.slice(1);
+					}
+					if (matches.length === 0) {
+						continue;
+					}
+					const replacement: Token[] = [];
+					let level = current.level;
+					let lastPosition = 0;
+					for (const match of matches) {
+						const url = state.md.normalizeLink(match.url);
+						if (!state.md.validateLink(url)) {
+							continue;
+						}
+						if (match.index > lastPosition) {
+							const text = new state.Token('text', '', 0);
+							text.content = current.content.slice(lastPosition, match.index);
+							text.level = level;
+							replacement.push(text);
+						}
+						const open = new state.Token('link_open', 'a', 1);
+						open.attrs = [['href', url]];
+						open.level = level;
+						level += 1;
+						open.markup = 'linkify';
+						open.info = 'auto';
+						replacement.push(open);
+						const text = new state.Token('text', '', 0);
+						text.content = state.md
+							.normalizeLinkText(`http://${match.text}`)
+							.replace(/^http:\/\//, '');
+						text.level = level;
+						replacement.push(text);
+						const close = new state.Token('link_close', 'a', -1);
+						level -= 1;
+						close.level = level;
+						close.markup = 'linkify';
+						close.info = 'auto';
+						replacement.push(close);
+						lastPosition = match.lastIndex;
+					}
+					if (lastPosition === 0) {
+						continue;
+					}
+					if (lastPosition < current.content.length) {
+						const text = new state.Token('text', '', 0);
+						text.content = current.content.slice(lastPosition);
+						text.level = level;
+						replacement.push(text);
+					}
+					tokens.splice(index, 1, ...replacement);
 				}
-				block.children = children;
 			}
 		},
 	);
 }
 
-function linkifyText(
-	token: Token,
-	TokenConstructor: typeof Token,
-	linkify: MarkdownIt['linkify'],
-): Token[] {
-	const matches = linkify.match(token.content);
-	if (!matches) {
-		return [token];
-	}
-	const output: Token[] = [];
-	let offset = 0;
-	for (const match of matches) {
-		if (match.index > offset) {
-			output.push(
-				textToken(TokenConstructor, token.content.slice(offset, match.index)),
-			);
-		}
-		const open = new TokenConstructor('link_open', 'a', 1);
-		open.attrSet('href', match.url);
-		output.push(open, textToken(TokenConstructor, match.text));
-		output.push(new TokenConstructor('link_close', 'a', -1));
-		offset = match.lastIndex;
-	}
-	if (offset < token.content.length) {
-		output.push(textToken(TokenConstructor, token.content.slice(offset)));
-	}
-	return output;
-}
-
-function textToken(TokenConstructor: typeof Token, content: string): Token {
-	const token = new TokenConstructor('text', '', 0);
-	token.content = content;
-	return token;
-}
-
 function installGfmTagFilter(md: MarkdownIt): void {
 	md.core.ruler.after(
-		'better_markdown_preview_autolinks',
+		'better_markdown_preview_gfm_www_autolink',
 		'better_markdown_preview_tagfilter',
 		(state) => {
 			const visit = (tokens: Token[]): void => {
@@ -121,7 +163,11 @@ function installTomlFrontmatter(md: MarkdownIt): void {
 		'fence',
 		'better_markdown_preview_toml_frontmatter',
 		(state, startLine, endLine, silent) => {
-			if (startLine !== 0) {
+			if (
+				startLine !== 0 ||
+				nestedBlockParseDepth > 0 ||
+				state.parentType !== 'root'
+			) {
 				return false;
 			}
 			const opening = rawLineAt(state, startLine).replace(/^\uFEFF/, '');
@@ -157,13 +203,22 @@ function installTomlFrontmatter(md: MarkdownIt): void {
 			return true;
 		},
 	);
-	md.renderer.rules.better_markdown_preview_frontmatter = (tokens, index) => {
-		const source = md.utils.escapeHtml(tokens[index].content);
-		return `<details class="better-markdown-preview-frontmatter"><summary>Frontmatter</summary><pre>${source}</pre></details>\n`;
+	md.renderer.rules.better_markdown_preview_frontmatter = (
+		tokens,
+		index,
+		_options,
+		_env,
+		renderer,
+	) => {
+		const token = tokens[index];
+		token.attrJoin('class', 'better-markdown-preview-frontmatter');
+		const source = md.utils.escapeHtml(token.content);
+		return `<details${renderer.renderAttrs(token)}><summary>Frontmatter</summary><pre>${source}</pre></details>\n`;
 	};
 }
 
 interface Column {
+	openLine: number;
 	contentStart: number;
 	contentEnd: number;
 	width?: string;
@@ -179,37 +234,25 @@ function installColumns(md: MarkdownIt): void {
 				return false;
 			}
 			const outer = opener[1];
-			let closeLine = -1;
-			for (let line = startLine + 1; line < endLine; line += 1) {
-				if (rawLineAt(state, line) === outer) {
-					closeLine = line;
-					break;
-				}
-			}
-			if (closeLine < 0) {
-				return false;
-			}
-			const columns = parseColumns(
-				state,
-				startLine + 1,
-				closeLine,
-				outer.length,
-			);
-			if (!columns || columns.length < 2) {
+			const parsed = parseColumns(state, startLine + 1, endLine, outer.length);
+			if (!parsed) {
 				return false;
 			}
 			if (silent) {
 				return true;
 			}
-			const open = state.push('html_block', '', 0);
-			open.content = '<div class="better-markdown-preview-columns">\n';
+			const open = state.push('better_markdown_preview_columns_open', 'div', 1);
+			open.block = true;
 			open.map = [startLine, startLine + 1];
-			for (const column of columns) {
-				const style = column.width
-					? ` style="--bmp-column-width: ${column.width}%"`
-					: '';
-				const columnOpen = state.push('html_block', '', 0);
-				columnOpen.content = `<div class="better-markdown-preview-column"${style}>\n`;
+			for (const column of parsed.columns) {
+				const columnOpen = state.push(
+					'better_markdown_preview_column_open',
+					'div',
+					1,
+				);
+				columnOpen.block = true;
+				columnOpen.map = [column.openLine, column.openLine + 1];
+				columnOpen.meta = { width: column.width };
 				const childTokens: Token[] = [];
 				const content = state.getLines(
 					column.contentStart,
@@ -217,7 +260,12 @@ function installColumns(md: MarkdownIt): void {
 					0,
 					false,
 				);
-				state.md.block.parse(content, state.md, state.env, childTokens);
+				nestedBlockParseDepth += 1;
+				try {
+					state.md.block.parse(content, state.md, state.env, childTokens);
+				} finally {
+					nestedBlockParseDepth -= 1;
+				}
 				for (const child of childTokens) {
 					if (child.map) {
 						child.map = child.map.map((line) => line + column.contentStart) as [
@@ -227,16 +275,49 @@ function installColumns(md: MarkdownIt): void {
 					}
 					state.tokens.push(child);
 				}
-				const columnClose = state.push('html_block', '', 0);
-				columnClose.content = '</div>\n';
+				state.push('better_markdown_preview_column_close', 'div', -1).block =
+					true;
 			}
-			const close = state.push('html_block', '', 0);
-			close.content = '</div>\n';
-			close.map = [closeLine, closeLine + 1];
-			state.line = closeLine + 1;
+			state.push('better_markdown_preview_columns_close', 'div', -1).block =
+				true;
+			state.line = parsed.closeLine + 1;
 			return true;
 		},
 	);
+	md.renderer.rules.better_markdown_preview_columns_open = (
+		tokens,
+		index,
+		_options,
+		_env,
+		renderer,
+	) => {
+		const token = tokens[index];
+		token.attrJoin('class', 'better-markdown-preview-columns');
+		return `<div${renderer.renderAttrs(token)}>\n`;
+	};
+	md.renderer.rules.better_markdown_preview_columns_close = () => '</div>\n';
+	md.renderer.rules.better_markdown_preview_column_open = (
+		tokens,
+		index,
+		_options,
+		_env,
+		renderer,
+	) => {
+		const token = tokens[index];
+		const width = (token.meta as { width?: string } | null)?.width;
+		token.attrJoin('class', 'better-markdown-preview-column');
+		if (width) {
+			token.attrSet('data-bmp-column-width', width);
+			token.attrSet('style', `--bmp-column-width: ${width}%`);
+		}
+		return `<div${renderer.renderAttrs(token)}>\n`;
+	};
+	md.renderer.rules.better_markdown_preview_column_close = () => '</div>\n';
+}
+
+interface ParsedColumns {
+	columns: Column[];
+	closeLine: number;
 }
 
 function parseColumns(
@@ -244,15 +325,20 @@ function parseColumns(
 	startLine: number,
 	endLine: number,
 	outerLength: number,
-): Column[] | undefined {
+): ParsedColumns | undefined {
 	const columns: Column[] = [];
 	let line = startLine;
 	while (line < endLine) {
-		if (/^[ \t]*$/.test(rawLineAt(state, line))) {
+		const rawLine = rawLineAt(state, line);
+		if (/^[ \t]*$/.test(rawLine)) {
 			line += 1;
 			continue;
 		}
-		const opening = columnOpen.exec(rawLineAt(state, line));
+		const outerClose = colonClose.exec(rawLine);
+		if (outerClose && outerClose[1].length === outerLength) {
+			return columns.length >= 2 ? { columns, closeLine: line } : undefined;
+		}
+		const opening = columnOpen.exec(rawLine);
 		if (!opening || opening[1].length >= outerLength) {
 			return undefined;
 		}
@@ -266,12 +352,33 @@ function parseColumns(
 		}
 		const delimiter = opening[1];
 		let closeLine = -1;
+		let fenceCharacter: '`' | '~' | undefined;
+		let fenceLength = 0;
 		for (let childLine = line + 1; childLine < endLine; childLine += 1) {
 			const child = rawLineAt(state, childLine);
+			const fence = markdownFence(child.replace(/^[ \t]+/, ''));
+			if (fence) {
+				if (!fenceCharacter) {
+					fenceCharacter = fence.character;
+					fenceLength = fence.length;
+				} else if (
+					fence.character === fenceCharacter &&
+					fence.length >= fenceLength &&
+					fence.remainder.trim() === ''
+				) {
+					fenceCharacter = undefined;
+					fenceLength = 0;
+				}
+				continue;
+			}
+			if (fenceCharacter) {
+				continue;
+			}
 			if (columnsOpen.test(child) || columnOpen.test(child)) {
 				return undefined;
 			}
-			if (child === delimiter) {
+			const childClose = colonClose.exec(child);
+			if (childClose && childClose[1].length === delimiter.length) {
 				closeLine = childLine;
 				break;
 			}
@@ -279,10 +386,31 @@ function parseColumns(
 		if (closeLine < 0) {
 			return undefined;
 		}
-		columns.push({ contentStart: line + 1, contentEnd: closeLine, width });
+		columns.push({
+			openLine: line,
+			contentStart: line + 1,
+			contentEnd: closeLine,
+			width,
+		});
 		line = closeLine + 1;
 	}
-	return columns;
+	return undefined;
+}
+
+function markdownFence(
+	line: string,
+): { character: '`' | '~'; length: number; remainder: string } | undefined {
+	const character = line[0];
+	if (character !== '`' && character !== '~') {
+		return undefined;
+	}
+	let length = 0;
+	while (line[length] === character) {
+		length += 1;
+	}
+	return length >= 3
+		? { character, length, remainder: line.slice(length) }
+		: undefined;
 }
 
 function rawLineAt(
@@ -305,7 +433,10 @@ function installFenceRenderer(md: MarkdownIt): void {
 	md.renderer.rules.fence = (tokens, index, options, env, renderer) => {
 		const token = tokens[index];
 		if (token.info === 'mermaid') {
-			return `<pre class="better-markdown-preview-mermaid" data-bmp-mermaid-source data-bmp-mermaid-state="source">${md.utils.escapeHtml(token.content)}</pre>\n`;
+			token.attrJoin('class', 'better-markdown-preview-mermaid');
+			token.attrSet('data-bmp-mermaid-source', '');
+			token.attrSet('data-bmp-mermaid-state', 'source');
+			return `<pre${renderer.renderAttrs(token)}>${md.utils.escapeHtml(token.content)}</pre>\n`;
 		}
 		const metadata = parseFenceMetadata(token.info);
 		const annotations = parseDiffAnnotations(token.content);

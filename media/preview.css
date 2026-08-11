@@ -147,9 +147,13 @@
 }
 
 .better-markdown-preview-column {
-	flex: 1 1 var(--bmp-column-width, 0);
+	flex: 1 1 0;
 	min-width: 0;
 	overflow-wrap: anywhere;
+}
+
+.better-markdown-preview-column[data-bmp-column-width] {
+	flex: 0 1 var(--bmp-column-width);
 }
 
 .better-markdown-preview-alert {
@@ -301,7 +305,13 @@
 	height: auto;
 }
 
-.markdown-body table,
+.markdown-body table {
+	display: block;
+	width: max-content;
+	max-width: 100%;
+	overflow-x: auto;
+}
+
 .markdown-body pre {
 	max-width: 100%;
 	overflow: auto;

@@ -113,6 +113,50 @@ describe('preview runtime', () => {
 		controller.dispose();
 	});
 
+	test('selects the first visible TOC link above the first section after a leading title', async () => {
+		setDocument(
+			'<h1 id="title">Title</h1><h2 id="one">One</h2><h2 id="two">Two</h2>',
+		);
+		const headings = document.querySelectorAll<HTMLElement>('h1, h2');
+		vi.spyOn(headings[0], 'getBoundingClientRect').mockReturnValue({
+			top: -10,
+		} as DOMRect);
+		vi.spyOn(headings[1], 'getBoundingClientRect').mockReturnValue({
+			top: 300,
+		} as DOMRect);
+		vi.spyOn(headings[2], 'getBoundingClientRect').mockReturnValue({
+			top: 600,
+		} as DOMRect);
+		const controller = enhancePreview(document);
+		await controller.ready;
+		const current = document
+			.querySelector('[data-bmp-heading-id="one"]')
+			?.getAttribute('aria-current');
+		controller.dispose();
+		expect(current).toBe('location');
+	});
+
+	test('selects the final TOC link at the document bottom', async () => {
+		setDocument('<h2 id="one">One</h2><h2 id="two">Two</h2>');
+		for (const heading of document.querySelectorAll<HTMLElement>('h2')) {
+			vi.spyOn(heading, 'getBoundingClientRect').mockReturnValue({
+				top: 300,
+			} as DOMRect);
+		}
+		vi.spyOn(window, 'scrollY', 'get').mockReturnValue(900);
+		vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(100);
+		vi.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(
+			1000,
+		);
+		const controller = enhancePreview(document);
+		await controller.ready;
+		const current = document
+			.querySelector('[data-bmp-heading-id="two"]')
+			?.getAttribute('aria-current');
+		controller.dispose();
+		expect(current).toBe('location');
+	});
+
 	test('re-enhances replaced body content without duplicate controls', async () => {
 		setDocument('<h2 id="one">One</h2><h2 id="two">Two</h2>');
 		const controller = enhancePreview(document);
@@ -136,6 +180,25 @@ describe('preview runtime', () => {
 				.querySelector('[data-bmp-heading-id="three"]')
 				?.getAttribute('aria-current'),
 		).toBe('location');
+		controller.dispose();
+	});
+
+	test('retargets when VS Code replaces the markdown body element', async () => {
+		setDocument('<h2 id="one">One</h2><h2 id="two">Two</h2>');
+		const controller = enhancePreview(document);
+		await controller.ready;
+		const oldBody = document.querySelector<HTMLElement>('.markdown-body')!;
+		const newBody = document.createElement('div');
+		newBody.className = 'markdown-body';
+		newBody.innerHTML = '<h2 id="three">Three</h2><h2 id="four">Four</h2>';
+		oldBody.replaceWith(newBody);
+		await vi.waitFor(() =>
+			expect(document.querySelector('[data-bmp-toc]')?.textContent).toContain(
+				'Four',
+			),
+		);
+		expect(document.querySelectorAll('[data-bmp-toc]')).toHaveLength(1);
+		expect(newBody.closest('[data-bmp-layout]')).not.toBeNull();
 		controller.dispose();
 	});
 
@@ -214,6 +277,35 @@ describe('preview runtime', () => {
 		finishFirst?.();
 		await controller.ready;
 		await vi.waitFor(() => expect(render).toHaveBeenCalledTimes(2));
+		controller.dispose();
+	});
+
+	test('recaches Mermaid source when VS Code reuses a block for an edit', async () => {
+		setDocument(
+			'<pre data-bmp-mermaid-source data-bmp-mermaid-state="source">graph TD\nA--&gt;B</pre>',
+		);
+		const sources: string[] = [];
+		const render = vi.fn(async (element: HTMLElement, source: string) => {
+			sources.push(source);
+			element.innerHTML = '<svg aria-label="diagram"></svg>';
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await controller.ready;
+		const block = document.querySelector<HTMLElement>(
+			'[data-bmp-mermaid-source]',
+		)!;
+		block.dataset.bmpMermaidState = 'source';
+		block.textContent = 'graph TD\nA-->C';
+		await vi.waitFor(() => expect(render).toHaveBeenCalledTimes(2));
+		document.body.classList.add('vscode-dark');
+		await vi.waitFor(() => expect(render).toHaveBeenCalledTimes(3));
+		expect(sources).toEqual([
+			'graph TD\nA-->B',
+			'graph TD\nA-->C',
+			'graph TD\nA-->C',
+		]);
 		controller.dispose();
 	});
 

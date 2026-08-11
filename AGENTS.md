@@ -41,6 +41,24 @@ Better Markdown Preview extends VS Code's built-in Markdown preview. Read
   Markdown alert IDs as custom properties such as
   `--vscode-markdownAlert-note.foreground`; escape the dot in CSS and retain
   the normalized hyphen form as a compatibility fallback.
+- Airplan column closing delimiters allow trailing horizontal whitespace;
+  container-looking lines inside backtick or tilde fences are code, not nested
+  column syntax.
+- VS Code 1.125 configures its supplied Markdown-It's linkifier with
+  `fuzzyLink: false`; enabling the native linkify rule covers schemes and email,
+  but GFM `www.` literals need the extension's narrow linkify pass.
+- VS Code 1.125 collapses backslash-escaped punctuation into plain inline text
+  before contributed core rules run. When the resulting token is identical to
+  authored text (for example `www\.example.com` versus `www.example.com`), do
+  not guess at raw-source offsets in a core rule; preserve source maps and record
+  the native-host limitation instead.
+- VS Code's source-map core rule adds `data-line`, `code-line`, and `dir` attrs
+  to mapped non-inline tokens before rendering. Owned block renderers must emit
+  `renderer.renderAttrs(token)` on the real wrapper; `html_block` attrs otherwise
+  land on a separate empty mapping element.
+- Same-document preview edits can reuse Mermaid `<pre>` nodes, while a preview
+  retarget replaces `.markdown-body` itself. DOM lifecycle code must handle both
+  shapes without retaining stale source or TOC state.
 - Use `mise run check` during implementation and `mise run verify` on the
   intended final head. Run focused tasks while iterating.
 
