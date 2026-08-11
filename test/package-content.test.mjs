@@ -13,6 +13,9 @@ const expectedEntries = [
 	'extension/LICENSE.txt',
 	'extension/changelog.md',
 	'extension/dist/node/extension.js',
+	'extension/dist/preview/mermaid-runtime.js',
+	'extension/dist/preview/preview.css',
+	'extension/dist/preview/preview.js',
 	'extension/dist/web/extension.js',
 	'extension/package.json',
 	'extension/readme.md',
@@ -31,5 +34,14 @@ test('VSIX contains exactly the expected runtime archive', async () => {
 	);
 	assert.equal(packagedManifest.main, './dist/node/extension.js');
 	assert.equal(packagedManifest.browser, './dist/web/extension.js');
-	assert.deepEqual(packagedManifest.contributes, {});
+	assert.deepEqual(packagedManifest.contributes, {
+		'markdown.markdownItPlugins': true,
+		'markdown.previewStyles': ['./dist/preview/preview.css'],
+		'markdown.previewScripts': ['./dist/preview/preview.js'],
+	});
+	assert.ok(
+		archive['extension/dist/preview/mermaid-runtime.js'].byteLength >
+			archive['extension/dist/node/extension.js'].byteLength,
+		'Mermaid stays in its separately loaded preview bundle',
+	);
 });

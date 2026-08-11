@@ -14,11 +14,11 @@ description = "Install pinned tools and locked dependencies"
 run = ["mise install", "pnpm install --frozen-lockfile"]
 
 [tasks.dev]
-description = "Watch desktop and web extension builds"
+description = "Watch extension hosts, preview assets, and TypeScript"
 run = "pnpm run watch"
 
 [tasks.build]
-description = "Build production desktop and web extension bundles"
+description = "Build production Extension Host and preview bundles"
 run = "pnpm run build"
 
 [tasks.format]

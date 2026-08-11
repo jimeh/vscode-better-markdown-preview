@@ -16,5 +16,6 @@
 		"dist/**",
 		"node_modules/**",
 		"out/**",
+		"test/fixtures/**",
 	],
 }
