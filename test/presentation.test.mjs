@@ -20,6 +20,11 @@ test('preview presentation follows native Markdown and alert variables', () => {
 			),
 		);
 	}
+	assert.match(
+		css,
+		/\.better-markdown-preview-alert \{[\s\S]*?border: 0;[\s\S]*?border-left: 3px solid var\(--bmp-alert-color\);[\s\S]*?background: color-mix\([\s\S]*?var\(--vscode-editor-background\)[\s\S]*?var\(--bmp-alert-color\)[\s\S]*?color: var\(--vscode-editor-foreground\);/,
+	);
+	assert.doesNotMatch(css, /border: 1px solid currentcolor/);
 });
 
 test('task lists and rich code lines preserve the owned layout contract', () => {
@@ -29,7 +34,7 @@ test('task lists and rich code lines preserve the owned layout contract', () => 
 		css,
 		/\.better-markdown-preview-code-line \{[\s\S]*?display: inline-block;[\s\S]*?min-width: 100%/,
 	);
-	assert.match(css, /@media \(max-width: 82rem\)/);
+	assert.match(css, /@media \(max-width: 64rem\)/);
 });
 
 test('explicit and implicit columns retain distinct Airplan flex semantics', () => {
