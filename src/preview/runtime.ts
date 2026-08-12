@@ -72,7 +72,6 @@ function createController(
 	let mermaidQueue = Promise.resolve();
 	const mermaidSources = new WeakMap<HTMLElement, string>();
 	const cleanups: Array<() => void> = [];
-	const tocCleanups: Array<() => void> = [];
 	const loadMermaid = options.loadMermaid ?? defaultMermaidLoader;
 
 	const renderMermaidPass = async (force = false): Promise<void> => {
@@ -130,10 +129,7 @@ function createController(
 			return;
 		}
 		const layout = ensureLayout(document, markdownBody);
-		for (const cleanup of tocCleanups.splice(0)) {
-			cleanup();
-		}
-		buildToc(document, layout, markdownBody, tocCleanups);
+		buildToc(document, layout, markdownBody);
 		enhanceCodeBlocks(document, markdownBody);
 		updateActiveHeading();
 		await renderMermaid();
@@ -235,9 +231,6 @@ function createController(
 			for (const cleanup of cleanups.splice(0)) {
 				cleanup();
 			}
-			for (const cleanup of tocCleanups.splice(0)) {
-				cleanup();
-			}
 		},
 	};
 }
@@ -262,7 +255,6 @@ function buildToc(
 	document: Document,
 	layout: HTMLElement,
 	markdownBody: HTMLElement,
-	cleanups: Array<() => void>,
 ): void {
 	for (const owned of layout.querySelectorAll(
 		':scope > [data-bmp-toc], :scope > [data-bmp-toc-trigger], :scope > [data-bmp-toc-dialog]',
@@ -281,23 +273,24 @@ function buildToc(
 	nav.className = 'better-markdown-preview-toc';
 	nav.dataset.bmpToc = '';
 	nav.setAttribute('aria-label', 'Table of contents');
-	nav.append(createTocList(document, headings));
+	nav.append(createTocList(document, headings, false));
 	layout.prepend(nav);
 
 	const trigger = document.createElement('button');
 	trigger.type = 'button';
 	trigger.className = 'better-markdown-preview-toc-trigger';
 	trigger.dataset.bmpTocTrigger = '';
-	trigger.textContent = 'Contents';
+	trigger.setAttribute('aria-label', 'Open table of contents');
 	trigger.setAttribute('aria-haspopup', 'dialog');
 	trigger.setAttribute('aria-expanded', 'false');
+	trigger.append(createTocIcon(document));
 	layout.append(trigger);
 
 	const dialog = document.createElement('dialog');
 	dialog.className = 'better-markdown-preview-toc-dialog';
 	dialog.dataset.bmpTocDialog = '';
 	dialog.setAttribute('aria-label', 'Table of contents');
-	dialog.append(createTocList(document, headings));
+	dialog.append(createTocList(document, headings, true));
 	layout.append(dialog);
 
 	const close = (): void => {
@@ -327,6 +320,9 @@ function buildToc(
 		dialog.querySelector<HTMLAnchorElement>('a')?.focus();
 	};
 	trigger.addEventListener('click', open);
+	dialog
+		.querySelector<HTMLButtonElement>('[data-bmp-toc-close]')
+		?.addEventListener('click', close);
 	dialog.addEventListener('cancel', (event) => {
 		event.preventDefault();
 		close();
@@ -351,28 +347,59 @@ function buildToc(
 	for (const link of dialog.querySelectorAll('a')) {
 		link.addEventListener('click', close);
 	}
-	const updateFloatingTrigger = (): void => {
-		trigger.classList.toggle(
-			'better-markdown-preview-toc-trigger-visible',
-			nav.getBoundingClientRect().bottom < 0,
-		);
-	};
-	window.addEventListener('scroll', updateFloatingTrigger, { passive: true });
-	updateFloatingTrigger();
-	cleanups.push(() =>
-		window.removeEventListener('scroll', updateFloatingTrigger),
-	);
+}
+
+function createTocIcon(document: Document): SVGSVGElement {
+	const namespace = 'http://www.w3.org/2000/svg';
+	const icon = document.createElementNS(namespace, 'svg');
+	icon.classList.add('better-markdown-preview-toc-icon');
+	icon.setAttribute('aria-hidden', 'true');
+	icon.setAttribute('viewBox', '0 0 16 16');
+	icon.setAttribute('fill', 'none');
+	icon.setAttribute('stroke', 'currentColor');
+	icon.setAttribute('stroke-width', '1.5');
+	icon.setAttribute('stroke-linecap', 'round');
+
+	const lines = document.createElementNS(namespace, 'path');
+	lines.setAttribute('d', 'M5 4h9M5 8h9M5 12h9');
+	icon.append(lines);
+
+	for (const y of ['4', '8', '12']) {
+		const dot = document.createElementNS(namespace, 'circle');
+		dot.setAttribute('cx', '2');
+		dot.setAttribute('cy', y);
+		dot.setAttribute('r', '.75');
+		dot.setAttribute('fill', 'currentColor');
+		dot.setAttribute('stroke', 'none');
+		icon.append(dot);
+	}
+
+	return icon;
 }
 
 function createTocList(
 	document: Document,
 	headings: HTMLElement[],
+	closable: boolean,
 ): HTMLElement {
 	const container = document.createElement('div');
+	container.className = 'better-markdown-preview-toc-content';
+	const header = document.createElement('div');
+	header.className = 'better-markdown-preview-toc-header';
 	const title = document.createElement('strong');
 	title.className = 'better-markdown-preview-toc-title';
-	title.textContent = 'On this page';
-	container.append(title);
+	title.textContent = 'Contents';
+	header.append(title);
+	if (closable) {
+		const closeButton = document.createElement('button');
+		closeButton.type = 'button';
+		closeButton.className = 'better-markdown-preview-toc-close';
+		closeButton.dataset.bmpTocClose = '';
+		closeButton.setAttribute('aria-label', 'Close table of contents');
+		closeButton.textContent = '×';
+		header.append(closeButton);
+	}
+	container.append(header);
 	const list = document.createElement('ol');
 	for (const heading of headings) {
 		const item = document.createElement('li');

@@ -30,20 +30,24 @@
 	width: min(100%, 15rem);
 	max-height: calc(100vh - 3rem);
 	overflow: auto;
-	padding: 0.75rem;
-	border: 1px solid var(--vscode-panel-border);
-	border-radius: 0.45rem;
-	background: var(--vscode-sideBar-background);
-	color: var(--vscode-sideBar-foreground);
+	padding: 0.25rem 0;
+	color: var(--vscode-descriptionForeground);
 	box-sizing: border-box;
+}
+
+.better-markdown-preview-toc-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
 }
 
 .better-markdown-preview-toc-title {
 	display: block;
-	margin-bottom: 0.45rem;
-	font-size: 0.85em;
+	margin-bottom: 0.65rem;
+	font-size: 0.78em;
 	text-transform: uppercase;
-	letter-spacing: 0.04em;
+	letter-spacing: 0.08em;
 	color: var(--vscode-descriptionForeground);
 }
 
@@ -54,23 +58,22 @@
 }
 
 .better-markdown-preview-toc li + li {
-	margin-top: 0.2rem;
+	margin-top: 0.15rem;
 }
 
 .better-markdown-preview-toc-level-2 {
-	padding-left: 0.75rem;
+	padding-left: 0;
 }
 
 .better-markdown-preview-toc-level-3 {
-	padding-left: 1.5rem;
+	padding-left: 1rem;
 }
 
 .better-markdown-preview-toc a,
 .better-markdown-preview-toc-dialog a {
 	display: block;
-	padding: 0.2rem 0.35rem;
-	border-left: 2px solid transparent;
-	color: var(--vscode-textLink-foreground);
+	padding: 0.18rem 0;
+	color: var(--vscode-descriptionForeground);
 	text-decoration: none;
 	overflow-wrap: anywhere;
 }
@@ -79,8 +82,7 @@
 .better-markdown-preview-toc-dialog a:hover,
 .better-markdown-preview-toc a.better-markdown-preview-toc-active,
 .better-markdown-preview-toc-dialog a.better-markdown-preview-toc-active {
-	border-left-color: var(--vscode-focusBorder);
-	color: var(--vscode-textLink-activeForeground);
+	color: var(--vscode-textLink-foreground);
 }
 
 .better-markdown-preview-toc-trigger {
@@ -89,13 +91,21 @@
 	right: 1rem;
 	bottom: 1rem;
 	z-index: 10;
-	padding: 0.45rem 0.7rem;
+	place-items: center;
+	width: 3rem;
+	height: 3rem;
+	padding: 0;
 	border: 1px solid var(--vscode-button-border, transparent);
-	border-radius: 999px;
+	border-radius: 50%;
 	background: var(--vscode-button-background);
 	color: var(--vscode-button-foreground);
 	font: inherit;
 	cursor: pointer;
+}
+
+.better-markdown-preview-toc-icon {
+	width: 1.25rem;
+	height: 1.25rem;
 }
 
 .better-markdown-preview-toc-dialog {
@@ -103,21 +113,56 @@
 	width: min(26rem, calc(100vw - 2rem));
 	max-height: min(70vh, 34rem);
 	margin: auto;
-	padding: 1rem;
+	padding: 1.25rem;
 	border: 1px solid var(--vscode-panel-border);
-	border-radius: 0.5rem;
+	border-radius: 0.75rem;
 	background: var(--vscode-editorWidget-background);
 	color: var(--vscode-editorWidget-foreground);
 	box-shadow: 0 0.5rem 2rem var(--vscode-widget-shadow);
 }
 
 .better-markdown-preview-toc-dialog::backdrop {
-	background: var(--vscode-diffEditor-unchangedRegionShadow);
+	background: rgb(0 0 0 / 62%);
 }
 
 .better-markdown-preview-toc-dialog ol {
 	list-style: none;
+	margin: 0;
 	padding: 0;
+}
+
+.better-markdown-preview-toc-dialog li + li {
+	margin-top: 0.3rem;
+}
+
+.better-markdown-preview-toc-dialog .better-markdown-preview-toc-level-3 {
+	padding-left: 1rem;
+}
+
+.better-markdown-preview-toc-dialog a {
+	padding-block: 0.2rem;
+}
+
+.better-markdown-preview-toc-close {
+	display: grid;
+	place-items: center;
+	width: 1.75rem;
+	height: 1.75rem;
+	margin: -0.35rem -0.35rem 0.3rem 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0.25rem;
+	background: transparent;
+	color: var(--vscode-descriptionForeground);
+	font: inherit;
+	font-size: 1.25rem;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.better-markdown-preview-toc-close:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+	color: var(--vscode-editorWidget-foreground);
 }
 
 .better-markdown-preview-frontmatter {
@@ -158,34 +203,39 @@
 }
 
 .better-markdown-preview-alert {
+	--bmp-alert-color: var(
+		--vscode-markdownAlert-note\.foreground,
+		var(--vscode-markdownAlert-note-foreground, var(--vscode-editor-foreground))
+	);
 	margin: 1rem 0;
 	padding: 0.75rem 1rem;
-	border: 1px solid currentcolor;
-	border-left-width: 0.25rem;
+	border: 0;
+	border-left: 3px solid var(--bmp-alert-color);
 	border-radius: 0.35rem;
+	background: var(--vscode-textBlockQuote-background, transparent);
+	background: color-mix(
+		in srgb,
+		var(--vscode-editor-background) 88%,
+		var(--bmp-alert-color)
+	);
+	color: var(--vscode-editor-foreground);
 }
 
 .better-markdown-preview-alert-title {
 	margin: 0 0 0.4rem;
+	color: var(--bmp-alert-color);
 	font-weight: 600;
 }
 
-.better-markdown-preview-alert-note {
-	color: var(
-		--vscode-markdownAlert-note\.foreground,
-		var(--vscode-markdownAlert-note-foreground, var(--vscode-editor-foreground))
-	);
-}
-
 .better-markdown-preview-alert-tip {
-	color: var(
+	--bmp-alert-color: var(
 		--vscode-markdownAlert-tip\.foreground,
 		var(--vscode-markdownAlert-tip-foreground, var(--vscode-editor-foreground))
 	);
 }
 
 .better-markdown-preview-alert-important {
-	color: var(
+	--bmp-alert-color: var(
 		--vscode-markdownAlert-important\.foreground,
 		var(
 			--vscode-markdownAlert-important-foreground,
@@ -195,7 +245,7 @@
 }
 
 .better-markdown-preview-alert-warning {
-	color: var(
+	--bmp-alert-color: var(
 		--vscode-markdownAlert-warning\.foreground,
 		var(
 			--vscode-markdownAlert-warning-foreground,
@@ -205,7 +255,7 @@
 }
 
 .better-markdown-preview-alert-caution {
-	color: var(
+	--bmp-alert-color: var(
 		--vscode-markdownAlert-caution\.foreground,
 		var(
 			--vscode-markdownAlert-caution-foreground,
@@ -337,25 +387,31 @@
 	outline-offset: 2px;
 }
 
-@media (max-width: 82rem) {
+@media (max-width: 64rem) {
 	.better-markdown-preview-layout {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
+		display: block;
 		max-width: 54rem;
 		margin-inline: auto;
 	}
 
 	.better-markdown-preview-toc {
-		position: static;
-		order: -1;
-		align-self: stretch;
-		width: 100%;
-		max-height: none;
+		display: none;
 	}
 
-	.better-markdown-preview-toc-trigger-visible {
-		display: block;
+	.better-markdown-preview-toc-trigger {
+		display: grid;
+	}
+
+	.better-markdown-preview-toc-dialog {
+		inset: auto 0 0;
+		width: 100%;
+		max-width: none;
+		max-height: min(76vh, 38rem);
+		margin: 0;
+		padding: 1.5rem 1.25rem 1.75rem;
+		box-sizing: border-box;
+		border-width: 1px 0 0;
+		border-radius: 0.8rem 0.8rem 0 0;
 	}
 }
 

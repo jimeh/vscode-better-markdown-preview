@@ -46,9 +46,24 @@ describe('preview runtime', () => {
 		const trigger = document.querySelector<HTMLButtonElement>(
 			'[data-bmp-toc-trigger]',
 		)!;
+		expect(trigger.getAttribute('aria-label')).toBe('Open table of contents');
+		expect(trigger.textContent).toBe('');
+		const triggerIcon = trigger.querySelector('svg');
+		expect(triggerIcon?.getAttribute('viewBox')).toBe('0 0 16 16');
+		expect(triggerIcon?.getAttribute('aria-hidden')).toBe('true');
+		expect(triggerIcon?.querySelector('path')?.getAttribute('d')).toBe(
+			'M5 4h9M5 8h9M5 12h9',
+		);
+		expect(triggerIcon?.querySelectorAll('circle')).toHaveLength(3);
 		const dialog = document.querySelector<HTMLDialogElement>(
 			'[data-bmp-toc-dialog]',
 		)!;
+		const closeButton = dialog.querySelector<HTMLButtonElement>(
+			'[data-bmp-toc-close]',
+		)!;
+		expect(closeButton.getAttribute('aria-label')).toBe(
+			'Close table of contents',
+		);
 		const showModal = vi.fn(() => dialog.setAttribute('open', ''));
 		const close = vi.fn(() => dialog.removeAttribute('open'));
 		dialog.showModal = showModal;
@@ -65,6 +80,11 @@ describe('preview runtime', () => {
 		expect(dialog.hasAttribute('open')).toBe(false);
 		expect(document.activeElement).toBe(trigger);
 		trigger.click();
+		closeButton.click();
+		expect(close).toHaveBeenCalledTimes(2);
+		expect(dialog.hasAttribute('open')).toBe(false);
+		expect(document.activeElement).toBe(trigger);
+		trigger.click();
 		vi.spyOn(dialog, 'getBoundingClientRect').mockReturnValue({
 			left: 10,
 			right: 100,
@@ -74,13 +94,13 @@ describe('preview runtime', () => {
 		dialog.dispatchEvent(
 			new MouseEvent('click', { bubbles: true, clientX: 5, clientY: 5 }),
 		);
-		expect(close).toHaveBeenCalledTimes(2);
+		expect(close).toHaveBeenCalledTimes(3);
 		expect(dialog.hasAttribute('open')).toBe(false);
 		expect(document.activeElement).toBe(trigger);
 		controller.dispose();
 	});
 
-	test('tracks the active heading and exposes the floating control after inline TOC scrolls away', async () => {
+	test('tracks the active heading in both TOC presentations', async () => {
 		setDocument('<h2 id="one">One</h2><h2 id="two">Two</h2>');
 		const headings = document.querySelectorAll<HTMLElement>('h2');
 		vi.spyOn(headings[0], 'getBoundingClientRect').mockReturnValue({
@@ -93,11 +113,6 @@ describe('preview runtime', () => {
 		} as DOMRect);
 		const controller = enhancePreview(document);
 		await controller.ready;
-		const toc = document.querySelector<HTMLElement>('[data-bmp-toc]')!;
-		vi.spyOn(toc, 'getBoundingClientRect').mockReturnValue({
-			top: -300,
-			bottom: -10,
-		} as DOMRect);
 		window.dispatchEvent(new Event('scroll'));
 		await new Promise((resolve) => requestAnimationFrame(resolve));
 		expect(
@@ -106,10 +121,9 @@ describe('preview runtime', () => {
 				?.getAttribute('aria-current'),
 		).toBe('location');
 		expect(
-			document
-				.querySelector('[data-bmp-toc-trigger]')
-				?.classList.contains('better-markdown-preview-toc-trigger-visible'),
-		).toBe(true);
+			document.querySelector('[data-bmp-toc-dialog] [aria-current="location"]')
+				?.textContent,
+		).toBe('One');
 		controller.dispose();
 	});
 
@@ -199,24 +213,6 @@ describe('preview runtime', () => {
 		);
 		expect(document.querySelectorAll('[data-bmp-toc]')).toHaveLength(1);
 		expect(newBody.closest('[data-bmp-layout]')).not.toBeNull();
-		controller.dispose();
-	});
-
-	test('computes floating TOC visibility during initial enhancement', async () => {
-		setDocument('<h2 id="one">One</h2><h2 id="two">Two</h2>');
-		const geometry = vi
-			.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
-			.mockImplementation(function (this: HTMLElement) {
-				return { bottom: this.dataset.bmpToc === '' ? -1 : 100 } as DOMRect;
-			});
-		const controller = enhancePreview(document);
-		await controller.ready;
-		expect(
-			document
-				.querySelector('[data-bmp-toc-trigger]')
-				?.classList.contains('better-markdown-preview-toc-trigger-visible'),
-		).toBe(true);
-		geometry.mockRestore();
 		controller.dispose();
 	});
 
