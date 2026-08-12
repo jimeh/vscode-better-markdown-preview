@@ -51,3 +51,18 @@ test('wide tables use the Airplan overflow contract', () => {
 		/\.markdown-body table \{[\s\S]*?display: block;[\s\S]*?width: max-content;[\s\S]*?max-width: 100%;[\s\S]*?overflow-x: auto;/,
 	);
 });
+
+test('Mermaid viewer owns a near-viewport, theme-aware interaction surface', () => {
+	assert.match(
+		css,
+		/\.better-markdown-preview-mermaid-dialog \{[\s\S]*?width: calc\(100vw - 2rem\);[\s\S]*?height: calc\(100vh - 2rem\);/,
+	);
+	assert.match(
+		css,
+		/\.better-markdown-preview-mermaid-canvas \{[\s\S]*?touch-action: none;[\s\S]*?cursor: grab;/,
+	);
+	assert.match(
+		css,
+		/@media print \{[\s\S]*?\.better-markdown-preview-mermaid-dialog[\s\S]*?display: none !important;/,
+	);
+});

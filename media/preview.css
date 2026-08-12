@@ -336,11 +336,164 @@
 }
 
 .better-markdown-preview-mermaid {
+	position: relative;
 	min-height: 3rem;
 	overflow: auto;
 	border: 1px solid var(--vscode-panel-border);
 	background: var(--vscode-editor-background);
 	color: var(--vscode-editor-foreground);
+	text-align: center;
+}
+
+.better-markdown-preview-mermaid-open {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	z-index: 1;
+	opacity: 0;
+	transition: opacity 120ms ease-out;
+}
+
+.better-markdown-preview-mermaid:hover > .better-markdown-preview-mermaid-open,
+.better-markdown-preview-mermaid:focus-within
+	> .better-markdown-preview-mermaid-open {
+	opacity: 1;
+}
+
+.better-markdown-preview-mermaid-button {
+	display: inline-grid;
+	place-items: center;
+	min-width: 2rem;
+	height: 2rem;
+	padding: 0 0.55rem;
+	border: 1px solid var(--vscode-button-border, var(--vscode-panel-border));
+	border-radius: 0.3rem;
+	background: var(
+		--vscode-button-secondaryBackground,
+		var(--vscode-editorWidget-background)
+	);
+	color: var(
+		--vscode-button-secondaryForeground,
+		var(--vscode-editorWidget-foreground)
+	);
+	font: inherit;
+	font-family: var(--vscode-font-family);
+	font-size: 0.8rem;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.better-markdown-preview-mermaid-button:hover {
+	background: var(
+		--vscode-button-secondaryHoverBackground,
+		var(--vscode-toolbar-hoverBackground)
+	);
+}
+
+.better-markdown-preview-mermaid-dialog {
+	position: fixed;
+	inset: 0;
+	width: calc(100vw - 2rem);
+	height: calc(100vh - 2rem);
+	max-width: none;
+	max-height: none;
+	margin: auto;
+	padding: 0;
+	overflow: hidden;
+	box-sizing: border-box;
+	border: 1px solid var(--vscode-panel-border);
+	border-radius: 0.6rem;
+	background: var(--vscode-editorWidget-background);
+	color: var(--vscode-editorWidget-foreground);
+	box-shadow: 0 0.75rem 3rem var(--vscode-widget-shadow);
+}
+
+.better-markdown-preview-mermaid-dialog::backdrop {
+	background: rgb(0 0 0 / 68%);
+}
+
+.better-markdown-preview-mermaid-dialog-shell {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	height: 100%;
+}
+
+.better-markdown-preview-mermaid-dialog-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	min-width: 0;
+	padding: 0.65rem 0.75rem;
+	border-bottom: 1px solid var(--vscode-panel-border);
+	background: var(--vscode-editorWidget-background);
+}
+
+.better-markdown-preview-mermaid-dialog-header > strong {
+	overflow: hidden;
+	font-size: 0.85rem;
+	font-weight: 600;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.better-markdown-preview-mermaid-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.better-markdown-preview-mermaid-toolbar [data-bmp-mermaid-close] {
+	margin-left: 0.35rem;
+	font-size: 1.15rem;
+}
+
+.better-markdown-preview-mermaid-zoom-value {
+	min-width: 3.5rem;
+	color: var(--vscode-descriptionForeground);
+	font-variant-numeric: tabular-nums;
+	text-align: center;
+}
+
+.better-markdown-preview-mermaid-canvas {
+	position: relative;
+	min-height: 0;
+	overflow: hidden;
+	touch-action: none;
+	cursor: grab;
+	user-select: none;
+	background-color: var(--vscode-editor-background);
+	background-image: radial-gradient(
+		circle,
+		color-mix(in srgb, var(--vscode-editor-foreground) 18%, transparent) 1px,
+		transparent 1px
+	);
+	background-size: 1.25rem 1.25rem;
+}
+
+.better-markdown-preview-mermaid-canvas-panning {
+	cursor: grabbing;
+}
+
+.better-markdown-preview-mermaid-surface {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	will-change: transform;
+}
+
+.better-markdown-preview-mermaid-surface svg {
+	display: block;
+	transform-origin: center;
+	will-change: transform;
+}
+
+.better-markdown-preview-mermaid-help {
+	margin: 0;
+	padding: 0.4rem 0.75rem;
+	border-top: 1px solid var(--vscode-panel-border);
+	color: var(--vscode-descriptionForeground);
+	font-size: 0.75rem;
 	text-align: center;
 }
 
@@ -387,6 +540,12 @@
 	outline-offset: 2px;
 }
 
+.better-markdown-preview-mermaid-dialog
+	:where(button, [tabindex]):focus-visible {
+	outline: 2px solid var(--vscode-focusBorder);
+	outline-offset: -2px;
+}
+
 @media (max-width: 64rem) {
 	.better-markdown-preview-layout {
 		display: block;
@@ -426,9 +585,31 @@
 	}
 }
 
+@media (max-width: 44rem) {
+	.better-markdown-preview-mermaid-dialog {
+		width: calc(100vw - 1rem);
+		height: calc(100vh - 1rem);
+	}
+
+	.better-markdown-preview-mermaid-dialog-header {
+		align-items: flex-start;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.better-markdown-preview-mermaid-toolbar {
+		width: 100%;
+	}
+
+	.better-markdown-preview-mermaid-toolbar [data-bmp-mermaid-close] {
+		margin-left: auto;
+	}
+}
+
 @media print {
 	.better-markdown-preview-toc-trigger,
-	.better-markdown-preview-toc-dialog {
+	.better-markdown-preview-toc-dialog,
+	.better-markdown-preview-mermaid-dialog {
 		display: none !important;
 	}
 
@@ -440,5 +621,15 @@
 @media (prefers-reduced-motion: reduce) {
 	.better-markdown-preview-layout * {
 		scroll-behavior: auto !important;
+	}
+
+	.better-markdown-preview-mermaid-open {
+		transition: none;
+	}
+}
+
+@media (hover: none) {
+	.better-markdown-preview-mermaid-open {
+		opacity: 1;
 	}
 }

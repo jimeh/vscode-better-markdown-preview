@@ -49,7 +49,12 @@ after contributed styles, so user overrides retain precedence.
 Mermaid is absent from both Extension Host bundles. The small preview runtime
 dynamically imports `dist/preview/mermaid-runtime.js` only after finding an
 exact Mermaid block. The renderer uses strict security, derives colors from
-VS Code variables, and restores escaped source on every failure path.
+VS Code variables, and restores escaped source on every failure path. Rendered
+diagrams remain passive in the document so they do not capture preview
+scrolling. A preview-owned near-viewport dialog provides dedicated zoom and pan
+interaction, refreshes its SVG clone after theme or source rerenders, and
+rewrites cloned SVG IDs so Mermaid markers and gradients stay local to the
+dialog.
 
 ## Runtime Boundary
 

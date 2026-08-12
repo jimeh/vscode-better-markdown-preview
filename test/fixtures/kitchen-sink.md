@@ -63,7 +63,14 @@ console.log(first, needle, removed);
 
 ```mermaid
 flowchart LR
-  Source[Escaped source] --> Rendered[Local Mermaid]
+  Source[Escaped source] --> Parser[Markdown-It plugin]
+  Parser --> Preview[VS Code preview]
+  Preview --> Rendered[Local Mermaid]
+  Rendered --> Viewer[Interactive viewer]
+  Viewer --> Zoom[Wheel and buttons]
+  Viewer --> Pan[Drag and arrow keys]
+  Viewer --> Fit[Fit reset]
+  Theme[VS Code theme] --> Rendered
 ```
 
 ```Mermaid
