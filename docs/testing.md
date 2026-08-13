@@ -37,9 +37,9 @@ cover native linkification both enabled and disabled, including VS Code's
 `fuzzyLink: false` configuration. The DOM suite uses a controlled browser DOM
 and Mermaid adapter to cover conditional loading,
 failure fallback, theme rerender, reused Mermaid blocks, body replacement, TOC
-focus behavior, and source-preserving code presentation. These focused suites
-do not replace the real Extension Host activation test or runtime presentation
-inspection.
+focus behavior, Mermaid viewer zoom/pan/focus and clone isolation, and
+source-preserving code presentation. These focused suites do not replace the
+real Extension Host activation test or runtime presentation inspection.
 
 `test/fixtures/kitchen-sink.md` is the shared manual/runtime document for light,
 dark, high-contrast, wide, and narrow preview checks.

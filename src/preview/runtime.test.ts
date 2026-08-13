@@ -305,6 +305,193 @@ describe('preview runtime', () => {
 		controller.dispose();
 	});
 
+	test('opens a near-viewport Mermaid viewer with zoom, pan, fit, and focus restoration', async () => {
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({
+				render: async (element: HTMLElement) => {
+					element.innerHTML =
+						'<svg id="diagram-root" viewBox="0 0 400 200" aria-labelledby="diagram-title"><title id="diagram-title">Diagram</title><defs><marker id="arrow"></marker></defs><path class="node" marker-end="url(#arrow)"></path><text>Rendered</text></svg>';
+					const svg = element.querySelector('svg')!;
+					const style = element.ownerDocument.createElementNS(
+						'http://www.w3.org/2000/svg',
+						'style',
+					);
+					style.textContent =
+						'#diagram-root .node { fill: red; } #arrow path { fill: blue; }';
+					svg.prepend(style);
+				},
+			}),
+		});
+		await controller.ready;
+
+		const trigger = document.querySelector<HTMLButtonElement>(
+			'[data-bmp-mermaid-open]',
+		)!;
+		const dialog = document.querySelector<HTMLDialogElement>(
+			'[data-bmp-mermaid-dialog]',
+		)!;
+		const canvas = dialog.querySelector<HTMLElement>(
+			'[data-bmp-mermaid-canvas]',
+		)!;
+		vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+			left: 0,
+			top: 0,
+			width: 800,
+			height: 600,
+			right: 800,
+			bottom: 600,
+		} as DOMRect);
+		const showModal = vi.fn(() => dialog.setAttribute('open', ''));
+		const close = vi.fn(() => dialog.removeAttribute('open'));
+		dialog.showModal = showModal;
+		dialog.close = close;
+
+		expect(trigger.getAttribute('aria-label')).toBe('Open diagram viewer');
+		trigger.focus();
+		trigger.click();
+		expect(showModal).toHaveBeenCalledOnce();
+		expect(document.activeElement).toBe(canvas);
+		expect(
+			dialog.querySelectorAll('[data-bmp-mermaid-canvas] svg'),
+		).toHaveLength(1);
+		const clonedSvg = dialog.querySelector('[data-bmp-mermaid-canvas] svg');
+		const clonedTitle = dialog.querySelector('[data-bmp-mermaid-canvas] title');
+		expect(clonedSvg?.id).not.toBe('diagram-root');
+		expect(clonedSvg?.getAttribute('aria-labelledby')).toBe(clonedTitle?.id);
+		const clonedMarker = dialog.querySelector(
+			'[data-bmp-mermaid-canvas] marker',
+		);
+		expect(clonedMarker?.id).not.toBe('arrow');
+		const clonedStyle = dialog.querySelector(
+			'[data-bmp-mermaid-canvas] style',
+		)?.textContent;
+		expect(clonedStyle).toContain(`#${clonedSvg?.id} .node`);
+		expect(clonedStyle).toContain(`#${clonedMarker?.id} path`);
+		expect(clonedStyle).not.toContain('#diagram-root');
+		expect(
+			dialog
+				.querySelector('[data-bmp-mermaid-canvas] path')
+				?.getAttribute('marker-end'),
+		).toBe(`url(#${clonedMarker?.id})`);
+		expect(
+			dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
+		).toBe('100%');
+
+		dialog
+			.querySelector<HTMLButtonElement>('[data-bmp-mermaid-zoom-in]')
+			?.click();
+		expect(
+			dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
+		).toBe('125%');
+		canvas.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+		);
+		expect(
+			dialog.querySelector<HTMLElement>('[data-bmp-mermaid-surface]')?.style
+				.transform,
+		).toContain('translate(-40px, 0px)');
+		canvas.dispatchEvent(
+			new WheelEvent('wheel', {
+				bubbles: true,
+				cancelable: true,
+				clientX: 400,
+				clientY: 300,
+				deltaY: -100,
+			}),
+		);
+		expect(
+			dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
+		).toBe('150%');
+		dialog.querySelector<HTMLButtonElement>('[data-bmp-mermaid-fit]')?.click();
+		expect(
+			dialog.querySelector<HTMLElement>('[data-bmp-mermaid-surface]')?.style
+				.transform,
+		).toContain('translate(0px, 0px)');
+		canvas.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				bubbles: true,
+				button: 0,
+				clientX: 100,
+				clientY: 100,
+				pointerId: 1,
+			}),
+		);
+		canvas.dispatchEvent(
+			new PointerEvent('pointermove', {
+				bubbles: true,
+				clientX: 125,
+				clientY: 135,
+				pointerId: 1,
+			}),
+		);
+		canvas.dispatchEvent(
+			new PointerEvent('pointerup', {
+				bubbles: true,
+				pointerId: 1,
+			}),
+		);
+		expect(
+			dialog.querySelector<HTMLElement>('[data-bmp-mermaid-surface]')?.style
+				.transform,
+		).toContain('translate(25px, 35px)');
+
+		dialog.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+		);
+		expect(close).toHaveBeenCalledOnce();
+		expect(document.activeElement).toBe(trigger);
+		controller.dispose();
+	});
+
+	test('keeps Mermaid viewer controls idempotent and refreshes an open diagram after rerender', async () => {
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		let renderCount = 0;
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({
+				render: async (element: HTMLElement) => {
+					renderCount += 1;
+					element.innerHTML = `<svg viewBox="0 0 400 200" data-render="${renderCount}"></svg>`;
+				},
+			}),
+		});
+		await controller.ready;
+		const trigger = document.querySelector<HTMLButtonElement>(
+			'[data-bmp-mermaid-open]',
+		)!;
+		const dialog = document.querySelector<HTMLDialogElement>(
+			'[data-bmp-mermaid-dialog]',
+		)!;
+		dialog.showModal = vi.fn(() => dialog.setAttribute('open', ''));
+		const close = vi.fn(() => dialog.removeAttribute('open'));
+		dialog.close = close;
+		trigger.click();
+
+		document.body.classList.add('vscode-dark');
+		await vi.waitFor(() => expect(renderCount).toBe(2));
+		expect(document.querySelectorAll('[data-bmp-mermaid-open]')).toHaveLength(
+			1,
+		);
+		expect(document.querySelectorAll('[data-bmp-mermaid-dialog]')).toHaveLength(
+			1,
+		);
+		expect(
+			dialog
+				.querySelector('[data-bmp-mermaid-canvas] svg')
+				?.getAttribute('data-render'),
+		).toBe('2');
+
+		const oldBody = document.querySelector('.markdown-body')!;
+		const replacement = document.createElement('div');
+		replacement.className = 'markdown-body';
+		replacement.innerHTML = '<p>Different document</p>';
+		oldBody.replaceWith(replacement);
+		await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
+		expect(dialog.hasAttribute('open')).toBe(false);
+		controller.dispose();
+		expect(document.querySelector('[data-bmp-mermaid-dialog]')).toBeNull();
+	});
+
 	test('adds code line presentation without changing authored copy text or source maps', async () => {
 		setDocument(
 			'<figure class="better-markdown-preview-code" data-bmp-lines="2" data-bmp-word="needle" data-bmp-line-numbers="true"><pre data-line="7"><code><span>first</span>\n<span>needle</span></code></pre></figure>',
