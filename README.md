@@ -68,8 +68,9 @@ remains visible if loading or rendering fails.
 
 ## Development
 
-[mise](https://mise.jdx.dev/) installs the pinned runtime and validation tools.
-The project uses pnpm with a three-day dependency release-age policy.
+[mise](https://mise.jdx.dev/) installs the locked runtime and validation tools.
+The project uses three-day release-age policies for Mise tools and pnpm
+dependencies.
 
 ```console
 mise run setup

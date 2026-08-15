@@ -1,17 +1,17 @@
 [settings]
-minimum_release_age = "7d"
+minimum_release_age = "3d"
 
 [tools]
-actionlint = "1.7.12"
-node = "24.18.0"
-pinact = "4.1.0"
-pnpm = "11.18.0"
-taplo = "0.10.0"
-zizmor = "1.29.0"
+actionlint = "1"
+node = "24"
+pinact = "4"
+pnpm = "11"
+taplo = "0"
+zizmor = "1"
 
 [tasks.setup]
-description = "Install pinned tools and locked dependencies"
-run = ["mise install", "pnpm install --frozen-lockfile"]
+description = "Install locked tools and dependencies"
+run = ["mise install --locked", "pnpm install --frozen-lockfile"]
 
 [tasks.dev]
 description = "Watch extension hosts, preview assets, and TypeScript"
@@ -80,7 +80,7 @@ run = [
 ]
 
 [tasks.doctor]
-description = "Report pinned development tool versions"
+description = "Report locked development tool versions"
 run = [
   "node --version",
   "pnpm --version",

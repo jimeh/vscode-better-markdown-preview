@@ -59,7 +59,7 @@
 		"test:package": "node --test test/package-content.test.mjs",
 		"package": "node scripts/package.mjs"
 	},
-	"packageManager": "pnpm@11.18.0",
+	"packageManager": "pnpm@11.21.0",
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
 		"@resvg/resvg-js": "^2.6.2",
