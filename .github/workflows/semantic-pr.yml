@@ -40,10 +40,10 @@ jobs:
             style
             test
           subjectPattern: ^(?![A-Z]).+$
-          subjectPatternError: The subject must start with a lowercase character.
+          subjectPatternError: The subject must not start with an uppercase character.
 
       - name: Comment on invalid PR title
-        if: always() && (steps.lint_pr_title.outputs.error_message != null)
+        if: ${{ !cancelled() && steps.lint_pr_title.outputs.error_message != null }}
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: pr-title-lint-error
@@ -62,6 +62,7 @@ jobs:
 
       - name: Remove PR title lint comment
         if: ${{ steps.lint_pr_title.outputs.error_message == null }}
+        continue-on-error: true
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: pr-title-lint-error

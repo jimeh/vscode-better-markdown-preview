@@ -8,7 +8,7 @@ const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
 const semanticVersionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const extensionIdentifierPattern = /^[a-z0-9][a-z0-9-]*$/i;
 
-interface ExtensionManifest {
+export interface ExtensionManifest {
 	name: string;
 	publisher: string;
 	version: string;
@@ -42,7 +42,7 @@ export function packageFilename(
 	return `${publisher}.${name}-${version}.vsix`;
 }
 
-async function readManifest(): Promise<ExtensionManifest> {
+export async function readExtensionManifest(): Promise<ExtensionManifest> {
 	const manifest = JSON.parse(
 		await readFile(path.join(repositoryRoot, 'package.json'), 'utf8'),
 	) as Partial<ExtensionManifest>;
@@ -86,7 +86,7 @@ async function runVsce(args: readonly string[]): Promise<void> {
 export async function packageExtension(
 	explicitVersion?: string,
 ): Promise<PackageArtifact> {
-	const manifest = await readManifest();
+	const manifest = await readExtensionManifest();
 	const version = explicitVersion ?? manifest.version;
 	const filename = packageFilename(manifest.publisher, manifest.name, version);
 	const artifactDirectory = path.join(repositoryRoot, 'artifacts');

@@ -3,7 +3,7 @@ import releaseConfig from './lib/release-config.mts';
 import { releaseOutputs, writeReleaseOutputs } from './lib/release.mts';
 
 const result = await semanticRelease(releaseConfig);
-const outputs = releaseOutputs(result);
+const outputs = await releaseOutputs(result);
 
 if (process.env.GITHUB_OUTPUT) {
 	await writeReleaseOutputs(process.env.GITHUB_OUTPUT, outputs);

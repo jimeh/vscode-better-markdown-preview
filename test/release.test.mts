@@ -80,15 +80,24 @@ test('release policy maps conventional commits to intended versions', async () =
 	assert.equal(releaseConfig.tagFormat, 'v${version}');
 	assert.equal(await releaseType('feat: add viewer'), 'minor');
 	assert.equal(await releaseType('fix: restore preview'), 'patch');
+	assert.equal(await releaseType('perf: speed up rendering'), 'patch');
 	assert.equal(await releaseType('docs: explain columns'), 'patch');
 	assert.equal(await releaseType('revert: remove broken change'), 'patch');
-	assert.equal(await releaseType('chore: reorder tooling'), null);
+	for (const type of ['build', 'chore', 'ci', 'refactor', 'style', 'test']) {
+		assert.equal(await releaseType(`${type}: maintain project`), null);
+	}
 	assert.equal(await releaseType('feat!: remove legacy setting'), 'major');
 	assert.equal(
 		await releaseType('docs!: replace configuration format'),
 		'major',
 	);
 	assert.equal(await releaseType('chore!: drop old Node versions'), 'major');
+	assert.equal(
+		await releaseType(
+			'fix: change config parsing\n\nBREAKING CHANGE: remove legacy format',
+		),
+		'major',
+	);
 	assert.deepEqual(
 		releaseConfig.plugins?.map((plugin) =>
 			Array.isArray(plugin) ? plugin[0] : plugin,
@@ -197,7 +206,7 @@ test('release package checks require current notes and a valid checksum', async 
 });
 
 test('release runner exposes no-op and published outputs', async () => {
-	assert.deepEqual(releaseOutputs(false), {
+	assert.deepEqual(await releaseOutputs(false), {
 		released: 'false',
 		version: '',
 		git_tag: '',
@@ -205,7 +214,7 @@ test('release runner exposes no-op and published outputs', async () => {
 		checksum_path: '',
 	});
 
-	const outputs = releaseOutputs({
+	const outputs = await releaseOutputs({
 		commits: [],
 		lastRelease: {
 			channels: [],

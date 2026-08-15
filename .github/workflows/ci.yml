@@ -260,6 +260,7 @@ jobs:
       - name: Verify and attach release assets
         env:
           CHECKSUM_PATH: ${{ needs.release.outputs.checksum_path }}
+          GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
           GIT_TAG: ${{ needs.release.outputs.git_tag }}
           VERSION: ${{ needs.release.outputs.version }}

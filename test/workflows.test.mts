@@ -46,6 +46,18 @@ test('semantic PR validation is metadata-only and enforces the release vocabular
 		assert.match(semanticPrWorkflow, new RegExp(`^\\s{12}${type}$`, 'm'));
 	}
 	assert.match(semanticPrWorkflow, /subjectPattern: \^\(\?!\[A-Z\]\)\.\+\$/);
+	assert.match(
+		semanticPrWorkflow,
+		/subjectPatternError: The subject must not start with an uppercase character\./,
+	);
+	assert.match(
+		semanticPrWorkflow,
+		/if: \$\{\{ !cancelled\(\) && steps\.lint_pr_title\.outputs\.error_message != null \}\}/,
+	);
+	assert.match(
+		semanticPrWorkflow,
+		/name: Remove PR title lint comment\n\s{8}if:[\s\S]*?\n\s{8}continue-on-error: true/,
+	);
 	assert.match(semanticPrWorkflow, /delete: true/);
 });
 
@@ -56,7 +68,15 @@ test('main release waits for every host gate and cannot be cancelled', () => {
 	);
 	assert.match(
 		ciWorkflow,
+		/group: \$\{\{ github\.workflow \}\}-\$\{\{ github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && 'main-release' \|\| github\.ref \}\}/,
+	);
+	assert.match(
+		ciWorkflow,
 		/release:\n\s{4}name: Release[\s\S]*?needs:\n\s{6}- validate\n\s{6}- desktop-host\n\s{6}- web-host/,
+	);
+	assert.match(
+		ciWorkflow,
+		/if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/,
 	);
 	assert.match(ciWorkflow, /fetch-depth: 0/);
 	assert.match(
@@ -80,6 +100,10 @@ test('publication jobs share one immutable package and isolate credentials', () 
 	]) {
 		assert.match(ciWorkflow, new RegExp(`^\\s{2}${job}:$`, 'm'));
 	}
+	assert.equal(
+		occurrences(ciWorkflow, /if: needs\.release\.outputs\.released == 'true'/g),
+		3,
+	);
 	assert.equal(occurrences(ciWorkflow, /secrets\.VSCE_PAT/g), 1);
 	assert.equal(occurrences(ciWorkflow, /secrets\.OVSX_PAT/g), 1);
 	assert.equal(occurrences(ciWorkflow, /actions\/upload-artifact@/g), 2);
@@ -97,4 +121,5 @@ test('publication jobs share one immutable package and isolate credentials', () 
 		ciWorkflow,
 		/gh release upload "\$GIT_TAG" "\$VSIX_PATH" "\$CHECKSUM_PATH" --clobber/,
 	);
+	assert.match(ciWorkflow, /GH_REPO: \$\{\{ github\.repository \}\}/);
 });

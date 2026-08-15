@@ -1,6 +1,6 @@
 import { appendFile } from 'node:fs/promises';
 import type { Result } from 'semantic-release';
-import { packageFilename } from './package.mts';
+import { packageFilename, readExtensionManifest } from './package.mts';
 
 export interface ReleaseOutputs {
 	released: 'false' | 'true';
@@ -10,7 +10,7 @@ export interface ReleaseOutputs {
 	checksum_path: string;
 }
 
-export function releaseOutputs(result: Result): ReleaseOutputs {
+export async function releaseOutputs(result: Result): Promise<ReleaseOutputs> {
 	if (!result) {
 		return {
 			released: 'false',
@@ -21,9 +21,10 @@ export function releaseOutputs(result: Result): ReleaseOutputs {
 		};
 	}
 
+	const manifest = await readExtensionManifest();
 	const filename = packageFilename(
-		'jimeh',
-		'better-markdown-preview',
+		manifest.publisher,
+		manifest.name,
 		result.nextRelease.version,
 	);
 	const vsixPath = `artifacts/${filename}`;
