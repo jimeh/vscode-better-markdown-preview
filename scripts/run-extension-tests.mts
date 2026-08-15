@@ -1,16 +1,17 @@
 import { spawn } from 'node:child_process';
-import { pnpmInvocation } from './lib/commands.mjs';
+import {
+	desktopTestInvocation,
+	isDesktopTestLabel,
+} from './lib/host-tests.mts';
 
-const needsVirtualDisplay =
-	process.platform === 'linux' && !process.env.DISPLAY;
-const invocation = needsVirtualDisplay
-	? {
-			command: 'xvfb-run',
-			args: ['-a', 'pnpm', 'exec', 'vscode-test'],
-			options: { stdio: 'inherit' },
-		}
-	: pnpmInvocation(['exec', 'vscode-test']);
+const label = process.argv[2];
+if (!label || !isDesktopTestLabel(label)) {
+	throw new Error(
+		'Expected a desktop test label: desktop-floor or desktop-stable',
+	);
+}
 
+const invocation = desktopTestInvocation(label);
 const child = spawn(invocation.command, invocation.args, invocation.options);
 
 child.on('error', (error) => {

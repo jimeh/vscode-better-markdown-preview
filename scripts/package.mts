@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
-import { pnpmInvocation } from './lib/commands.mjs';
+import { pnpmInvocation } from './lib/commands.mts';
 
 await mkdir('artifacts', { recursive: true });
 

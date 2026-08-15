@@ -1,6 +1,8 @@
 out
 dist
 artifacts
+coverage
 node_modules
 .vscode-test/
+.vscode-test-web/
 *.vsix

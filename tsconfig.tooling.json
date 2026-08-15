@@ -1,0 +1,24 @@
+{
+	"compilerOptions": {
+		"allowJs": true,
+		"allowImportingTsExtensions": true,
+		"checkJs": true,
+		"erasableSyntaxOnly": true,
+		"lib": ["ES2022"],
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"noEmit": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"target": "ES2022",
+		"types": ["node"]
+	},
+	"include": [
+		".vscode-test.mjs",
+		"esbuild.mts",
+		"eslint.config.mts",
+		"vitest.config.mts",
+		"scripts/**/*.mts",
+		"test/**/*.mts"
+	]
+}

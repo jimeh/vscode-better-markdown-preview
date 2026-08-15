@@ -21,6 +21,7 @@
 	],
 	"ignores": [
 		".vscode-test/**",
+		".vscode-test-web/**",
 		"CLAUDE.md",
 		"artifacts/**",
 		"dist/**",

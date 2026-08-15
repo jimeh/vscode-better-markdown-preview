@@ -11,5 +11,5 @@
 		"target": "ES2022",
 		"types": ["node", "mocha", "vscode"]
 	},
-	"include": ["src/test/**/*.ts"]
+	"include": ["src/test/render-contract.ts", "src/test/desktop/**/*.ts"]
 }

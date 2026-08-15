@@ -2,6 +2,7 @@
 .github/**
 .vscode-test/**
 artifacts/**
+coverage/**
 docs/**
 media/**
 img/*.svg
@@ -19,7 +20,7 @@ AGENTS.md
 CLAUDE.md
 .gitignore
 .yarnrc
-esbuild.js
+esbuild.mts
 mise.lock
 mise.toml
 pnpm-lock.yaml
@@ -27,8 +28,8 @@ pnpm-workspace.yaml
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/tsconfig.*.json
-**/eslint.config.mjs
-**/vitest.config.mjs
+**/eslint.config.mts
+**/vitest.config.mts
 **/*.map
 **/*.ts
 **/.vscode-test.*

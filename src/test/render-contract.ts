@@ -1,0 +1,133 @@
+export const renderCompatibilityFixture = `+++
+title = "Host compatibility"
++++
+
+# Host compatibility
+
+- [x] task list
+
+Term
+: Definition
+
+Footnote[^1].
+
+[^1]: Footnote detail
+
+> [!NOTE]
+> Known alert
+
+https://secure.example/path http://plain.example dev@example.com www.example.com example.com
+
+<script>blocked()</script>
+
+:::: {.columns}
+::: {.column width=40%}
+Left
+:::
+::: {.column}
+Right
+:::
+::::
+
+\`\`\`mermaid
+graph TD
+A-->B
+\`\`\`
+
+\`\`\`Mermaid
+graph TD
+B-->C
+\`\`\`
+
+\`\`\`ts title="host.ts" {1} /const/ showLineNumbers
+const value = true; // [!code ++]
+\`\`\`
+`;
+
+function requireMatch(
+	html: string,
+	pattern: RegExp,
+	description: string,
+): void {
+	if (!pattern.test(html)) {
+		throw new Error(`Host render is missing ${description}.`);
+	}
+}
+
+function requireCountAtLeast(
+	html: string,
+	pattern: RegExp,
+	minimum: number,
+	description: string,
+): void {
+	const matches = html.match(pattern)?.length ?? 0;
+	if (matches < minimum) {
+		throw new Error(
+			`Host render has ${matches} ${description}; expected at least ${minimum}.`,
+		);
+	}
+}
+
+function requireCount(
+	html: string,
+	pattern: RegExp,
+	expected: number,
+	description: string,
+): void {
+	const matches = html.match(pattern)?.length ?? 0;
+	if (matches !== expected) {
+		throw new Error(
+			`Host render has ${matches} ${description}; expected exactly ${expected}.`,
+		);
+	}
+}
+
+export function assertRenderCompatibility(html: string): void {
+	requireMatch(html, /task-list-item/, 'task-list semantics');
+	requireMatch(html, /<dl[ >]/, 'definition-list semantics');
+	requireMatch(html, /footnote-ref/, 'footnote semantics');
+	requireMatch(
+		html,
+		/better-markdown-preview-alert-note/,
+		'known GitHub alert semantics',
+	);
+	requireMatch(html, /href="https:\/\/secure\.example\/path"/, 'HTTPS link');
+	requireMatch(html, /href="http:\/\/plain\.example"/, 'HTTP link');
+	requireMatch(html, /href="mailto:dev@example\.com"/, 'email link');
+	requireMatch(html, /href="http:\/\/www\.example\.com"/, 'www link');
+	if (/href="http:\/\/example\.com"/.test(html)) {
+		throw new Error('Host render unexpectedly fuzzy-linked a bare domain.');
+	}
+	requireMatch(
+		html,
+		/&lt;script>blocked\(\)&lt;\/script>/,
+		'GFM tag filtering',
+	);
+	requireMatch(html, /better-markdown-preview-frontmatter/, 'TOML frontmatter');
+	requireMatch(html, /better-markdown-preview-columns/, 'column container');
+	requireMatch(html, /data-bmp-column-width="40"/, 'column width');
+	requireCount(html, /data-bmp-mermaid-source/g, 1, 'exact Mermaid blocks');
+	requireMatch(
+		html,
+		/graph TD\s+B--&gt;C/,
+		'non-exact Mermaid source delegated to a native fence',
+	);
+	requireMatch(html, /better-markdown-preview-code/, 'rich fence wrapper');
+	requireMatch(html, /data-bmp-lines="1"/, 'rich fence line selection');
+	requireMatch(html, /data-bmp-line-numbers="true"/, 'rich fence line numbers');
+	requireMatch(html, /language-ts/, 'native fence delegation');
+	if (html.includes('[!code ++]')) {
+		throw new Error('Host render retained a consumed diff annotation.');
+	}
+	requireCountAtLeast(
+		html,
+		/better-markdown-preview-(?:alert|frontmatter|columns|mermaid|code)/g,
+		5,
+		'Better Markdown Preview-owned output markers',
+	);
+	requireMatch(
+		html,
+		/<(?:details|pre|div|figure)(?=[^>]*better-markdown-preview-)(?=[^>]*data-line="\d+")[^>]*>/,
+		'native source-map attributes on owned output',
+	);
+}
