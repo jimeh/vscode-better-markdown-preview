@@ -39,7 +39,7 @@ test('lists and task lists share a compact aligned layout', () => {
 	);
 	assert.match(
 		css,
-		/\.markdown-body \.task-list-item-checkbox \{[\s\S]*?width: 1em;[\s\S]*?height: 1em;[\s\S]*?margin-inline: -1\.45em 0\.45em;/,
+		/\.markdown-body \.task-list-item-checkbox \{[\s\S]*?width: 1em;[\s\S]*?height: 1em;[\s\S]*?margin-inline: -1\.45em 0\.2em;/,
 	);
 });
 
