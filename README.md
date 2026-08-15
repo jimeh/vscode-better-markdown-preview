@@ -1,6 +1,6 @@
 <div align="center">
 
-<img width="196px" src="https://github.com/jimeh/vscode-better-markdown-preview/raw/refs/heads/main/img/logo.png" alt="Logo">
+<img width="196px" src="https://github.com/jimeh/vscode-better-markdown-preview/raw/refs/heads/main/img/logo.png" alt="Better Markdown Preview logo">
 
 # Better Markdown Preview
 
