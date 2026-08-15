@@ -69,7 +69,7 @@ remains visible if loading or rendering fails.
 ## Development
 
 [mise](https://mise.jdx.dev/) installs the pinned runtime and validation tools.
-The project uses pnpm with a seven-day dependency release-age policy.
+The project uses pnpm with a three-day dependency release-age policy.
 
 ```console
 mise run setup

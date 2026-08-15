@@ -1,6 +1,6 @@
 import type MarkdownIt from 'markdown-it';
 import type Token from 'markdown-it/lib/token.mjs';
-import LinkifyIt from 'linkify-it';
+import { LinkifyIt } from 'linkify-it';
 import definitionList from 'markdown-it-deflist';
 import footnote from 'markdown-it-footnote';
 import githubAlerts from 'markdown-it-github-alerts';
@@ -13,7 +13,7 @@ const columnsOpen = /^(:{4,})[ \t]+\{\.columns\}[ \t]*$/;
 const columnOpen =
 	/^(:{3,})[ \t]+\{\.column(?:[ \t]+width=(?:"((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%"|'((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%'|((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%))?\}[ \t]*$/;
 const colonClose = /^(:{3,})[ \t]*$/;
-const gfmLinkifier = new LinkifyIt();
+const gfmLinkifier = new LinkifyIt({ fuzzyLink: true });
 let nestedBlockParseDepth = 0;
 type FenceRenderRule = NonNullable<MarkdownIt['renderer']['rules']['fence']>;
 
@@ -43,7 +43,7 @@ function installGfmAutolinks(md: MarkdownIt): void {
 				if (
 					blockToken.type !== 'inline' ||
 					!blockToken.children ||
-					!gfmLinkifier.pretest(blockToken.content)
+					!gfmLinkifier.test(blockToken.content)
 				) {
 					continue;
 				}
