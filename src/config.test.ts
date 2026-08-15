@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 import {
+	CONFIGURATION_SECTION,
 	configurationKeys,
 	defaultConfiguration,
 	previewConfiguration,
@@ -7,6 +9,17 @@ import {
 } from './config';
 
 describe('configuration', () => {
+	test('keeps runtime keys aligned with the contributed manifest settings', () => {
+		const manifest = JSON.parse(
+			readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+		) as {
+			contributes: { configuration: { properties: Record<string, unknown> } };
+		};
+		expect(Object.keys(manifest.contributes.configuration.properties)).toEqual(
+			configurationKeys.map((key) => `${CONFIGURATION_SECTION}.${key}`),
+		);
+	});
+
 	test('reads all feature defaults as enabled', () => {
 		const seen: string[] = [];
 		const configuration = readConfiguration({

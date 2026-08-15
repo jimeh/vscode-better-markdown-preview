@@ -116,6 +116,14 @@ describe('Markdown composition', () => {
 		expect(raw).not.toContain('taskLists');
 	});
 
+	test('does not append the block configuration marker to inline renders', () => {
+		const md = new MarkdownIt({ html: true, linkify: false });
+		extendMarkdownIt(md);
+		expect(md.renderInline('plain *inline* text')).toBe(
+			'plain <em>inline</em> text',
+		);
+	});
+
 	test('adds GFM task lists, literal autolinks, punctuation, and tag filtering', () => {
 		const html = render(
 			'- [x] done\n\nVisit https://example.com/a_(b). Email dev@example.com.\n\n<script>alert(1)</script>\n',

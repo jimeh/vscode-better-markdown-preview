@@ -592,6 +592,9 @@ function installPreviewConfiguration(
 		JSON.stringify(previewConfiguration(configuration)),
 	);
 	md.core.ruler.push('better_markdown_preview_configuration', (state) => {
+		if (state.inlineMode) {
+			return;
+		}
 		const marker = new state.Token('html_block', '', 0);
 		marker.block = true;
 		marker.content = `<span hidden data-bmp-preview-config="${value}"></span>\n`;
