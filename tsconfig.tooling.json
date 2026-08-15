@@ -1,6 +1,8 @@
 {
 	"compilerOptions": {
+		"allowJs": true,
 		"allowImportingTsExtensions": true,
+		"checkJs": true,
 		"erasableSyntaxOnly": true,
 		"lib": ["ES2022"],
 		"module": "NodeNext",
@@ -12,6 +14,7 @@
 		"types": ["node"]
 	},
 	"include": [
+		".vscode-test.mjs",
 		"esbuild.mts",
 		"eslint.config.mts",
 		"vitest.config.mts",

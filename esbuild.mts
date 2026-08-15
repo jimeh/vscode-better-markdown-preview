@@ -1,4 +1,3 @@
-import { fileURLToPath } from 'node:url';
 import * as esbuild from 'esbuild';
 import type { BuildOptions, Plugin } from 'esbuild';
 
@@ -154,7 +153,7 @@ export async function build(
 	}
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (import.meta.main) {
 	build().catch((error: unknown) => {
 		console.error(error);
 		process.exitCode = 1;
