@@ -6,14 +6,16 @@ export default [
 	{
 		ignores: [
 			'.vscode-test/**',
+			'.vscode-test-web/**',
 			'artifacts/**',
+			'coverage/**',
 			'dist/**',
 			'node_modules/**',
 			'out/**',
 		],
 	},
 	{
-		files: ['**/*.{js,mjs}'],
+		files: ['.vscode-test.mjs'],
 		languageOptions: {
 			ecmaVersion: 2022,
 			globals: globals.node,
@@ -21,7 +23,7 @@ export default [
 		rules: eslint.configs.recommended.rules,
 	},
 	{
-		files: ['**/*.ts'],
+		files: ['**/*.{ts,mts}'],
 		languageOptions: {
 			ecmaVersion: 2022,
 			globals: {

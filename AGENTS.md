@@ -13,12 +13,15 @@ Better Markdown Preview extends VS Code's built-in Markdown preview. Read
 - `src/preview/`: idempotent browser runtime, local Mermaid adapter, and DOM
   lifecycle tests.
 - `media/preview.css`: source for the theme-aware contributed preview style.
-- `src/test/`: tests executed in a real VS Code Extension Host.
+- `src/test/render-contract.ts`: browser-safe host rendering contract shared by
+  desktop and web tests.
+- `src/test/desktop/`: tests executed in real desktop Extension Hosts.
+- `src/test/web/`: bundled runner executed in stable VS Code for the Web.
 - `test/`: fast manifest and packaged-artifact contract tests.
 - `scripts/`: small cross-platform harness helpers.
 - `docs/plans/`: accepted implementation contracts; do not treat them as
   proof that later phases shipped.
-- `esbuild.js`: paired desktop and web bundles.
+- `esbuild.mts`: paired desktop and web bundles plus the web test runner.
 - `mise.toml`: canonical tool versions and task surface.
 
 ## Working Rules
@@ -31,11 +34,11 @@ Better Markdown Preview extends VS Code's built-in Markdown preview. Read
   manifest tests whenever contributions change intentionally.
 - Keep preview enhancements inside VS Code's supported Markdown extension
   hooks; do not replace the built-in preview with a custom webview.
-- Generated output belongs in `dist/`, `out/`, `artifacts/`, or `.vscode-test/`
-  and must stay untracked.
-- `.vscode-test/` contains a complete downloaded VS Code distribution, including
-  its own tool configs. Keep it excluded from repository-wide format and lint
-  discovery.
+- Generated output belongs in `dist/`, `out/`, `artifacts/`, `coverage/`,
+  `.vscode-test/`, or `.vscode-test-web/` and must stay untracked.
+- `.vscode-test/` and `.vscode-test-web/` contain downloaded VS Code/browser
+  distributions, including their own tool configs. Keep them excluded from
+  repository-wide format and lint discovery.
 - Native preview typography uses `--markdown-font-size` and
   `--markdown-line-height` (without a `--vscode-` prefix). VS Code 1.125 injects
   Markdown alert IDs as custom properties such as

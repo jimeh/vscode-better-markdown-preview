@@ -84,7 +84,10 @@ are:
 - `mise run dev` watches the desktop, web, preview runtime, Mermaid, CSS, and
   TypeScript targets.
 - `mise run check` runs the fast formatter, linter, type, and unit gate.
-- `mise run test:extension` exercises activation in a real Extension Host.
+- `mise run test:coverage` enforces all-files V8 coverage floors.
+- `mise run test:desktop` exercises the engine floor and stable desktop hosts.
+- `mise run test:web:stable` exercises stable VS Code for the Web in Chromium
+  after `mise run test:hosts:prepare`.
 - `mise run package:validate` builds and inspects the VSIX.
 - `mise run verify` runs the intended-final-head local gate.
 

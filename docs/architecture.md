@@ -62,8 +62,7 @@ dialog.
 
 - `dist/node/extension.js` targets the desktop Extension Host.
 - `dist/web/extension.js` is browser-compatible for eligible web Extension
-  Hosts; the current harness provides structural build evidence rather than an
-  executed vscode.dev host.
+  Hosts and is executed in stable VS Code for the Web under headless Chromium.
 
 Code reachable from the shared entry point must avoid Node-only APIs. If a
 future feature genuinely needs platform-specific code, split the entry points
@@ -71,6 +70,27 @@ and keep shared rendering contracts platform-neutral.
 
 Both bundles are declared in `package.json` and asserted inside the produced
 VSIX. A successful desktop build alone is not sufficient evidence.
+
+The repository's direct `markdown-it` development dependency is a controlled
+unit-test fixture only. Host compatibility tests render through the built-in
+Markdown extension's `markdown.api.render` command, so they exercise the
+Markdown-It version, options, plugin ordering, fence renderer, and source maps
+actually supplied by VS Code. If stable VS Code adopts a new Markdown-It major,
+first use the host contract to identify the behavioral delta, then update the
+direct fixture and focused unit expectations deliberately; do not make the
+fixture masquerade as host evidence.
+
+## Tooling Boundary
+
+Repository-owned Node configuration, scripts, helpers, and contract tests use
+explicit ESM `.mts` files. Node 24 executes these files through native type
+stripping, while `tsconfig.tooling.json` independently applies strict NodeNext,
+no-emit checking and restricts the files to erasable TypeScript syntax.
+
+`.vscode-test.mjs` is the sole JavaScript compatibility exception because
+`@vscode/test-cli` 0.0.15 discovers `.json`, `.js`, `.cjs`, and `.mjs` configs
+but not `.mts`. Reusable version and invocation logic remains in checked `.mts`
+helpers rather than the compatibility file.
 
 ## Public Contracts
 

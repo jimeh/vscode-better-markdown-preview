@@ -47,15 +47,52 @@ run = [
   "mise run format:check",
   "mise run lint",
   "mise run typecheck",
-  "mise run test",
+  "mise run test:contracts",
+  "mise run test:coverage",
 ]
 
 [tasks.test]
-description = "Run fast unit and manifest contract tests"
+description = "Run fast unit and Node contract tests without coverage"
 run = "pnpm test"
 
+[tasks."test:contracts"]
+description = "Run typed Node contract tests"
+run = "pnpm run test:contracts"
+
+[tasks."test:coverage"]
+description = "Run all-files V8 unit coverage with global and per-file floors"
+run = "pnpm run test:coverage"
+
+[tasks."test:hosts:prepare"]
+description = "Build production artifacts and desktop and web host test runners"
+run = "pnpm run test:hosts:prepare"
+
+[tasks."test:host-runners:build"]
+description = "Build narrow desktop and web host runners against existing artifacts"
+run = "pnpm run build:host-runners"
+
+[tasks."test:desktop:floor"]
+description = "Run the prepared desktop contract on VS Code 1.125.0"
+run = "pnpm run test:desktop:floor"
+
+[tasks."test:desktop:stable"]
+description = "Run the prepared desktop contract on stable VS Code"
+run = "pnpm run test:desktop:stable"
+
+[tasks."test:desktop"]
+description = "Prepare and run desktop floor and stable compatibility"
+run = [
+  "mise run test:hosts:prepare",
+  "mise run test:desktop:floor",
+  "mise run test:desktop:stable",
+]
+
+[tasks."test:web:stable"]
+description = "Run the prepared web contract in stable VS Code Chromium"
+run = "pnpm run test:web:stable"
+
 [tasks."test:extension"]
-description = "Build and run the Extension Host activation smoke test"
+description = "Prepare and run desktop floor and stable host contracts"
 run = "pnpm run test:extension"
 
 [tasks.package]
@@ -70,13 +107,18 @@ run = ["mise run package", "pnpm run test:package"]
 description = "Check workflow syntax, security, and action pins"
 run = ["actionlint", "zizmor --offline .", "pinact run --check"]
 
+[tasks.validate]
+description = "Run broad repository validation once before host consumers"
+run = ["mise run check", "mise run package:validate", "mise run ci:workflows"]
+
 [tasks.verify]
 description = "Run the intended-final-head local validation gate"
 run = [
-  "mise run check",
-  "mise run test:extension",
-  "mise run package:validate",
-  "mise run ci:workflows",
+  "mise run validate",
+  "mise run test:host-runners:build",
+  "mise run test:desktop:floor",
+  "mise run test:desktop:stable",
+  "mise run test:web:stable",
 ]
 
 [tasks.doctor]
@@ -92,4 +134,4 @@ run = [
 
 [tasks.clean]
 description = "Remove generated build, test, and package output"
-run = "node scripts/clean.mjs"
+run = "node scripts/clean.mts"

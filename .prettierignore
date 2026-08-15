@@ -1,4 +1,5 @@
 artifacts
+coverage
 dist
 docs/plans
 mise.lock
@@ -6,3 +7,4 @@ node_modules
 out
 pnpm-lock.yaml
 .vscode-test
+.vscode-test-web

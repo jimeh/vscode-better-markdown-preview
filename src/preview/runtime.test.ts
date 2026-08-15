@@ -9,6 +9,7 @@ function setDocument(html: string): void {
 
 describe('preview runtime', () => {
 	beforeEach(() => {
+		document.body.className = '';
 		setDocument('');
 		vi.restoreAllMocks();
 	});
@@ -253,6 +254,45 @@ describe('preview runtime', () => {
 		failing.dispose();
 	});
 
+	test('preserves source when the Mermaid module loader rejects', async () => {
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => Promise.reject(new Error('chunk unavailable')),
+		});
+
+		await controller.ready;
+		const block = document.querySelector<HTMLElement>(
+			'[data-bmp-mermaid-source]',
+		)!;
+		expect(block.textContent).toBe('graph TD\nA-->B');
+		expect(block.dataset.bmpMermaidState).toBe('failed');
+		controller.dispose();
+	});
+
+	test('uses default light theme values when VS Code variables are absent', async () => {
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		const render = vi.fn<MermaidAdapter['render']>(async (element) => {
+			element.innerHTML = '<svg viewBox="0 0 100 50"></svg>';
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+
+		await controller.ready;
+		expect(render).toHaveBeenCalledWith(
+			expect.any(HTMLElement),
+			'graph TD\nA-->B',
+			{
+				dark: false,
+				background: '#ffffff',
+				foreground: '#1f2328',
+				border: '#8c8c8c',
+				accent: '#0969da',
+			},
+		);
+		controller.dispose();
+	});
+
 	test('serializes Mermaid passes across theme changes', async () => {
 		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
 		let finishFirst: (() => void) | undefined;
@@ -492,6 +532,39 @@ describe('preview runtime', () => {
 		expect(document.querySelector('[data-bmp-mermaid-dialog]')).toBeNull();
 	});
 
+	test('falls back from malformed SVG sizing and unavailable dialog methods', async () => {
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({
+				render: async (element) => {
+					element.innerHTML =
+						'<svg viewBox="invalid" width="320" height="nope"></svg>';
+				},
+			}),
+		});
+		await controller.ready;
+		const dialog = document.querySelector<HTMLDialogElement>(
+			'[data-bmp-mermaid-dialog]',
+		)!;
+		dialog.showModal = vi.fn(() => {
+			throw new Error('unsupported');
+		});
+		document
+			.querySelector<HTMLButtonElement>('[data-bmp-mermaid-open]')
+			?.click();
+		const svg = dialog.querySelector<SVGSVGElement>('svg')!;
+		expect(dialog.hasAttribute('open')).toBe(true);
+		expect(svg.style.width).toBe('320px');
+		expect(svg.style.height).toBe('600px');
+
+		dialog.close = undefined as unknown as typeof dialog.close;
+		dialog.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+		);
+		expect(dialog.hasAttribute('open')).toBe(false);
+		controller.dispose();
+	});
+
 	test('adds code line presentation without changing authored copy text or source maps', async () => {
 		setDocument(
 			'<figure class="better-markdown-preview-code" data-bmp-lines="2" data-bmp-word="needle" data-bmp-line-numbers="true"><pre data-line="7"><code><span>first</span>\n<span>needle</span></code></pre></figure>',
@@ -511,5 +584,6 @@ describe('preview runtime', () => {
 	test('caps authored line ranges to the visual line count', () => {
 		expect([...parseLineSet('1-10000', 2)]).toEqual([1, 2]);
 		expect([...parseLineSet('9999-10000', 2)]).toEqual([]);
+		expect([...parseLineSet('3-1,one,2-two,0-2,2-3', 3)]).toEqual([2, 3]);
 	});
 });
