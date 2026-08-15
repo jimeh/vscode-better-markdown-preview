@@ -44,6 +44,97 @@ const value = true; // [!code ++]
 \`\`\`
 `;
 
+const configurationRoundTripFixture = `# Configuration round trip
+
+:::: {.columns}
+::: {.column width=40%}
+Left
+:::
+::: {.column}
+Right
+:::
+::::
+`;
+
+type RenderMarkdown = (source: string) => PromiseLike<string | undefined>;
+
+type UpdateConfiguration = (
+	key: 'rendering.columns' | 'mermaid.viewer',
+	value: boolean | undefined,
+) => PromiseLike<void>;
+
+interface OriginalConfiguration {
+	'rendering.columns': boolean | undefined;
+	'mermaid.viewer': boolean | undefined;
+}
+
+async function waitForRender(
+	render: RenderMarkdown,
+	accept: (html: string) => boolean,
+	description: string,
+): Promise<string> {
+	const deadline = Date.now() + 5_000;
+	let html: string;
+	do {
+		const result = await render(configurationRoundTripFixture);
+		if (typeof result !== 'string') {
+			throw new Error('markdown.api.render did not return HTML.');
+		}
+		html = result;
+		if (accept(html)) {
+			return html;
+		}
+		await new Promise((resolve) => setTimeout(resolve, 50));
+	} while (Date.now() < deadline);
+
+	throw new Error(`Host render did not ${description}. Last HTML: ${html}`);
+}
+
+export async function assertConfigurationRoundTrip(
+	render: RenderMarkdown,
+	update: UpdateConfiguration,
+	original: OriginalConfiguration,
+): Promise<void> {
+	try {
+		await update('mermaid.viewer', undefined);
+		await update('rendering.columns', undefined);
+		await waitForRender(
+			render,
+			(html) =>
+				html.includes('better-markdown-preview-columns') &&
+				html.includes('&quot;mermaidViewer&quot;:true'),
+			'start from default rendering settings',
+		);
+
+		await update('rendering.columns', false);
+		await waitForRender(
+			render,
+			(html) => !html.includes('better-markdown-preview-columns'),
+			'delegate columns after disabling the renderer',
+		);
+
+		await update('mermaid.viewer', false);
+		await waitForRender(
+			render,
+			(html) => html.includes('&quot;mermaidViewer&quot;:false'),
+			'emit a disabled Mermaid viewer marker',
+		);
+
+		await update('mermaid.viewer', undefined);
+		await update('rendering.columns', undefined);
+		await waitForRender(
+			render,
+			(html) =>
+				html.includes('better-markdown-preview-columns') &&
+				html.includes('&quot;mermaidViewer&quot;:true'),
+			'restore default rendering after resetting settings',
+		);
+	} finally {
+		await update('mermaid.viewer', original['mermaid.viewer']);
+		await update('rendering.columns', original['rendering.columns']);
+	}
+}
+
 function requireMatch(
 	html: string,
 	pattern: RegExp,

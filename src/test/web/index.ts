@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import {
+	assertConfigurationRoundTrip,
 	assertRenderCompatibility,
 	renderCompatibilityFixture,
 } from '../render-contract';
@@ -30,4 +31,20 @@ export async function run(): Promise<void> {
 		throw new Error('markdown.api.render did not return HTML in the web host.');
 	}
 	assertRenderCompatibility(html);
+
+	const configuration = vscode.workspace.getConfiguration(
+		'betterMarkdownPreview',
+	);
+	await assertConfigurationRoundTrip(
+		(source) =>
+			vscode.commands.executeCommand<string>('markdown.api.render', source),
+		(key, value) =>
+			configuration.update(key, value, vscode.ConfigurationTarget.Global),
+		{
+			'rendering.columns':
+				configuration.inspect<boolean>('rendering.columns')?.globalValue,
+			'mermaid.viewer':
+				configuration.inspect<boolean>('mermaid.viewer')?.globalValue,
+		},
+	);
 }

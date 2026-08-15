@@ -63,6 +63,9 @@ Better Markdown Preview extends VS Code's built-in Markdown preview. Read
 - Same-document preview edits can reuse Mermaid `<pre>` nodes, while a preview
   retarget replaces `.markdown-body` itself. DOM lifecycle code must handle both
   shapes without retaining stale source or TOC state.
+- Desktop host test settings under `.vscode-test/user-data` persist across
+  invocations. Tests that change global configuration must establish their own
+  defaults and restore previous values in `finally`.
 - Mermaid scopes embedded SVG styles to generated element IDs. Any cloned SVG
   ID rewrite must update CSS selectors inside `<style>` elements as well as
   attributes such as `url(#id)` and ARIA ID references.
