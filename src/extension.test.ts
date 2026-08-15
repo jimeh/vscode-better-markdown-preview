@@ -80,4 +80,21 @@ describe('extension entry point', () => {
 			.render('- [x] delegated\n');
 		expect(html).not.toContain('task-list-item');
 	});
+
+	test('reports a Markdown plugin reload rejection without leaving it unhandled', async () => {
+		const failure = new Error('reload unavailable');
+		vscode.commands.executeCommand.mockRejectedValueOnce(failure);
+		const report = vi
+			.spyOn(console, 'error')
+			.mockImplementation(() => undefined);
+		const context = { subscriptions: [] } as unknown as ExtensionContext;
+		activate(context);
+
+		vscode.fire('betterMarkdownPreview.rendering.footnotes');
+		await Promise.resolve();
+		expect(report).toHaveBeenCalledWith(
+			'Better Markdown Preview could not reload Markdown plugins.',
+			failure,
+		);
+	});
 });

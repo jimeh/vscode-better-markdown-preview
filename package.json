@@ -90,7 +90,7 @@
 					"type": "boolean",
 					"default": true,
 					"scope": "window",
-					"description": "Animate in-document preview navigation when reduced motion is not requested."
+					"description": "Animate table-of-contents navigation when reduced motion is not requested."
 				},
 				"betterMarkdownPreview.mermaid.viewer": {
 					"type": "boolean",

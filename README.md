@@ -71,20 +71,20 @@ remains visible if loading or rendering fails.
 All Better Markdown Preview features are enabled by default and can be changed
 at user or workspace scope:
 
-| Setting                                             | Behavior                                                               |
-| --------------------------------------------------- | ---------------------------------------------------------------------- |
-| `betterMarkdownPreview.rendering.taskLists`         | GFM task lists                                                         |
-| `betterMarkdownPreview.rendering.definitionLists`   | Definition lists                                                       |
-| `betterMarkdownPreview.rendering.footnotes`         | Footnotes and backlinks                                                |
-| `betterMarkdownPreview.rendering.githubAlerts`      | GitHub-style alerts                                                    |
-| `betterMarkdownPreview.rendering.tomlFrontmatter`   | Collapsed TOML frontmatter                                             |
-| `betterMarkdownPreview.rendering.columns`           | Responsive Pandoc-style columns                                        |
-| `betterMarkdownPreview.rendering.enhancedAutolinks` | Missing GFM HTTP, HTTPS, email, and `www.` literal links               |
-| `betterMarkdownPreview.rendering.richCodeBlocks`    | Rich code-block metadata and diff annotations                          |
-| `betterMarkdownPreview.rendering.mermaid`           | Local Mermaid fence rendering                                          |
-| `betterMarkdownPreview.navigation.tableOfContents`  | Responsive table of contents and active-heading tracking               |
-| `betterMarkdownPreview.navigation.smoothScrolling`  | Animated in-document navigation, subject to reduced-motion preferences |
-| `betterMarkdownPreview.mermaid.viewer`              | Full-screen Mermaid zoom and pan viewer                                |
+| Setting                                             | Behavior                                                       |
+| --------------------------------------------------- | -------------------------------------------------------------- |
+| `betterMarkdownPreview.rendering.taskLists`         | GFM task lists                                                 |
+| `betterMarkdownPreview.rendering.definitionLists`   | Definition lists                                               |
+| `betterMarkdownPreview.rendering.footnotes`         | Footnotes and backlinks                                        |
+| `betterMarkdownPreview.rendering.githubAlerts`      | GitHub-style alerts                                            |
+| `betterMarkdownPreview.rendering.tomlFrontmatter`   | Collapsed TOML frontmatter                                     |
+| `betterMarkdownPreview.rendering.columns`           | Responsive Pandoc-style columns                                |
+| `betterMarkdownPreview.rendering.enhancedAutolinks` | Missing GFM HTTP, HTTPS, email, and `www.` literal links       |
+| `betterMarkdownPreview.rendering.richCodeBlocks`    | Rich code-block metadata and diff annotations                  |
+| `betterMarkdownPreview.rendering.mermaid`           | Local Mermaid fence rendering                                  |
+| `betterMarkdownPreview.navigation.tableOfContents`  | Responsive table of contents and active-heading tracking       |
+| `betterMarkdownPreview.navigation.smoothScrolling`  | Animated ToC navigation, subject to reduced-motion preferences |
+| `betterMarkdownPreview.mermaid.viewer`              | Full-screen Mermaid zoom and pan viewer                        |
 
 Disabling a rendering feature stops Better Markdown Preview from handling that
 syntax and delegates it to VS Code or another Markdown extension. It does not

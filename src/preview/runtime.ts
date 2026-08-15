@@ -83,10 +83,40 @@ function createController(
 	let mermaidAdapter: MermaidAdapter | undefined;
 	let mermaidViewer: MermaidViewer | undefined;
 	let settings = previewConfiguration(defaultConfiguration);
+	let smoothScrollCleanup: (() => void) | undefined;
 	let mermaidQueue = Promise.resolve();
 	const mermaidSources = new WeakMap<HTMLElement, string>();
 	const cleanups: Array<() => void> = [];
 	const loadMermaid = options.loadMermaid ?? defaultMermaidLoader;
+	const beginSmoothTocNavigation = (): void => {
+		if (
+			!settings.smoothScrolling ||
+			window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+		) {
+			return;
+		}
+		smoothScrollCleanup?.();
+		const root = document.documentElement;
+		let animationFrame = 0;
+		let timeout = 0;
+		const cleanup = (): void => {
+			root.classList.remove('better-markdown-preview-smooth-scroll');
+			if (animationFrame) {
+				window.cancelAnimationFrame(animationFrame);
+			}
+			window.clearTimeout(timeout);
+			if (smoothScrollCleanup === cleanup) {
+				smoothScrollCleanup = undefined;
+			}
+		};
+		root.classList.add('better-markdown-preview-smooth-scroll');
+		animationFrame = window.requestAnimationFrame(() => {
+			animationFrame = 0;
+			cleanup();
+		});
+		timeout = window.setTimeout(cleanup, 1_000);
+		smoothScrollCleanup = cleanup;
+	};
 	const syncMermaidViewer = (): void => {
 		if (!settings.mermaidViewer) {
 			mermaidViewer?.dispose();
@@ -169,12 +199,11 @@ function createController(
 		}
 		const layout = ensureLayout(document, markdownBody);
 		settings = readPreviewConfiguration(markdownBody);
-		document.documentElement.classList.toggle(
-			'better-markdown-preview-smooth-scroll',
-			settings.smoothScrolling,
-		);
+		if (!settings.smoothScrolling) {
+			smoothScrollCleanup?.();
+		}
 		if (settings.tableOfContents) {
-			buildToc(document, layout, markdownBody);
+			buildToc(document, layout, markdownBody, beginSmoothTocNavigation);
 		} else {
 			clearToc(layout);
 			if (scrollFrame) {
@@ -290,9 +319,7 @@ function createController(
 				cleanup();
 			}
 			mermaidViewer?.dispose();
-			document.documentElement.classList.remove(
-				'better-markdown-preview-smooth-scroll',
-			);
+			smoothScrollCleanup?.();
 		},
 	};
 }
@@ -301,9 +328,10 @@ export function readPreviewConfiguration(
 	markdownBody: HTMLElement,
 ): PreviewConfiguration {
 	const defaults = previewConfiguration(defaultConfiguration);
-	const raw = markdownBody.querySelector<HTMLElement>(
+	const markers = markdownBody.querySelectorAll<HTMLElement>(
 		'[data-bmp-preview-config]',
-	)?.dataset.bmpPreviewConfig;
+	);
+	const raw = markers.item(markers.length - 1)?.dataset.bmpPreviewConfig;
 	if (!raw) {
 		return defaults;
 	}
@@ -759,6 +787,7 @@ function buildToc(
 	document: Document,
 	layout: HTMLElement,
 	markdownBody: HTMLElement,
+	onNavigate: () => void,
 ): void {
 	clearToc(layout);
 	const allHeadings = Array.from(
@@ -846,6 +875,21 @@ function buildToc(
 	});
 	for (const link of dialog.querySelectorAll('a')) {
 		link.addEventListener('click', close);
+	}
+	for (const link of layout.querySelectorAll<HTMLAnchorElement>(
+		'[data-bmp-heading-id]',
+	)) {
+		link.addEventListener('click', (event) => {
+			if (
+				event.button === 0 &&
+				!event.altKey &&
+				!event.ctrlKey &&
+				!event.metaKey &&
+				!event.shiftKey
+			) {
+				onNavigate();
+			}
+		});
 	}
 }
 

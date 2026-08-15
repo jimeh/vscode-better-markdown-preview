@@ -15,5 +15,5 @@ All notable changes to Better Markdown Preview will be documented here.
   validation.
 - Add default-on settings for each optional rendering feature, the table of
   contents, smooth navigation, and the Mermaid zoom and pan viewer.
-- Animate in-document preview navigation while respecting reduced-motion
+- Animate table-of-contents navigation while respecting reduced-motion
   preferences, and soften the Mermaid viewer backdrop.

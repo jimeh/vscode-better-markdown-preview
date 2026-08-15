@@ -26,7 +26,14 @@ export function activate(context: ExtensionContext): MarkdownExtensionApi {
 			configuration = readConfiguration(
 				workspace.getConfiguration(CONFIGURATION_SECTION),
 			);
-			void commands.executeCommand('markdown.api.reloadPlugins');
+			void commands
+				.executeCommand('markdown.api.reloadPlugins')
+				.then(undefined, (error: unknown) => {
+					console.error(
+						'Better Markdown Preview could not reload Markdown plugins.',
+						error,
+					);
+				});
 		}),
 	);
 	return {

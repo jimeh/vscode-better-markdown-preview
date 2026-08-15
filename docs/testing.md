@@ -71,7 +71,9 @@ feature independently, retaining tag filtering and checking Mermaid/rich-fence
 independence. DOM tests exercise marker defaults and live updates across reused
 nodes and replaced Markdown bodies, including complete cleanup when the TOC,
 smooth scrolling, or Mermaid viewer is disabled. Presentation contracts pin the
-Mermaid backdrop opacity and the reduced-motion override.
+Mermaid backdrop opacity and the reduced-motion override. Navigation tests keep
+the smooth-scroll class limited to owned TOC link activation and require
+next-frame or bounded-fallback cleanup.
 
 `test/fixtures/kitchen-sink.md` remains the shared manual/runtime document for
 light, dark, high-contrast, wide, and narrow preview checks.

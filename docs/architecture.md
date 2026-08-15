@@ -54,9 +54,12 @@ table-of-contents, smooth-scrolling, and Mermaid-viewer booleans needed in the
 webview. The runtime re-reads that marker when preview content changes or the
 Markdown body is replaced. It removes owned navigation or viewer UI when a
 feature becomes disabled, including open dialogs and controls attached to
-reused Mermaid nodes. Smooth navigation is expressed as a root class in the
-contributed stylesheet and is overridden exactly when the operating system
-requests reduced motion.
+reused Mermaid nodes. Owned TOC link activation applies a root smooth-scroll
+class synchronously for native fragment navigation, then removes it on the next
+animation frame. A bounded timeout covers a stalled frame without extending the
+normal window into editor-to-preview synchronization. The contributed
+stylesheet overrides the class exactly when the operating system requests
+reduced motion.
 
 `media/preview.css` uses VS Code webview color variables and body theme classes;
 it does not own a light or dark palette. VS Code loads user `markdown.styles`
