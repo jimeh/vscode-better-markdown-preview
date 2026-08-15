@@ -25,6 +25,7 @@ mise.lock
 mise.toml
 pnpm-lock.yaml
 pnpm-workspace.yaml
+release.config.mjs
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/tsconfig.*.json

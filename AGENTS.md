@@ -98,6 +98,16 @@ VSCE accepts only `ui` and `workspace` in `extensionKind`. Web-host eligibility
 comes from the manifest's `browser` entry point; do not add a synthetic `web`
 extension kind.
 
+`@semantic-release/release-notes-generator` 14.1.1 is compatible with
+`conventional-changelog-conventionalcommits` 9.3.1. Version 10 uses a newer
+writer contract and silently produced release headings without commit entries;
+retain the executable release-notes contract when upgrading either package.
+
+VSCE's positional package version calls `npm version` unless both
+`--no-git-tag-version` and `--no-update-package-json` are supplied. Release
+packaging must keep those flags because Semantic Release has already modified
+the transient changelog and the tracked manifest must stay at `0.0.0`.
+
 GitHub Actions must declare restricted permissions and pin every action to a
 full commit SHA. `mise run ci:workflows` enforces syntax, security posture, and
 pin freshness.

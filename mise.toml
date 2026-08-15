@@ -103,6 +103,18 @@ run = "pnpm run package"
 description = "Package and inspect the VSIX contents"
 run = ["mise run package", "pnpm run test:package"]
 
+[tasks."release:check"]
+description = "Check semantic versioning, release output, and workflow contracts"
+run = "node --test test/release.test.mts test/workflows.test.mts"
+
+[tasks."release:package"]
+description = "Build and verify the versioned VSIX and checksum for Semantic Release"
+run = "pnpm run release:package"
+
+[tasks.release]
+description = "Run Semantic Release for the current CI revision"
+run = "pnpm run release"
+
 [tasks."ci:workflows"]
 description = "Check workflow syntax, security, and action pins"
 run = ["actionlint", "zizmor --offline .", "pinact run --check"]

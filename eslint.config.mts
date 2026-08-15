@@ -15,7 +15,7 @@ export default [
 		],
 	},
 	{
-		files: ['.vscode-test.mjs'],
+		files: ['.vscode-test.mjs', 'release.config.mjs'],
 		languageOptions: {
 			ecmaVersion: 2022,
 			globals: globals.node,

@@ -15,6 +15,7 @@
 	},
 	"include": [
 		".vscode-test.mjs",
+		"release.config.mjs",
 		"esbuild.mts",
 		"eslint.config.mts",
 		"vitest.config.mts",

@@ -9,6 +9,7 @@ const manifest = JSON.parse(
 );
 
 test('manifest exposes native Markdown preview hooks for desktop and web', () => {
+	assert.equal(manifest.version, '0.0.0');
 	assert.equal(manifest.engines.vscode, `^${DESKTOP_FLOOR_VERSION}`);
 	assert.equal(manifest.icon, 'img/icon.png');
 	assert.equal(manifest.main, './dist/node/extension.js');

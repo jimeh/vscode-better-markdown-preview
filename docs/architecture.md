@@ -110,10 +110,26 @@ explicit ESM `.mts` files. Node 24 executes these files through native type
 stripping, while `tsconfig.tooling.json` independently applies strict NodeNext,
 no-emit checking and restricts the files to erasable TypeScript syntax.
 
-`.vscode-test.mjs` is the sole JavaScript compatibility exception because
-`@vscode/test-cli` 0.0.15 discovers `.json`, `.js`, `.cjs`, and `.mjs` configs
-but not `.mts`. Reusable version and invocation logic remains in checked `.mts`
-helpers rather than the compatibility file.
+JavaScript compatibility files are kept as thin discovery shims when an
+external tool cannot discover `.mts`. `@vscode/test-cli` 0.0.15 discovers
+`.vscode-test.mjs`, while Semantic Release discovers `release.config.mjs`.
+Reusable host and release policy remains in strictly checked `.mts` helpers
+rather than either compatibility file.
+
+## Release Boundary
+
+The tracked extension version is the development placeholder `0.0.0`.
+Semantic Release owns version selection from squash commit messages and passes
+the selected version to the repository's VSCE packaging helper; it does not
+edit or commit the manifest. Release preparation runs after all source and host
+gates, injects the version only into the VSIX, checks the complete archive and
+transient current-release changelog, and produces a SHA-256 file.
+
+Visual Studio Marketplace, Open VSX, and GitHub Release publication are
+independent consumers of that one immutable artifact. Publisher jobs never
+rebuild it and receive only their own credential. GitHub Releases are the
+cumulative changelog authority; see [Releases](releases.md) for operational
+policy and recovery.
 
 ## Public Contracts
 
@@ -128,3 +144,6 @@ and shipped artifacts describe the current implementation.
 
 The rendering contract is recorded in
 `docs/plans/002-renderer-implementation.md`.
+
+The automated release contract is recorded in
+`docs/plans/004-semantic-release-automation.md`.
