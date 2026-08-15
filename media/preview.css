@@ -19,12 +19,6 @@ html.better-markdown-preview-smooth-scroll {
 	line-height: var(--markdown-line-height, 22px);
 }
 
-.better-markdown-preview-layout
-	> .markdown-body
-	> :where(p, ul, ol, blockquote, dl) {
-	max-width: 78ch;
-}
-
 .better-markdown-preview-toc {
 	grid-column: 1;
 	grid-row: 1;
