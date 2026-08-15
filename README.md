@@ -27,7 +27,8 @@ It adds:
 
 - Complete visible GFM behavior, including task lists, literal autolinks, and
   tag filtering.
-- GitHub alerts, footnotes, definition lists, and collapsed TOML frontmatter.
+- GitHub alerts, footnotes, definition lists, and collapsible highlighted TOML
+  and YAML frontmatter.
 - Responsive Pandoc-style columns and locally bundled Mermaid diagrams.
 - Code-block titles, highlighted lines and words, line numbers, and diff-line
   annotations while retaining VS Code's native highlighter.
@@ -40,7 +41,9 @@ Preview to the Side**. The built-in preview is enhanced automatically.
 
 ## Extended syntax
 
-TOML frontmatter uses exact `+++` delimiter lines at the start of a document.
+TOML frontmatter uses exact `+++` delimiter lines at the start of a document;
+YAML uses `---`. Both render expanded by default in a collapsible,
+syntax-highlighted code block without displaying their delimiter lines.
 Columns use the supported Pandoc fenced-div subset:
 
 ```markdown
@@ -77,7 +80,8 @@ at user or workspace scope:
 | `betterMarkdownPreview.rendering.definitionLists`   | Definition lists                                               |
 | `betterMarkdownPreview.rendering.footnotes`         | Footnotes and backlinks                                        |
 | `betterMarkdownPreview.rendering.githubAlerts`      | GitHub-style alerts                                            |
-| `betterMarkdownPreview.rendering.tomlFrontmatter`   | Collapsed TOML frontmatter                                     |
+| `betterMarkdownPreview.rendering.tomlFrontmatter`   | Expanded, collapsible, highlighted TOML frontmatter            |
+| `betterMarkdownPreview.rendering.yamlFrontmatter`   | Expanded, collapsible, highlighted YAML frontmatter            |
 | `betterMarkdownPreview.rendering.columns`           | Responsive Pandoc-style columns                                |
 | `betterMarkdownPreview.rendering.enhancedAutolinks` | Missing GFM HTTP, HTTPS, email, and `www.` literal links       |
 | `betterMarkdownPreview.rendering.richCodeBlocks`    | Rich code-block metadata and diff annotations                  |

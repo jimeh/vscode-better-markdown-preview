@@ -42,8 +42,11 @@ export function extendMarkdownIt(
 			icons: {},
 		});
 	}
-	if (configuration.rendering.tomlFrontmatter) {
-		installTomlFrontmatter(md);
+	if (
+		configuration.rendering.tomlFrontmatter ||
+		configuration.rendering.yamlFrontmatter
+	) {
+		installFrontmatter(md, configuration);
 	}
 	if (configuration.rendering.columns) {
 		installColumns(md);
@@ -209,62 +212,104 @@ function installGfmTagFilter(md: MarkdownIt, afterRule: string): void {
 	);
 }
 
-function installTomlFrontmatter(md: MarkdownIt): void {
-	md.block.ruler.before(
-		'fence',
-		'better_markdown_preview_toml_frontmatter',
-		(state, startLine, endLine, silent) => {
-			if (
-				startLine !== 0 ||
-				nestedBlockParseDepth > 0 ||
-				state.parentType !== 'root'
-			) {
-				return false;
-			}
-			const opening = rawLineAt(state, startLine).replace(/^\uFEFF/, '');
-			if (opening !== '+++') {
-				return false;
-			}
-			let closeLine = -1;
-			for (let line = 1; line < endLine; line += 1) {
-				if (rawLineAt(state, line) === '+++') {
-					closeLine = line;
-					break;
+interface FrontmatterDefinition {
+	language: 'toml' | 'yaml';
+	delimiter: '+++' | '---';
+	allowTrailingWhitespace: boolean;
+}
+
+function installFrontmatter(
+	md: MarkdownIt,
+	configuration: BetterMarkdownPreviewConfiguration,
+): void {
+	const renderFence = md.renderer.rules.fence;
+	const definitions: FrontmatterDefinition[] = [];
+	if (configuration.rendering.tomlFrontmatter) {
+		definitions.push({
+			language: 'toml',
+			delimiter: '+++',
+			allowTrailingWhitespace: false,
+		});
+	}
+	if (configuration.rendering.yamlFrontmatter) {
+		definitions.push({
+			language: 'yaml',
+			delimiter: '---',
+			allowTrailingWhitespace: true,
+		});
+	}
+	for (const definition of definitions) {
+		md.block.ruler.before(
+			'fence',
+			`better_markdown_preview_${definition.language}_frontmatter`,
+			(state, startLine, endLine, silent) => {
+				if (
+					startLine !== 0 ||
+					nestedBlockParseDepth > 0 ||
+					state.parentType !== 'root'
+				) {
+					return false;
 				}
-			}
-			if (closeLine < 0) {
-				return false;
-			}
-			try {
-				parseToml(state.getLines(1, closeLine, 0, false));
-			} catch {
-				return false;
-			}
-			if (silent) {
+				const lineMatches = (line: string): boolean => {
+					const value = definition.allowTrailingWhitespace
+						? line.trimEnd()
+						: line;
+					return value === definition.delimiter;
+				};
+				const opening = rawLineAt(state, startLine).replace(/^\uFEFF/, '');
+				if (!lineMatches(opening)) {
+					return false;
+				}
+				let closeLine = -1;
+				for (let line = 1; line < endLine; line += 1) {
+					if (lineMatches(rawLineAt(state, line))) {
+						closeLine = line;
+						break;
+					}
+				}
+				if (closeLine < 0) {
+					return false;
+				}
+				const content = state.getLines(1, closeLine, 0, false);
+				if (definition.language === 'toml') {
+					try {
+						parseToml(content);
+					} catch {
+						return false;
+					}
+				}
+				if (silent) {
+					return true;
+				}
+				const token = state.push('better_markdown_preview_frontmatter', '', 0);
+				token.block = true;
+				token.map = [0, closeLine + 1];
+				token.info = definition.language;
+				token.content = content;
+				state.line = closeLine + 1;
 				return true;
-			}
-			const raw = state
-				.getLines(0, closeLine + 1, 0, false)
-				.replace(/^\uFEFF/, '');
-			const token = state.push('better_markdown_preview_frontmatter', '', 0);
-			token.block = true;
-			token.map = [0, closeLine + 1];
-			token.content = raw;
-			state.line = closeLine + 1;
-			return true;
-		},
-	);
+			},
+		);
+	}
 	md.renderer.rules.better_markdown_preview_frontmatter = (
 		tokens,
 		index,
-		_options,
-		_env,
+		options,
+		env,
 		renderer,
 	) => {
 		const token = tokens[index];
 		token.attrJoin('class', 'better-markdown-preview-frontmatter');
-		const source = md.utils.escapeHtml(token.content);
-		return `<details${renderer.renderAttrs(token)}><summary>Frontmatter</summary><pre>${source}</pre></details>\n`;
+		const fence = Object.assign(
+			Object.create(Object.getPrototypeOf(token)) as Token,
+			token,
+		);
+		fence.type = 'fence';
+		fence.tag = 'code';
+		fence.nesting = 0;
+		fence.attrs = null;
+		fence.map = null;
+		return `<details open${renderer.renderAttrs(token)}><summary>Frontmatter</summary>${renderPrevious(renderFence, [fence], 0, options, env, renderer)}</details>\n`;
 	};
 }
 

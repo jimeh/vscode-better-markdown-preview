@@ -85,7 +85,8 @@ assertions in `src/test/render-contract.ts`. Both activate the development
 extension and render with `markdown.api.render`; neither constructs its own
 Markdown-It instance. The contract covers default-on task lists, definitions, footnotes,
 known alerts, GFM literal links with native `fuzzyLink: false`, tag filtering,
-TOML frontmatter, columns, exact Mermaid fences, rich fence delegation, several
+expanded and highlighted TOML/YAML frontmatter, columns, exact Mermaid fences,
+rich fence delegation, several
 extension-owned output markers, and native source-map attributes. The host
 matrix also changes a representative parser setting and preview-only setting,
 waits for the real Markdown plugin reload, verifies disabled output, then resets

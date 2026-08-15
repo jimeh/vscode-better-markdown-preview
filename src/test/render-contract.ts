@@ -44,6 +44,14 @@ const value = true; // [!code ++]
 \`\`\`
 `;
 
+export const yamlFrontmatterCompatibilityFixture = `---
+title: Host compatibility
+enabled: true
+---
+
+# YAML body
+`;
+
 const configurationRoundTripFixture = `# Configuration round trip
 
 :::: {.columns}
@@ -200,6 +208,15 @@ export function assertRenderCompatibility(html: string): void {
 		'GFM tag filtering',
 	);
 	requireMatch(html, /better-markdown-preview-frontmatter/, 'TOML frontmatter');
+	requireMatch(
+		html,
+		/<details(?=[^>]*better-markdown-preview-frontmatter)(?=[^>]*\bopen\b)[^>]*>/,
+		'expanded TOML frontmatter',
+	);
+	requireMatch(html, /language-toml/, 'native TOML syntax highlighting');
+	if (html.includes('+++')) {
+		throw new Error('Host render retained TOML frontmatter delimiters.');
+	}
 	requireMatch(html, /better-markdown-preview-columns/, 'column container');
 	requireMatch(html, /data-bmp-column-width="40"/, 'column width');
 	requireCount(html, /data-bmp-mermaid-source/g, 1, 'exact Mermaid blocks');
@@ -226,4 +243,21 @@ export function assertRenderCompatibility(html: string): void {
 		/<(?:details|pre|div|figure)(?=[^>]*better-markdown-preview-)(?=[^>]*data-line="\d+")[^>]*>/,
 		'native source-map attributes on owned output',
 	);
+}
+
+export function assertYamlFrontmatterCompatibility(html: string): void {
+	requireMatch(
+		html,
+		/<details(?=[^>]*better-markdown-preview-frontmatter)(?=[^>]*\bopen\b)(?=[^>]*data-line="0")[^>]*>/,
+		'expanded YAML frontmatter',
+	);
+	requireMatch(html, /language-yaml/, 'native YAML syntax highlighting');
+	if (html.includes('<table class="frontmatter"')) {
+		throw new Error(
+			'Host render delegated YAML frontmatter to the native table.',
+		);
+	}
+	if (html.includes('---')) {
+		throw new Error('Host render retained YAML frontmatter delimiters.');
+	}
 }

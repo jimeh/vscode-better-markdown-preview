@@ -22,14 +22,18 @@ setting, while filtering bare domains and other schemes and retaining native
 normalization, validation, nesting, and HTML-anchor guards.
 VS Code 1.125 collapses some backslash-escaped punctuation before contributed
 core rules run, so an escaped `www\.` is indistinguishable from authored
-`www.` at this boundary. Local rules cover GFM tag filtering, TOML
+`www.` at this boundary. Local rules cover GFM tag filtering, TOML and YAML
 frontmatter, responsive columns, exact Mermaid fences, and rich fence metadata.
 
 Renderer wrappers retain and invoke the rule already installed on the supplied
 Markdown-It instance. In particular, fenced code delegates to VS Code's native
 renderer after recognized metadata and diff annotations are removed. This keeps
 Highlight.js, language classes, source maps, and native copy controls
-authoritative.
+authoritative. Frontmatter likewise delegates its inner TOML or YAML source to
+that supplied fence renderer, while the extension owns only the expanded
+`details` wrapper. When YAML rendering is disabled, VS Code's later-installed
+native frontmatter rule remains free to render its configured table, code block,
+or hidden presentation.
 
 All emitted classes and data attributes are scoped with
 `better-markdown-preview` or `bmp`. Invalid extension syntax falls back to

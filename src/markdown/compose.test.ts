@@ -233,7 +233,10 @@ describe('Markdown composition', () => {
 	test('recognizes byte-zero and BOM TOML but leaves malformed frontmatter literal', () => {
 		const escaped = render('+++\ntitle = "<unsafe>"\n+++\n\n# Body\n');
 		expect(escaped).toContain('better-markdown-preview-frontmatter');
+		expect(escaped).toMatch(/<details(?=[^>]*\bopen\b)[^>]*>/);
+		expect(escaped).toContain('language-toml');
 		expect(escaped).toContain('&lt;unsafe&gt;');
+		expect(escaped).not.toContain('+++');
 		expect(escaped).not.toContain('<h1>title');
 		expect(render('\uFEFF+++\ntitle = "BOM"\n+++\n')).toContain(
 			'better-markdown-preview-frontmatter',
@@ -253,14 +256,70 @@ describe('Markdown composition', () => {
 				'better-markdown-preview-frontmatter',
 			);
 		}
-		expect(render('---\ntitle: native yaml\n---\n')).not.toContain(
+	});
+
+	test('renders YAML frontmatter as expanded highlighted code without delimiters', () => {
+		const html = render(
+			'---\ntitle: YAML frontmatter\nnested:\n  enabled: true\n---\n\n# Body\n',
+		);
+		expect(html).toContain('better-markdown-preview-frontmatter');
+		expect(html).toMatch(/<details(?=[^>]*\bopen\b)[^>]*>/);
+		expect(html).toContain('language-yaml');
+		expect(html).toContain('title: YAML frontmatter');
+		expect(html).not.toContain('---');
+		expect(html).not.toContain('<table class="frontmatter"');
+		expect(render('\uFEFF---\ntitle: BOM\n---\n')).toContain(
+			'better-markdown-preview-frontmatter',
+		);
+		expect(render('---  \ntitle: spaced\n---\t\n')).toContain(
+			'better-markdown-preview-frontmatter',
+		);
+		expect(render('\n---\ntitle: late\n---\n')).not.toContain(
+			'better-markdown-preview-frontmatter',
+		);
+		expect(render('---\ntitle: unclosed\n')).not.toContain(
 			'better-markdown-preview-frontmatter',
 		);
 	});
 
-	test('does not recognize TOML frontmatter in nested Markdown parses', () => {
+	test('delegates YAML frontmatter when its renderer is disabled', () => {
+		const html = render(
+			'---\ntitle: delegated\n---\n',
+			undefined,
+			disableRendering('yamlFrontmatter'),
+		);
+		expect(html).not.toContain('better-markdown-preview-frontmatter');
+		expect(html).toContain('<hr>');
+		expect(html).toContain('title: delegated');
+	});
+
+	test('delegates frontmatter syntax highlighting to the supplied fence renderer', () => {
+		const languages: string[] = [];
+		const contents: string[] = [];
+		const sentinel = vi.fn(
+			(tokens: Array<{ info: string; content: string }>, index: number) => {
+				languages.push(tokens[index].info);
+				contents.push(tokens[index].content);
+				return `<pre data-language="${tokens[index].info}"><code>highlighted</code></pre>`;
+			},
+		);
+		for (const source of [
+			'+++\ntitle = "TOML"\n+++\n',
+			'---\ntitle: YAML\n---\n',
+		]) {
+			const html = render(source, (md) => {
+				md.renderer.rules.fence = sentinel;
+			});
+			expect(html).toContain('highlighted');
+		}
+		expect(languages).toEqual(['toml', 'yaml']);
+		expect(contents).toEqual(['title = "TOML"', 'title: YAML']);
+	});
+
+	test('does not recognize frontmatter in nested Markdown parses', () => {
 		for (const nested of [
 			'> +++\n> title = "quote"\n> +++\n',
+			'> ---\n> title: quote\n> ---\n',
 			'- +++\n  title = "list"\n  +++\n',
 			':::: {.columns}\n::: {.column}\n+++\ntitle = "column"\n+++\n:::\n::: {.column}\nOther\n:::\n::::\n',
 		]) {

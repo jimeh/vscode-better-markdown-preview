@@ -54,7 +54,13 @@
 					"type": "boolean",
 					"default": true,
 					"scope": "window",
-					"description": "Render TOML frontmatter in a collapsed block. When disabled, TOML frontmatter is delegated to VS Code and other Markdown extensions."
+					"description": "Render TOML frontmatter as an expanded, collapsible, syntax-highlighted code block. When disabled, TOML frontmatter is delegated to VS Code and other Markdown extensions."
+				},
+				"betterMarkdownPreview.rendering.yamlFrontmatter": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Render YAML frontmatter as an expanded, collapsible, syntax-highlighted code block. When disabled, YAML frontmatter is delegated to VS Code and other Markdown extensions."
 				},
 				"betterMarkdownPreview.rendering.columns": {
 					"type": "boolean",

@@ -17,3 +17,8 @@ All notable changes to Better Markdown Preview will be documented here.
   contents, smooth navigation, and the Mermaid zoom and pan viewer.
 - Animate table-of-contents navigation while respecting reduced-motion
   preferences, and soften the Mermaid viewer backdrop.
+- Compact list indentation, align task checkboxes with ordinary list markers,
+  remove the rectangular ToC focus treatment, and match the mobile ToC backdrop
+  to the Mermaid viewer.
+- Render TOML and YAML frontmatter as expanded, collapsible,
+  syntax-highlighted code without delimiter lines.

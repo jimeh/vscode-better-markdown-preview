@@ -89,6 +89,17 @@ html.better-markdown-preview-smooth-scroll {
 	color: var(--vscode-textLink-foreground);
 }
 
+.better-markdown-preview-toc a:focus,
+.better-markdown-preview-toc-dialog a:focus {
+	outline: none;
+}
+
+.better-markdown-preview-toc a:focus-visible,
+.better-markdown-preview-toc-dialog a:focus-visible {
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
 .better-markdown-preview-toc-trigger {
 	display: none;
 	position: fixed;
@@ -126,7 +137,7 @@ html.better-markdown-preview-smooth-scroll {
 }
 
 .better-markdown-preview-toc-dialog::backdrop {
-	background: rgb(0 0 0 / 62%);
+	background: rgb(0 0 0 / 18%);
 }
 
 .better-markdown-preview-toc-dialog ol {
@@ -525,7 +536,10 @@ html.better-markdown-preview-smooth-scroll {
 	overflow: auto;
 }
 
-.markdown-body .contains-task-list,
+.markdown-body :where(ul, ol) {
+	padding-inline-start: 1.5em;
+}
+
 .markdown-body .task-list-item {
 	list-style: none;
 }
@@ -535,7 +549,10 @@ html.better-markdown-preview-smooth-scroll {
 }
 
 .markdown-body .task-list-item-checkbox {
-	margin: 0 0.45em 0 0;
+	width: 1em;
+	height: 1em;
+	margin-block: 0;
+	margin-inline: -1.45em 0.45em;
 	vertical-align: -0.1em;
 }
 

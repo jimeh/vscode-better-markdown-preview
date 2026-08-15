@@ -6,6 +6,7 @@ export const configurationKeys = [
 	'rendering.footnotes',
 	'rendering.githubAlerts',
 	'rendering.tomlFrontmatter',
+	'rendering.yamlFrontmatter',
 	'rendering.columns',
 	'rendering.enhancedAutolinks',
 	'rendering.richCodeBlocks',
@@ -22,6 +23,7 @@ export interface BetterMarkdownPreviewConfiguration {
 		footnotes: boolean;
 		githubAlerts: boolean;
 		tomlFrontmatter: boolean;
+		yamlFrontmatter: boolean;
 		columns: boolean;
 		enhancedAutolinks: boolean;
 		richCodeBlocks: boolean;
@@ -53,6 +55,7 @@ export const defaultConfiguration: BetterMarkdownPreviewConfiguration = {
 		footnotes: true,
 		githubAlerts: true,
 		tomlFrontmatter: true,
+		yamlFrontmatter: true,
 		columns: true,
 		enhancedAutolinks: true,
 		richCodeBlocks: true,
@@ -79,6 +82,7 @@ export function readConfiguration(
 			footnotes: enabled('rendering.footnotes'),
 			githubAlerts: enabled('rendering.githubAlerts'),
 			tomlFrontmatter: enabled('rendering.tomlFrontmatter'),
+			yamlFrontmatter: enabled('rendering.yamlFrontmatter'),
 			columns: enabled('rendering.columns'),
 			enhancedAutolinks: enabled('rendering.enhancedAutolinks'),
 			richCodeBlocks: enabled('rendering.richCodeBlocks'),

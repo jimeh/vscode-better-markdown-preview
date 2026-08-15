@@ -3,7 +3,9 @@ import * as vscode from 'vscode';
 import {
 	assertConfigurationRoundTrip,
 	assertRenderCompatibility,
+	assertYamlFrontmatterCompatibility,
 	renderCompatibilityFixture,
+	yamlFrontmatterCompatibilityFixture,
 } from '../render-contract';
 
 interface MarkdownExtensionApi {
@@ -32,6 +34,13 @@ suite('Better Markdown Preview extension', () => {
 		);
 		assert.strictEqual(typeof html, 'string');
 		assertRenderCompatibility(html);
+
+		const yamlHtml = await vscode.commands.executeCommand<string>(
+			'markdown.api.render',
+			yamlFrontmatterCompatibilityFixture,
+		);
+		assert.strictEqual(typeof yamlHtml, 'string');
+		assertYamlFrontmatterCompatibility(yamlHtml);
 	});
 
 	test('reloads rendering and preview settings through the host', async function () {

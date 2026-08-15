@@ -6,6 +6,7 @@ export const expectedConfigurationKeys = [
 	'betterMarkdownPreview.rendering.footnotes',
 	'betterMarkdownPreview.rendering.githubAlerts',
 	'betterMarkdownPreview.rendering.tomlFrontmatter',
+	'betterMarkdownPreview.rendering.yamlFrontmatter',
 	'betterMarkdownPreview.rendering.columns',
 	'betterMarkdownPreview.rendering.enhancedAutolinks',
 	'betterMarkdownPreview.rendering.richCodeBlocks',

@@ -2,7 +2,9 @@ import * as vscode from 'vscode';
 import {
 	assertConfigurationRoundTrip,
 	assertRenderCompatibility,
+	assertYamlFrontmatterCompatibility,
 	renderCompatibilityFixture,
+	yamlFrontmatterCompatibilityFixture,
 } from '../render-contract';
 
 interface MarkdownExtensionApi {
@@ -31,6 +33,15 @@ export async function run(): Promise<void> {
 		throw new Error('markdown.api.render did not return HTML in the web host.');
 	}
 	assertRenderCompatibility(html);
+
+	const yamlHtml = await vscode.commands.executeCommand<string>(
+		'markdown.api.render',
+		yamlFrontmatterCompatibilityFixture,
+	);
+	if (typeof yamlHtml !== 'string') {
+		throw new Error('markdown.api.render did not return YAML HTML.');
+	}
+	assertYamlFrontmatterCompatibility(yamlHtml);
 
 	const configuration = vscode.workspace.getConfiguration(
 		'betterMarkdownPreview',
