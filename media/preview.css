@@ -1,3 +1,7 @@
+html.better-markdown-preview-smooth-scroll {
+	scroll-behavior: smooth;
+}
+
 .better-markdown-preview-layout {
 	display: grid;
 	grid-template-columns: minmax(12rem, 1fr) minmax(0, 54rem) minmax(12rem, 1fr);
@@ -85,6 +89,17 @@
 	color: var(--vscode-textLink-foreground);
 }
 
+.better-markdown-preview-toc a:focus,
+.better-markdown-preview-toc-dialog a:focus {
+	outline: none;
+}
+
+.better-markdown-preview-toc a:focus-visible,
+.better-markdown-preview-toc-dialog a:focus-visible {
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
 .better-markdown-preview-toc-trigger {
 	display: none;
 	position: fixed;
@@ -122,7 +137,7 @@
 }
 
 .better-markdown-preview-toc-dialog::backdrop {
-	background: rgb(0 0 0 / 62%);
+	background: rgb(0 0 0 / 18%);
 }
 
 .better-markdown-preview-toc-dialog ol {
@@ -409,7 +424,7 @@
 }
 
 .better-markdown-preview-mermaid-dialog::backdrop {
-	background: rgb(0 0 0 / 68%);
+	background: rgb(0 0 0 / 18%);
 }
 
 .better-markdown-preview-mermaid-dialog-shell {
@@ -521,7 +536,10 @@
 	overflow: auto;
 }
 
-.markdown-body .contains-task-list,
+.markdown-body :where(ul, ol) {
+	padding-inline-start: 1.5em;
+}
+
 .markdown-body .task-list-item {
 	list-style: none;
 }
@@ -531,7 +549,10 @@
 }
 
 .markdown-body .task-list-item-checkbox {
-	margin: 0 0.45em 0 0;
+	width: 1em;
+	height: 1em;
+	margin-block: 0;
+	margin-inline: -1.45em 0.2em;
 	vertical-align: -0.1em;
 }
 
@@ -619,7 +640,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.better-markdown-preview-layout * {
+	html.better-markdown-preview-smooth-scroll {
 		scroll-behavior: auto !important;
 	}
 

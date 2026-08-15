@@ -1,15 +1,129 @@
 import MarkdownIt from 'markdown-it';
 import { describe, expect, test, vi } from 'vitest';
+import {
+	defaultConfiguration,
+	type BetterMarkdownPreviewConfiguration,
+} from '../config';
 import { extendMarkdownIt } from './compose';
 
-function render(source: string, configure?: (md: MarkdownIt) => void): string {
+function render(
+	source: string,
+	configure?: (md: MarkdownIt) => void,
+	configuration: BetterMarkdownPreviewConfiguration = defaultConfiguration,
+): string {
 	const md = new MarkdownIt({ html: true, linkify: false });
 	configure?.(md);
-	extendMarkdownIt(md);
+	extendMarkdownIt(md, configuration);
 	return md.render(source);
 }
 
+function disableRendering(
+	feature: keyof BetterMarkdownPreviewConfiguration['rendering'],
+): BetterMarkdownPreviewConfiguration {
+	return {
+		...defaultConfiguration,
+		rendering: {
+			...defaultConfiguration.rendering,
+			[feature]: false,
+		},
+	};
+}
+
 describe('Markdown composition', () => {
+	test('keeps every rendering feature enabled by default', () => {
+		const html = render(
+			'+++\ntitle = "Test"\n+++\n\n- [x] Task\n\nTerm\n: Definition\n\nFootnote[^1].\n\n[^1]: Note\n\n> [!NOTE]\n> Alert\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n\nhttps://example.com\n\n```mermaid\ngraph TD\nA-->B\n```\n\n```ts title="test.ts"\nvalue\n```\n',
+		);
+		for (const marker of [
+			'task-list-item',
+			'<dl>',
+			'footnote-ref',
+			'better-markdown-preview-alert-note',
+			'better-markdown-preview-frontmatter',
+			'better-markdown-preview-columns',
+			'href="https://example.com"',
+			'data-bmp-mermaid-source',
+			'better-markdown-preview-code',
+		]) {
+			expect(html, marker).toContain(marker);
+		}
+	});
+
+	test.each([
+		['taskLists', 'task-list-item'],
+		['definitionLists', '<dl>'],
+		['footnotes', 'footnote-ref'],
+		['githubAlerts', 'better-markdown-preview-alert-note'],
+		['tomlFrontmatter', 'better-markdown-preview-frontmatter'],
+		['columns', 'better-markdown-preview-columns'],
+		['enhancedAutolinks', 'href="https://example.com"'],
+	] as const)('disables only the %s parser feature', (feature, marker) => {
+		const parserMarkers = [
+			'task-list-item',
+			'<dl>',
+			'footnote-ref',
+			'better-markdown-preview-alert-note',
+			'better-markdown-preview-frontmatter',
+			'better-markdown-preview-columns',
+			'href="https://example.com"',
+		];
+		const html = render(
+			'+++\ntitle = "Test"\n+++\n\n- [x] Task\n\nTerm\n: Definition\n\nFootnote[^1].\n\n[^1]: Note\n\n> [!NOTE]\n> Alert\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n\nhttps://example.com\n\n<script>blocked()</script>\n',
+			undefined,
+			disableRendering(feature),
+		);
+		expect(html).not.toContain(marker);
+		for (const otherMarker of parserMarkers.filter(
+			(candidate) => candidate !== marker,
+		)) {
+			expect(html, otherMarker).toContain(otherMarker);
+		}
+		expect(html).toContain('&lt;script>blocked()&lt;/script>');
+	});
+
+	test('gates Mermaid and rich fences independently', () => {
+		const source =
+			'```mermaid\ngraph TD\nA-->B\n```\n\n```ts title="test.ts"\nvalue\n```\n';
+		const noMermaid = render(source, undefined, disableRendering('mermaid'));
+		expect(noMermaid).not.toContain('data-bmp-mermaid-source');
+		expect(noMermaid).toContain('better-markdown-preview-code');
+
+		const noRichCode = render(
+			source,
+			undefined,
+			disableRendering('richCodeBlocks'),
+		);
+		expect(noRichCode).toContain('data-bmp-mermaid-source');
+		expect(noRichCode).not.toContain('better-markdown-preview-code');
+	});
+
+	test('emits one valid marker containing only preview settings', () => {
+		const configuration: BetterMarkdownPreviewConfiguration = {
+			...defaultConfiguration,
+			navigation: { tableOfContents: false, smoothScrolling: true },
+			mermaid: { viewer: false },
+		};
+		const html = render('# Configured\n', undefined, configuration);
+		const raw = /data-bmp-preview-config="([^"]+)"/.exec(html)?.[1];
+
+		expect(html.match(/data-bmp-preview-config=/g)).toHaveLength(1);
+		expect(raw).toBeDefined();
+		expect(JSON.parse(raw!.replaceAll('&quot;', '"'))).toEqual({
+			tableOfContents: false,
+			smoothScrolling: true,
+			mermaidViewer: false,
+		});
+		expect(raw).not.toContain('taskLists');
+	});
+
+	test('does not append the block configuration marker to inline renders', () => {
+		const md = new MarkdownIt({ html: true, linkify: false });
+		extendMarkdownIt(md);
+		expect(md.renderInline('plain *inline* text')).toBe(
+			'plain <em>inline</em> text',
+		);
+	});
+
 	test('adds GFM task lists, literal autolinks, punctuation, and tag filtering', () => {
 		const html = render(
 			'- [x] done\n\nVisit https://example.com/a_(b). Email dev@example.com.\n\n<script>alert(1)</script>\n',
@@ -127,7 +241,10 @@ describe('Markdown composition', () => {
 	test('recognizes byte-zero and BOM TOML but leaves malformed frontmatter literal', () => {
 		const escaped = render('+++\ntitle = "<unsafe>"\n+++\n\n# Body\n');
 		expect(escaped).toContain('better-markdown-preview-frontmatter');
+		expect(escaped).toMatch(/<details(?=[^>]*\bopen\b)[^>]*>/);
+		expect(escaped).toContain('language-toml');
 		expect(escaped).toContain('&lt;unsafe&gt;');
+		expect(escaped).not.toContain('+++');
 		expect(escaped).not.toContain('<h1>title');
 		expect(render('\uFEFF+++\ntitle = "BOM"\n+++\n')).toContain(
 			'better-markdown-preview-frontmatter',
@@ -147,14 +264,70 @@ describe('Markdown composition', () => {
 				'better-markdown-preview-frontmatter',
 			);
 		}
-		expect(render('---\ntitle: native yaml\n---\n')).not.toContain(
+	});
+
+	test('renders YAML frontmatter as expanded highlighted code without delimiters', () => {
+		const html = render(
+			'---\ntitle: YAML frontmatter\nnested:\n  enabled: true\n---\n\n# Body\n',
+		);
+		expect(html).toContain('better-markdown-preview-frontmatter');
+		expect(html).toMatch(/<details(?=[^>]*\bopen\b)[^>]*>/);
+		expect(html).toContain('language-yaml');
+		expect(html).toContain('title: YAML frontmatter');
+		expect(html).not.toContain('---');
+		expect(html).not.toContain('<table class="frontmatter"');
+		expect(render('\uFEFF---\ntitle: BOM\n---\n')).toContain(
+			'better-markdown-preview-frontmatter',
+		);
+		expect(render('---  \ntitle: spaced\n---\t\n')).toContain(
+			'better-markdown-preview-frontmatter',
+		);
+		expect(render('\n---\ntitle: late\n---\n')).not.toContain(
+			'better-markdown-preview-frontmatter',
+		);
+		expect(render('---\ntitle: unclosed\n')).not.toContain(
 			'better-markdown-preview-frontmatter',
 		);
 	});
 
-	test('does not recognize TOML frontmatter in nested Markdown parses', () => {
+	test('delegates YAML frontmatter when its renderer is disabled', () => {
+		const html = render(
+			'---\ntitle: delegated\n---\n',
+			undefined,
+			disableRendering('yamlFrontmatter'),
+		);
+		expect(html).not.toContain('better-markdown-preview-frontmatter');
+		expect(html).toContain('<hr>');
+		expect(html).toContain('title: delegated');
+	});
+
+	test('delegates frontmatter syntax highlighting to the supplied fence renderer', () => {
+		const languages: string[] = [];
+		const contents: string[] = [];
+		const sentinel = vi.fn(
+			(tokens: Array<{ info: string; content: string }>, index: number) => {
+				languages.push(tokens[index].info);
+				contents.push(tokens[index].content);
+				return `<pre data-language="${tokens[index].info}"><code>highlighted</code></pre>`;
+			},
+		);
+		for (const source of [
+			'+++\ntitle = "TOML"\n+++\n',
+			'---\ntitle: YAML\n---\n',
+		]) {
+			const html = render(source, (md) => {
+				md.renderer.rules.fence = sentinel;
+			});
+			expect(html).toContain('highlighted');
+		}
+		expect(languages).toEqual(['toml', 'yaml']);
+		expect(contents).toEqual(['title = "TOML"', 'title: YAML']);
+	});
+
+	test('does not recognize frontmatter in nested Markdown parses', () => {
 		for (const nested of [
 			'> +++\n> title = "quote"\n> +++\n',
+			'> ---\n> title: quote\n> ---\n',
 			'- +++\n  title = "list"\n  +++\n',
 			':::: {.columns}\n::: {.column}\n+++\ntitle = "column"\n+++\n:::\n::: {.column}\nOther\n:::\n::::\n',
 		]) {

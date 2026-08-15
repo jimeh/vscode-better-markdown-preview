@@ -44,6 +44,119 @@ const value = true; // [!code ++]
 \`\`\`
 `;
 
+export const yamlFrontmatterCompatibilityFixture = `---
+title: Host compatibility
+enabled: true
+---
+
+# YAML body
+`;
+
+const configurationRoundTripFixture = `# Configuration round trip
+
+:::: {.columns}
+::: {.column width=40%}
+Left
+:::
+::: {.column}
+Right
+:::
+::::
+`;
+
+type RenderMarkdown = (source: string) => PromiseLike<string | undefined>;
+
+type UpdateConfiguration = (
+	key: 'rendering.columns' | 'mermaid.viewer',
+	value: boolean | undefined,
+) => PromiseLike<void>;
+
+interface OriginalConfiguration {
+	'rendering.columns': boolean | undefined;
+	'mermaid.viewer': boolean | undefined;
+}
+
+async function waitForRender(
+	render: RenderMarkdown,
+	accept: (html: string) => boolean,
+	description: string,
+): Promise<string> {
+	const deadline = Date.now() + 5_000;
+	let html: string;
+	do {
+		const result = await render(configurationRoundTripFixture);
+		if (typeof result !== 'string') {
+			throw new Error('markdown.api.render did not return HTML.');
+		}
+		html = result;
+		if (accept(html)) {
+			return html;
+		}
+		await new Promise((resolve) => setTimeout(resolve, 50));
+	} while (Date.now() < deadline);
+
+	throw new Error(`Host render did not ${description}. Last HTML: ${html}`);
+}
+
+export async function assertConfigurationRoundTrip(
+	render: RenderMarkdown,
+	update: UpdateConfiguration,
+	original: OriginalConfiguration,
+): Promise<void> {
+	let failure: { reason: unknown } | undefined;
+	try {
+		await update('mermaid.viewer', undefined);
+		await update('rendering.columns', undefined);
+		await waitForRender(
+			render,
+			(html) =>
+				html.includes('better-markdown-preview-columns') &&
+				html.includes('&quot;mermaidViewer&quot;:true'),
+			'start from default rendering settings',
+		);
+
+		await update('rendering.columns', false);
+		await waitForRender(
+			render,
+			(html) => !html.includes('better-markdown-preview-columns'),
+			'delegate columns after disabling the renderer',
+		);
+
+		await update('mermaid.viewer', false);
+		await waitForRender(
+			render,
+			(html) => html.includes('&quot;mermaidViewer&quot;:false'),
+			'emit a disabled Mermaid viewer marker',
+		);
+
+		await update('mermaid.viewer', undefined);
+		await update('rendering.columns', undefined);
+		await waitForRender(
+			render,
+			(html) =>
+				html.includes('better-markdown-preview-columns') &&
+				html.includes('&quot;mermaidViewer&quot;:true'),
+			'restore default rendering after resetting settings',
+		);
+	} catch (error) {
+		failure = { reason: error };
+	} finally {
+		const restoreResults = await Promise.allSettled([
+			update('mermaid.viewer', original['mermaid.viewer']),
+			update('rendering.columns', original['rendering.columns']),
+		]);
+		const restoreFailure = restoreResults.find(
+			(result) => result.status === 'rejected',
+		);
+		if (!failure && restoreFailure?.status === 'rejected') {
+			failure = { reason: restoreFailure.reason };
+		}
+	}
+	if (failure) {
+		throw failure.reason;
+	}
+}
+
 function requireMatch(
 	html: string,
 	pattern: RegExp,
@@ -83,6 +196,11 @@ function requireCount(
 }
 
 export function assertRenderCompatibility(html: string): void {
+	requireMatch(
+		html,
+		/data-bmp-preview-config="\{&quot;tableOfContents&quot;:true,&quot;smoothScrolling&quot;:true,&quot;mermaidViewer&quot;:true\}"/,
+		'default preview configuration marker',
+	);
 	requireMatch(html, /task-list-item/, 'task-list semantics');
 	requireMatch(html, /<dl[ >]/, 'definition-list semantics');
 	requireMatch(html, /footnote-ref/, 'footnote semantics');
@@ -104,6 +222,15 @@ export function assertRenderCompatibility(html: string): void {
 		'GFM tag filtering',
 	);
 	requireMatch(html, /better-markdown-preview-frontmatter/, 'TOML frontmatter');
+	requireMatch(
+		html,
+		/<details(?=[^>]*better-markdown-preview-frontmatter)(?=[^>]*\bopen\b)[^>]*>/,
+		'expanded TOML frontmatter',
+	);
+	requireMatch(html, /language-toml/, 'native TOML syntax highlighting');
+	if (html.includes('+++')) {
+		throw new Error('Host render retained TOML frontmatter delimiters.');
+	}
 	requireMatch(html, /better-markdown-preview-columns/, 'column container');
 	requireMatch(html, /data-bmp-column-width="40"/, 'column width');
 	requireCount(html, /data-bmp-mermaid-source/g, 1, 'exact Mermaid blocks');
@@ -130,4 +257,21 @@ export function assertRenderCompatibility(html: string): void {
 		/<(?:details|pre|div|figure)(?=[^>]*better-markdown-preview-)(?=[^>]*data-line="\d+")[^>]*>/,
 		'native source-map attributes on owned output',
 	);
+}
+
+export function assertYamlFrontmatterCompatibility(html: string): void {
+	requireMatch(
+		html,
+		/<details(?=[^>]*better-markdown-preview-frontmatter)(?=[^>]*\bopen\b)(?=[^>]*data-line="0")[^>]*>/,
+		'expanded YAML frontmatter',
+	);
+	requireMatch(html, /language-yaml/, 'native YAML syntax highlighting');
+	if (html.includes('<table class="frontmatter"')) {
+		throw new Error(
+			'Host render delegated YAML frontmatter to the native table.',
+		);
+	}
+	if (html.includes('---')) {
+		throw new Error('Host render retained YAML frontmatter delimiters.');
+	}
 }

@@ -1,8 +1,11 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import {
+	assertConfigurationRoundTrip,
 	assertRenderCompatibility,
+	assertYamlFrontmatterCompatibility,
 	renderCompatibilityFixture,
+	yamlFrontmatterCompatibilityFixture,
 } from '../render-contract';
 
 interface MarkdownExtensionApi {
@@ -31,5 +34,31 @@ suite('Better Markdown Preview extension', () => {
 		);
 		assert.strictEqual(typeof html, 'string');
 		assertRenderCompatibility(html);
+
+		const yamlHtml = await vscode.commands.executeCommand<string>(
+			'markdown.api.render',
+			yamlFrontmatterCompatibilityFixture,
+		);
+		assert.strictEqual(typeof yamlHtml, 'string');
+		assertYamlFrontmatterCompatibility(yamlHtml);
+	});
+
+	test('reloads rendering and preview settings through the host', async function () {
+		this.timeout(10_000);
+		const configuration = vscode.workspace.getConfiguration(
+			'betterMarkdownPreview',
+		);
+		await assertConfigurationRoundTrip(
+			(source) =>
+				vscode.commands.executeCommand<string>('markdown.api.render', source),
+			(key, value) =>
+				configuration.update(key, value, vscode.ConfigurationTarget.Global),
+			{
+				'rendering.columns':
+					configuration.inspect<boolean>('rendering.columns')?.globalValue,
+				'mermaid.viewer':
+					configuration.inspect<boolean>('mermaid.viewer')?.globalValue,
+			},
+		);
 	});
 });

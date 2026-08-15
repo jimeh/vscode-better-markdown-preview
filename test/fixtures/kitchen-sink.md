@@ -13,6 +13,10 @@ preview@example.com.
 - [x] Native-looking task
 - [ ] Pending task
 
+- Regular item in a mixed list
+- [x] Task item aligned with its regular sibling
+  - Nested regular item
+
 | Feature       | State             |
 | ------------- | ----------------- |
 | Strikethrough | ~~old~~ current   |

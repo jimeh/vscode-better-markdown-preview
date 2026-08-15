@@ -6,6 +6,11 @@ import footnote from 'markdown-it-footnote';
 import githubAlerts from 'markdown-it-github-alerts';
 import taskLists from 'markdown-it-task-lists';
 import { parse as parseToml } from 'smol-toml';
+import {
+	defaultConfiguration,
+	previewConfiguration,
+	type BetterMarkdownPreviewConfiguration,
+} from '../config';
 
 const blockedGfmTags =
 	/<(?=\/?(?:title|textarea|style|xmp|iframe|noembed|noframes|script|plaintext)(?:\s|>|\/))/gi;
@@ -17,20 +22,51 @@ const gfmLinkifier = new LinkifyIt({ fuzzyLink: true });
 let nestedBlockParseDepth = 0;
 type FenceRenderRule = NonNullable<MarkdownIt['renderer']['rules']['fence']>;
 
-export function extendMarkdownIt(md: MarkdownIt): MarkdownIt {
-	md.use(taskLists, { enabled: false });
-	md.use(definitionList);
-	md.use(footnote);
-	md.use(githubAlerts, {
-		classPrefix: 'better-markdown-preview-alert',
-		matchCaseSensitive: true,
-		icons: {},
-	});
-	installTomlFrontmatter(md);
-	installColumns(md);
-	installGfmAutolinks(md);
-	installGfmTagFilter(md);
-	installFenceRenderer(md);
+export function extendMarkdownIt(
+	md: MarkdownIt,
+	configuration: BetterMarkdownPreviewConfiguration = defaultConfiguration,
+): MarkdownIt {
+	if (configuration.rendering.taskLists) {
+		md.use(taskLists, { enabled: false });
+	}
+	if (configuration.rendering.definitionLists) {
+		md.use(definitionList);
+	}
+	if (configuration.rendering.footnotes) {
+		md.use(footnote);
+	}
+	if (configuration.rendering.githubAlerts) {
+		md.use(githubAlerts, {
+			classPrefix: 'better-markdown-preview-alert',
+			matchCaseSensitive: true,
+			icons: {},
+		});
+	}
+	if (
+		configuration.rendering.tomlFrontmatter ||
+		configuration.rendering.yamlFrontmatter
+	) {
+		installFrontmatter(md, configuration);
+	}
+	if (configuration.rendering.columns) {
+		installColumns(md);
+	}
+	if (configuration.rendering.enhancedAutolinks) {
+		installGfmAutolinks(md);
+	}
+	installGfmTagFilter(
+		md,
+		configuration.rendering.enhancedAutolinks
+			? 'better_markdown_preview_gfm_autolink'
+			: 'linkify',
+	);
+	if (
+		configuration.rendering.mermaid ||
+		configuration.rendering.richCodeBlocks
+	) {
+		installFenceRenderer(md, configuration);
+	}
+	installPreviewConfiguration(md, configuration);
 	return md;
 }
 
@@ -156,9 +192,9 @@ function installGfmAutolinks(md: MarkdownIt): void {
 	);
 }
 
-function installGfmTagFilter(md: MarkdownIt): void {
+function installGfmTagFilter(md: MarkdownIt, afterRule: string): void {
 	md.core.ruler.after(
-		'better_markdown_preview_gfm_autolink',
+		afterRule,
 		'better_markdown_preview_tagfilter',
 		(state) => {
 			const visit = (tokens: Token[]): void => {
@@ -176,62 +212,104 @@ function installGfmTagFilter(md: MarkdownIt): void {
 	);
 }
 
-function installTomlFrontmatter(md: MarkdownIt): void {
-	md.block.ruler.before(
-		'fence',
-		'better_markdown_preview_toml_frontmatter',
-		(state, startLine, endLine, silent) => {
-			if (
-				startLine !== 0 ||
-				nestedBlockParseDepth > 0 ||
-				state.parentType !== 'root'
-			) {
-				return false;
-			}
-			const opening = rawLineAt(state, startLine).replace(/^\uFEFF/, '');
-			if (opening !== '+++') {
-				return false;
-			}
-			let closeLine = -1;
-			for (let line = 1; line < endLine; line += 1) {
-				if (rawLineAt(state, line) === '+++') {
-					closeLine = line;
-					break;
+interface FrontmatterDefinition {
+	language: 'toml' | 'yaml';
+	delimiter: '+++' | '---';
+	allowTrailingWhitespace: boolean;
+}
+
+function installFrontmatter(
+	md: MarkdownIt,
+	configuration: BetterMarkdownPreviewConfiguration,
+): void {
+	const renderFence = md.renderer.rules.fence;
+	const definitions: FrontmatterDefinition[] = [];
+	if (configuration.rendering.tomlFrontmatter) {
+		definitions.push({
+			language: 'toml',
+			delimiter: '+++',
+			allowTrailingWhitespace: false,
+		});
+	}
+	if (configuration.rendering.yamlFrontmatter) {
+		definitions.push({
+			language: 'yaml',
+			delimiter: '---',
+			allowTrailingWhitespace: true,
+		});
+	}
+	for (const definition of definitions) {
+		md.block.ruler.before(
+			'fence',
+			`better_markdown_preview_${definition.language}_frontmatter`,
+			(state, startLine, endLine, silent) => {
+				if (
+					startLine !== 0 ||
+					nestedBlockParseDepth > 0 ||
+					state.parentType !== 'root'
+				) {
+					return false;
 				}
-			}
-			if (closeLine < 0) {
-				return false;
-			}
-			try {
-				parseToml(state.getLines(1, closeLine, 0, false));
-			} catch {
-				return false;
-			}
-			if (silent) {
+				const lineMatches = (line: string): boolean => {
+					const value = definition.allowTrailingWhitespace
+						? line.trimEnd()
+						: line;
+					return value === definition.delimiter;
+				};
+				const opening = rawLineAt(state, startLine).replace(/^\uFEFF/, '');
+				if (!lineMatches(opening)) {
+					return false;
+				}
+				let closeLine = -1;
+				for (let line = 1; line < endLine; line += 1) {
+					if (lineMatches(rawLineAt(state, line))) {
+						closeLine = line;
+						break;
+					}
+				}
+				if (closeLine < 0) {
+					return false;
+				}
+				const content = state.getLines(1, closeLine, 0, false);
+				if (definition.language === 'toml') {
+					try {
+						parseToml(content);
+					} catch {
+						return false;
+					}
+				}
+				if (silent) {
+					return true;
+				}
+				const token = state.push('better_markdown_preview_frontmatter', '', 0);
+				token.block = true;
+				token.map = [0, closeLine + 1];
+				token.info = definition.language;
+				token.content = content;
+				state.line = closeLine + 1;
 				return true;
-			}
-			const raw = state
-				.getLines(0, closeLine + 1, 0, false)
-				.replace(/^\uFEFF/, '');
-			const token = state.push('better_markdown_preview_frontmatter', '', 0);
-			token.block = true;
-			token.map = [0, closeLine + 1];
-			token.content = raw;
-			state.line = closeLine + 1;
-			return true;
-		},
-	);
+			},
+		);
+	}
 	md.renderer.rules.better_markdown_preview_frontmatter = (
 		tokens,
 		index,
-		_options,
-		_env,
+		options,
+		env,
 		renderer,
 	) => {
 		const token = tokens[index];
 		token.attrJoin('class', 'better-markdown-preview-frontmatter');
-		const source = md.utils.escapeHtml(token.content);
-		return `<details${renderer.renderAttrs(token)}><summary>Frontmatter</summary><pre>${source}</pre></details>\n`;
+		const fence = Object.assign(
+			Object.create(Object.getPrototypeOf(token)) as Token,
+			token,
+		);
+		fence.type = 'fence';
+		fence.tag = 'code';
+		fence.nesting = 0;
+		fence.attrs = null;
+		fence.map = null;
+		return `<details open${renderer.renderAttrs(token)}><summary>Frontmatter</summary>${renderPrevious(renderFence, [fence], 0, options, env, renderer)}</details>\n`;
 	};
 }
 
@@ -451,15 +529,21 @@ interface FenceMetadata {
 	lineNumbers: boolean;
 }
 
-function installFenceRenderer(md: MarkdownIt): void {
+function installFenceRenderer(
+	md: MarkdownIt,
+	configuration: BetterMarkdownPreviewConfiguration,
+): void {
 	const previous = md.renderer.rules.fence;
 	md.renderer.rules.fence = (tokens, index, options, env, renderer) => {
 		const token = tokens[index];
-		if (token.info === 'mermaid') {
+		if (configuration.rendering.mermaid && token.info === 'mermaid') {
 			token.attrJoin('class', 'better-markdown-preview-mermaid');
 			token.attrSet('data-bmp-mermaid-source', '');
 			token.attrSet('data-bmp-mermaid-state', 'source');
 			return `<pre${renderer.renderAttrs(token)}>${md.utils.escapeHtml(token.content)}</pre>\n`;
+		}
+		if (!configuration.rendering.richCodeBlocks) {
+			return renderPrevious(previous, tokens, index, options, env, renderer);
 		}
 		const metadata = parseFenceMetadata(token.info);
 		const annotations = parseDiffAnnotations(token.content);
@@ -498,6 +582,24 @@ function installFenceRenderer(md: MarkdownIt): void {
 			: '';
 		return `<figure class="better-markdown-preview-code"${attributes}>${caption}${renderPrevious(previous, clonedTokens, index, options, env, renderer)}</figure>\n`;
 	};
+}
+
+function installPreviewConfiguration(
+	md: MarkdownIt,
+	configuration: BetterMarkdownPreviewConfiguration,
+): void {
+	const value = md.utils.escapeHtml(
+		JSON.stringify(previewConfiguration(configuration)),
+	);
+	md.core.ruler.push('better_markdown_preview_configuration', (state) => {
+		if (state.inlineMode) {
+			return;
+		}
+		const marker = new state.Token('html_block', '', 0);
+		marker.block = true;
+		marker.content = `<span hidden data-bmp-preview-config="${value}"></span>\n`;
+		state.tokens.push(marker);
+	});
 }
 
 function renderPrevious(

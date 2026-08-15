@@ -22,18 +22,29 @@ setting, while filtering bare domains and other schemes and retaining native
 normalization, validation, nesting, and HTML-anchor guards.
 VS Code 1.125 collapses some backslash-escaped punctuation before contributed
 core rules run, so an escaped `www\.` is indistinguishable from authored
-`www.` at this boundary. Local rules cover GFM tag filtering, TOML
+`www.` at this boundary. Local rules cover GFM tag filtering, TOML and YAML
 frontmatter, responsive columns, exact Mermaid fences, and rich fence metadata.
 
 Renderer wrappers retain and invoke the rule already installed on the supplied
 Markdown-It instance. In particular, fenced code delegates to VS Code's native
 renderer after recognized metadata and diff annotations are removed. This keeps
 Highlight.js, language classes, source maps, and native copy controls
-authoritative.
+authoritative. Frontmatter likewise delegates its inner TOML or YAML source to
+that supplied fence renderer, while the extension owns only the expanded
+`details` wrapper. When YAML rendering is disabled, VS Code's later-installed
+native frontmatter rule remains free to render its configured table, code block,
+or hidden presentation.
 
 All emitted classes and data attributes are scoped with
 `better-markdown-preview` or `bmp`. Invalid extension syntax falls back to
 ordinary Markdown rather than partially transforming a document.
+
+The extension host reads one typed, window-scoped configuration snapshot and
+passes it into Markdown composition. A relevant setting change refreshes the
+snapshot and invokes VS Code's `markdown.api.reloadPlugins` command, which is
+available at the declared 1.125.0 engine floor. Disabled rendering features are
+not installed or intercepted; VS Code and other contributed Markdown plugins
+remain free to handle their syntax. GFM tag filtering is unconditional.
 
 ## Preview Boundary
 
@@ -41,6 +52,18 @@ ordinary Markdown rather than partially transforming a document.
 `.markdown-body` in a layout without replacing that element, preserves heading
 and `data-line` nodes, rebuilds the TOC after content replacement or body
 retargeting, and augments rich code blocks while retaining their authored text.
+
+Each render appends a hidden, escaped configuration marker containing only the
+table-of-contents, smooth-scrolling, and Mermaid-viewer booleans needed in the
+webview. The runtime re-reads that marker when preview content changes or the
+Markdown body is replaced. It removes owned navigation or viewer UI when a
+feature becomes disabled, including open dialogs and controls attached to
+reused Mermaid nodes. Owned TOC link activation applies a root smooth-scroll
+class synchronously for native fragment navigation, then removes it on the next
+animation frame. A bounded timeout covers a stalled frame without extending the
+normal window into editor-to-preview synchronization. The contributed
+stylesheet overrides the class exactly when the operating system requests
+reduced motion.
 
 `media/preview.css` uses VS Code webview color variables and body theme classes;
 it does not own a light or dark palette. VS Code loads user `markdown.styles`

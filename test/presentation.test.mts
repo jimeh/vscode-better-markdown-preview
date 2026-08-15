@@ -27,9 +27,23 @@ test('preview presentation follows native Markdown and alert variables', () => {
 	assert.doesNotMatch(css, /border: 1px solid currentcolor/);
 });
 
-test('task lists and rich code lines preserve the owned layout contract', () => {
+test('lists and task lists share a compact aligned layout', () => {
+	assert.match(
+		css,
+		/\.markdown-body :where\(ul, ol\) \{\s*padding-inline-start: 1\.5em;/,
+	);
 	assert.match(css, /\.markdown-body \.task-list-item::marker/);
-	assert.match(css, /\.markdown-body \.task-list-item-checkbox/);
+	assert.doesNotMatch(
+		css,
+		/\.markdown-body \.contains-task-list[^}]*list-style:\s*none/,
+	);
+	assert.match(
+		css,
+		/\.markdown-body \.task-list-item-checkbox \{[\s\S]*?width: 1em;[\s\S]*?height: 1em;[\s\S]*?margin-inline: -1\.45em 0\.2em;/,
+	);
+});
+
+test('rich code lines preserve the owned layout contract', () => {
 	assert.match(
 		css,
 		/\.better-markdown-preview-code-line \{[\s\S]*?display: inline-block;[\s\S]*?min-width: 100%/,
@@ -64,5 +78,35 @@ test('Mermaid viewer owns a near-viewport, theme-aware interaction surface', () 
 	assert.match(
 		css,
 		/@media print \{[\s\S]*?\.better-markdown-preview-mermaid-dialog[\s\S]*?display: none !important;/,
+	);
+	assert.match(
+		css,
+		/\.better-markdown-preview-mermaid-dialog::backdrop \{\s*background: rgb\(0 0 0 \/ 18%\);\s*\}/,
+	);
+	assert.match(
+		css,
+		/\.better-markdown-preview-toc-dialog::backdrop \{\s*background: rgb\(0 0 0 \/ 18%\);/,
+	);
+});
+
+test('TOC links replace the native focus rectangle with a text cue', () => {
+	assert.match(
+		css,
+		/\.better-markdown-preview-toc a:focus,[\s\S]*?\.better-markdown-preview-toc-dialog a:focus \{\s*outline: none;/,
+	);
+	assert.match(
+		css,
+		/\.better-markdown-preview-toc a:focus-visible,[\s\S]*?\.better-markdown-preview-toc-dialog a:focus-visible \{\s*text-decoration: underline;/,
+	);
+});
+
+test('smooth navigation respects both its runtime class and reduced motion', () => {
+	assert.match(
+		css,
+		/html\.better-markdown-preview-smooth-scroll \{\s*scroll-behavior: smooth;\s*\}/,
+	);
+	assert.match(
+		css,
+		/@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?html\.better-markdown-preview-smooth-scroll \{\s*scroll-behavior: auto !important;\s*\}/,
 	);
 });

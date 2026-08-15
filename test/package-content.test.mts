@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { unzipSync } from 'fflate';
+import { assertConfigurationContribution } from './configuration-contract.mts';
 
 const archiveUrl = new URL(
 	'../artifacts/better-markdown-preview.vsix',
@@ -36,11 +37,17 @@ test('VSIX contains exactly the expected runtime archive', async () => {
 	assert.equal(packagedManifest.icon, 'img/icon.png');
 	assert.equal(packagedManifest.main, './dist/node/extension.js');
 	assert.equal(packagedManifest.browser, './dist/web/extension.js');
-	assert.deepEqual(packagedManifest.contributes, {
-		'markdown.markdownItPlugins': true,
-		'markdown.previewStyles': ['./dist/preview/preview.css'],
-		'markdown.previewScripts': ['./dist/preview/preview.js'],
-	});
+	assert.equal(
+		packagedManifest.contributes['markdown.markdownItPlugins'],
+		true,
+	);
+	assert.deepEqual(packagedManifest.contributes['markdown.previewStyles'], [
+		'./dist/preview/preview.css',
+	]);
+	assert.deepEqual(packagedManifest.contributes['markdown.previewScripts'], [
+		'./dist/preview/preview.js',
+	]);
+	assertConfigurationContribution(packagedManifest.contributes.configuration);
 	assert.ok(
 		archive['extension/dist/preview/mermaid-runtime.js'].byteLength >
 			archive['extension/dist/node/extension.js'].byteLength,
