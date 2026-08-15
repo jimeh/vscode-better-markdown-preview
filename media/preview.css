@@ -1,3 +1,7 @@
+html.better-markdown-preview-smooth-scroll {
+	scroll-behavior: smooth;
+}
+
 .better-markdown-preview-layout {
 	display: grid;
 	grid-template-columns: minmax(12rem, 1fr) minmax(0, 54rem) minmax(12rem, 1fr);
@@ -409,7 +413,7 @@
 }
 
 .better-markdown-preview-mermaid-dialog::backdrop {
-	background: rgb(0 0 0 / 68%);
+	background: rgb(0 0 0 / 18%);
 }
 
 .better-markdown-preview-mermaid-dialog-shell {
@@ -619,7 +623,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.better-markdown-preview-layout * {
+	html.better-markdown-preview-smooth-scroll {
 		scroll-behavior: auto !important;
 	}
 

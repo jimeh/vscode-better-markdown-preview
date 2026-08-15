@@ -65,4 +65,23 @@ test('Mermaid viewer owns a near-viewport, theme-aware interaction surface', () 
 		css,
 		/@media print \{[\s\S]*?\.better-markdown-preview-mermaid-dialog[\s\S]*?display: none !important;/,
 	);
+	assert.match(
+		css,
+		/\.better-markdown-preview-mermaid-dialog::backdrop \{\s*background: rgb\(0 0 0 \/ 18%\);\s*\}/,
+	);
+	assert.doesNotMatch(
+		css,
+		/\.better-markdown-preview-toc-dialog::backdrop \{\s*background: rgb\(0 0 0 \/ 18%\);/,
+	);
+});
+
+test('smooth navigation respects both its runtime class and reduced motion', () => {
+	assert.match(
+		css,
+		/html\.better-markdown-preview-smooth-scroll \{\s*scroll-behavior: smooth;\s*\}/,
+	);
+	assert.match(
+		css,
+		/@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?html\.better-markdown-preview-smooth-scroll \{\s*scroll-behavior: auto !important;\s*\}/,
+	);
 });

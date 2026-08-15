@@ -1,3 +1,9 @@
+import {
+	defaultConfiguration,
+	previewConfiguration,
+	type PreviewConfiguration,
+} from '../config';
+
 export interface MermaidTheme {
 	dark: boolean;
 	background: string;
@@ -76,10 +82,33 @@ function createController(
 	let scrollFrame = 0;
 	let mermaidAdapter: MermaidAdapter | undefined;
 	let mermaidViewer: MermaidViewer | undefined;
+	let settings = previewConfiguration(defaultConfiguration);
 	let mermaidQueue = Promise.resolve();
 	const mermaidSources = new WeakMap<HTMLElement, string>();
 	const cleanups: Array<() => void> = [];
 	const loadMermaid = options.loadMermaid ?? defaultMermaidLoader;
+	const syncMermaidViewer = (): void => {
+		if (!settings.mermaidViewer) {
+			mermaidViewer?.dispose();
+			mermaidViewer = undefined;
+			for (const trigger of document.querySelectorAll(
+				'[data-bmp-mermaid-open]',
+			)) {
+				trigger.remove();
+			}
+			return;
+		}
+		mermaidViewer?.reconcile();
+		for (const block of document.querySelectorAll<HTMLElement>(
+			'[data-bmp-mermaid-source][data-bmp-mermaid-state="rendered"]',
+		)) {
+			if (!block.querySelector('svg')) {
+				continue;
+			}
+			mermaidViewer ??= createMermaidViewer(document);
+			mermaidViewer.enhance(block);
+		}
+	};
 
 	const renderMermaidPass = async (force = false): Promise<void> => {
 		const blocks = Array.from(
@@ -114,8 +143,6 @@ function createController(
 			try {
 				await mermaidAdapter?.render(block, source, theme);
 				block.dataset.bmpMermaidState = 'rendered';
-				mermaidViewer ??= createMermaidViewer(document);
-				mermaidViewer.enhance(block);
 			} catch {
 				block.textContent = source;
 				block.dataset.bmpMermaidState = 'failed';
@@ -124,7 +151,10 @@ function createController(
 	};
 
 	const renderMermaid = (force = false): Promise<void> => {
-		const queued = mermaidQueue.then(() => renderMermaidPass(force));
+		const queued = mermaidQueue.then(async () => {
+			await renderMermaidPass(force);
+			syncMermaidViewer();
+		});
 		mermaidQueue = queued.catch(() => undefined);
 		return queued;
 	};
@@ -138,10 +168,24 @@ function createController(
 			return;
 		}
 		const layout = ensureLayout(document, markdownBody);
-		mermaidViewer?.reconcile();
-		buildToc(document, layout, markdownBody);
+		settings = readPreviewConfiguration(markdownBody);
+		document.documentElement.classList.toggle(
+			'better-markdown-preview-smooth-scroll',
+			settings.smoothScrolling,
+		);
+		if (settings.tableOfContents) {
+			buildToc(document, layout, markdownBody);
+		} else {
+			clearToc(layout);
+			if (scrollFrame) {
+				cancelAnimationFrame(scrollFrame);
+				scrollFrame = 0;
+			}
+		}
 		enhanceCodeBlocks(document, markdownBody);
-		updateActiveHeading();
+		if (settings.tableOfContents) {
+			updateActiveHeading();
+		}
 		await renderMermaid();
 	};
 
@@ -162,18 +206,22 @@ function createController(
 			Boolean((node as Element).querySelector('.markdown-body')));
 	const contentObserver = new MutationObserver((mutations) => {
 		if (
-			mutations.some(
-				(mutation) =>
-					mutation.type === 'childList' &&
-					(Boolean((mutation.target as Element).closest?.('.markdown-body')) ||
+			mutations.some((mutation) =>
+				mutation.type === 'attributes'
+					? (mutation.target as Element).matches?.('[data-bmp-preview-config]')
+					: Boolean((mutation.target as Element).closest?.('.markdown-body')) ||
 						Array.from(mutation.addedNodes).some(containsMarkdownBody) ||
-						Array.from(mutation.removedNodes).some(containsMarkdownBody)),
+						Array.from(mutation.removedNodes).some(containsMarkdownBody),
 			)
 		) {
 			schedule();
 		}
 	});
-	contentObserver.observe(document.body, { childList: true, subtree: true });
+	contentObserver.observe(document.body, {
+		attributes: true,
+		childList: true,
+		subtree: true,
+	});
 
 	const themeObserver = new MutationObserver(() => {
 		void renderMermaid(true);
@@ -220,7 +268,7 @@ function createController(
 		}
 	};
 	const onScroll = (): void => {
-		if (!scrollFrame) {
+		if (settings.tableOfContents && !scrollFrame) {
 			scrollFrame = requestAnimationFrame(updateActiveHeading);
 		}
 	};
@@ -242,8 +290,42 @@ function createController(
 				cleanup();
 			}
 			mermaidViewer?.dispose();
+			document.documentElement.classList.remove(
+				'better-markdown-preview-smooth-scroll',
+			);
 		},
 	};
+}
+
+export function readPreviewConfiguration(
+	markdownBody: HTMLElement,
+): PreviewConfiguration {
+	const defaults = previewConfiguration(defaultConfiguration);
+	const raw = markdownBody.querySelector<HTMLElement>(
+		'[data-bmp-preview-config]',
+	)?.dataset.bmpPreviewConfig;
+	if (!raw) {
+		return defaults;
+	}
+	try {
+		const parsed = JSON.parse(raw) as Partial<PreviewConfiguration>;
+		return {
+			tableOfContents:
+				typeof parsed.tableOfContents === 'boolean'
+					? parsed.tableOfContents
+					: defaults.tableOfContents,
+			smoothScrolling:
+				typeof parsed.smoothScrolling === 'boolean'
+					? parsed.smoothScrolling
+					: defaults.smoothScrolling,
+			mermaidViewer:
+				typeof parsed.mermaidViewer === 'boolean'
+					? parsed.mermaidViewer
+					: defaults.mermaidViewer,
+		};
+	} catch {
+		return defaults;
+	}
 }
 
 function ensureLayout(
@@ -678,11 +760,7 @@ function buildToc(
 	layout: HTMLElement,
 	markdownBody: HTMLElement,
 ): void {
-	for (const owned of layout.querySelectorAll(
-		':scope > [data-bmp-toc], :scope > [data-bmp-toc-trigger], :scope > [data-bmp-toc-dialog]',
-	)) {
-		owned.remove();
-	}
+	clearToc(layout);
 	const allHeadings = Array.from(
 		markdownBody.querySelectorAll<HTMLElement>('h1[id], h2[id], h3[id]'),
 	);
@@ -768,6 +846,14 @@ function buildToc(
 	});
 	for (const link of dialog.querySelectorAll('a')) {
 		link.addEventListener('click', close);
+	}
+}
+
+function clearToc(layout: HTMLElement): void {
+	for (const owned of layout.querySelectorAll(
+		':scope > [data-bmp-toc], :scope > [data-bmp-toc-trigger], :scope > [data-bmp-toc-dialog]',
+	)) {
+		owned.remove();
 	}
 }
 

@@ -1,7 +1,12 @@
 // @vitest-environment happy-dom
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { enhancePreview, parseLineSet, type MermaidAdapter } from './runtime';
+import {
+	enhancePreview,
+	parseLineSet,
+	readPreviewConfiguration,
+	type MermaidAdapter,
+} from './runtime';
 
 function setDocument(html: string): void {
 	document.body.innerHTML = `<div class="markdown-body">${html}</div>`;
@@ -12,6 +17,89 @@ describe('preview runtime', () => {
 		document.body.className = '';
 		setDocument('');
 		vi.restoreAllMocks();
+	});
+
+	test('defaults malformed or absent preview configuration to enabled', () => {
+		setDocument('<span data-bmp-preview-config="not json"></span>');
+		const body = document.querySelector<HTMLElement>('.markdown-body')!;
+		expect(readPreviewConfiguration(body)).toEqual({
+			tableOfContents: true,
+			smoothScrolling: true,
+			mermaidViewer: true,
+		});
+		body.querySelector('[data-bmp-preview-config]')?.remove();
+		expect(readPreviewConfiguration(body)).toEqual({
+			tableOfContents: true,
+			smoothScrolling: true,
+			mermaidViewer: true,
+		});
+	});
+
+	test('applies marker updates without stale TOC or Mermaid viewer UI', async () => {
+		const disabled = JSON.stringify({
+			tableOfContents: false,
+			smoothScrolling: false,
+			mermaidViewer: false,
+		});
+		setDocument(
+			`<span hidden data-bmp-preview-config='${disabled}'></span><h2 id="one">One</h2><h2 id="two">Two</h2><pre data-bmp-mermaid-source data-bmp-mermaid-state="source">graph TD\nA--&gt;B</pre>`,
+		);
+		const render = vi.fn(async (element: HTMLElement) => {
+			element.innerHTML = '<svg viewBox="0 0 100 50"></svg>';
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await controller.ready;
+
+		expect(render).toHaveBeenCalledOnce();
+		expect(document.querySelector('[data-bmp-toc]')).toBeNull();
+		expect(document.querySelector('[data-bmp-mermaid-open]')).toBeNull();
+		expect(document.querySelector('[data-bmp-mermaid-dialog]')).toBeNull();
+		expect(document.documentElement.classList).not.toContain(
+			'better-markdown-preview-smooth-scroll',
+		);
+
+		const marker = document.querySelector<HTMLElement>(
+			'[data-bmp-preview-config]',
+		)!;
+		marker.dataset.bmpPreviewConfig = JSON.stringify({
+			tableOfContents: true,
+			smoothScrolling: true,
+			mermaidViewer: true,
+		});
+		await vi.waitFor(() => {
+			expect(document.querySelectorAll('[data-bmp-toc]')).toHaveLength(1);
+			expect(document.querySelectorAll('[data-bmp-mermaid-open]')).toHaveLength(
+				1,
+			);
+		});
+		expect(document.documentElement.classList).toContain(
+			'better-markdown-preview-smooth-scroll',
+		);
+
+		const trigger = document.querySelector<HTMLButtonElement>(
+			'[data-bmp-mermaid-open]',
+		)!;
+		const dialog = document.querySelector<HTMLDialogElement>(
+			'[data-bmp-mermaid-dialog]',
+		)!;
+		dialog.showModal = vi.fn(() => dialog.setAttribute('open', ''));
+		dialog.close = vi.fn(() => dialog.removeAttribute('open'));
+		trigger.click();
+		expect(dialog.hasAttribute('open')).toBe(true);
+
+		marker.dataset.bmpPreviewConfig = disabled;
+		await vi.waitFor(() => {
+			expect(document.querySelector('[data-bmp-toc]')).toBeNull();
+			expect(document.querySelector('[data-bmp-mermaid-open]')).toBeNull();
+			expect(document.querySelector('[data-bmp-mermaid-dialog]')).toBeNull();
+		});
+		expect(dialog.hasAttribute('open')).toBe(false);
+		expect(document.documentElement.classList).not.toContain(
+			'better-markdown-preview-smooth-scroll',
+		);
+		controller.dispose();
 	});
 
 	test('builds an idempotent TOC, omits the leading H1, and hides for fewer than two entries', async () => {

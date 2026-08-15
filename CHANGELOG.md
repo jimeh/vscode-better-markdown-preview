@@ -13,3 +13,7 @@ All notable changes to Better Markdown Preview will be documented here.
 - Support the desktop Extension Host and a browser-compatible web bundle with
   focused parser, DOM lifecycle, Extension Host, and packaged-artifact
   validation.
+- Add default-on settings for each optional rendering feature, the table of
+  contents, smooth navigation, and the Mermaid zoom and pan viewer.
+- Animate in-document preview navigation while respecting reduced-motion
+  preferences, and soften the Mermaid viewer backdrop.

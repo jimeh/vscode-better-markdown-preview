@@ -35,12 +35,28 @@ All emitted classes and data attributes are scoped with
 `better-markdown-preview` or `bmp`. Invalid extension syntax falls back to
 ordinary Markdown rather than partially transforming a document.
 
+The extension host reads one typed, window-scoped configuration snapshot and
+passes it into Markdown composition. A relevant setting change refreshes the
+snapshot and invokes VS Code's `markdown.api.reloadPlugins` command, which is
+available at the declared 1.125.0 engine floor. Disabled rendering features are
+not installed or intercepted; VS Code and other contributed Markdown plugins
+remain free to handle their syntax. GFM tag filtering is unconditional.
+
 ## Preview Boundary
 
 `src/preview/runtime.ts` owns idempotent DOM enhancement. It wraps the existing
 `.markdown-body` in a layout without replacing that element, preserves heading
 and `data-line` nodes, rebuilds the TOC after content replacement or body
 retargeting, and augments rich code blocks while retaining their authored text.
+
+Each render appends a hidden, escaped configuration marker containing only the
+table-of-contents, smooth-scrolling, and Mermaid-viewer booleans needed in the
+webview. The runtime re-reads that marker when preview content changes or the
+Markdown body is replaced. It removes owned navigation or viewer UI when a
+feature becomes disabled, including open dialogs and controls attached to
+reused Mermaid nodes. Smooth navigation is expressed as a root class in the
+contributed stylesheet and is overridden exactly when the operating system
+requests reduced motion.
 
 `media/preview.css` uses VS Code webview color variables and body theme classes;
 it does not own a light or dark palette. VS Code loads user `markdown.styles`

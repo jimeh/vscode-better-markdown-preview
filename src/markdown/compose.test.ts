@@ -1,15 +1,121 @@
 import MarkdownIt from 'markdown-it';
 import { describe, expect, test, vi } from 'vitest';
+import {
+	defaultConfiguration,
+	type BetterMarkdownPreviewConfiguration,
+} from '../config';
 import { extendMarkdownIt } from './compose';
 
-function render(source: string, configure?: (md: MarkdownIt) => void): string {
+function render(
+	source: string,
+	configure?: (md: MarkdownIt) => void,
+	configuration: BetterMarkdownPreviewConfiguration = defaultConfiguration,
+): string {
 	const md = new MarkdownIt({ html: true, linkify: false });
 	configure?.(md);
-	extendMarkdownIt(md);
+	extendMarkdownIt(md, configuration);
 	return md.render(source);
 }
 
+function disableRendering(
+	feature: keyof BetterMarkdownPreviewConfiguration['rendering'],
+): BetterMarkdownPreviewConfiguration {
+	return {
+		...defaultConfiguration,
+		rendering: {
+			...defaultConfiguration.rendering,
+			[feature]: false,
+		},
+	};
+}
+
 describe('Markdown composition', () => {
+	test('keeps every rendering feature enabled by default', () => {
+		const html = render(
+			'+++\ntitle = "Test"\n+++\n\n- [x] Task\n\nTerm\n: Definition\n\nFootnote[^1].\n\n[^1]: Note\n\n> [!NOTE]\n> Alert\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n\nhttps://example.com\n\n```mermaid\ngraph TD\nA-->B\n```\n\n```ts title="test.ts"\nvalue\n```\n',
+		);
+		for (const marker of [
+			'task-list-item',
+			'<dl>',
+			'footnote-ref',
+			'better-markdown-preview-alert-note',
+			'better-markdown-preview-frontmatter',
+			'better-markdown-preview-columns',
+			'href="https://example.com"',
+			'data-bmp-mermaid-source',
+			'better-markdown-preview-code',
+		]) {
+			expect(html, marker).toContain(marker);
+		}
+	});
+
+	test.each([
+		['taskLists', 'task-list-item'],
+		['definitionLists', '<dl>'],
+		['footnotes', 'footnote-ref'],
+		['githubAlerts', 'better-markdown-preview-alert-note'],
+		['tomlFrontmatter', 'better-markdown-preview-frontmatter'],
+		['columns', 'better-markdown-preview-columns'],
+		['enhancedAutolinks', 'href="https://example.com"'],
+	] as const)('disables only the %s parser feature', (feature, marker) => {
+		const parserMarkers = [
+			'task-list-item',
+			'<dl>',
+			'footnote-ref',
+			'better-markdown-preview-alert-note',
+			'better-markdown-preview-frontmatter',
+			'better-markdown-preview-columns',
+			'href="https://example.com"',
+		];
+		const html = render(
+			'+++\ntitle = "Test"\n+++\n\n- [x] Task\n\nTerm\n: Definition\n\nFootnote[^1].\n\n[^1]: Note\n\n> [!NOTE]\n> Alert\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n\nhttps://example.com\n\n<script>blocked()</script>\n',
+			undefined,
+			disableRendering(feature),
+		);
+		expect(html).not.toContain(marker);
+		for (const otherMarker of parserMarkers.filter(
+			(candidate) => candidate !== marker,
+		)) {
+			expect(html, otherMarker).toContain(otherMarker);
+		}
+		expect(html).toContain('&lt;script>blocked()&lt;/script>');
+	});
+
+	test('gates Mermaid and rich fences independently', () => {
+		const source =
+			'```mermaid\ngraph TD\nA-->B\n```\n\n```ts title="test.ts"\nvalue\n```\n';
+		const noMermaid = render(source, undefined, disableRendering('mermaid'));
+		expect(noMermaid).not.toContain('data-bmp-mermaid-source');
+		expect(noMermaid).toContain('better-markdown-preview-code');
+
+		const noRichCode = render(
+			source,
+			undefined,
+			disableRendering('richCodeBlocks'),
+		);
+		expect(noRichCode).toContain('data-bmp-mermaid-source');
+		expect(noRichCode).not.toContain('better-markdown-preview-code');
+	});
+
+	test('emits one valid marker containing only preview settings', () => {
+		const configuration: BetterMarkdownPreviewConfiguration = {
+			...defaultConfiguration,
+			navigation: { tableOfContents: false, smoothScrolling: true },
+			mermaid: { viewer: false },
+		};
+		const html = render('# Configured\n', undefined, configuration);
+		const raw = /data-bmp-preview-config="([^"]+)"/.exec(html)?.[1];
+
+		expect(html.match(/data-bmp-preview-config=/g)).toHaveLength(1);
+		expect(raw).toBeDefined();
+		expect(JSON.parse(raw!.replaceAll('&quot;', '"'))).toEqual({
+			tableOfContents: false,
+			smoothScrolling: true,
+			mermaidViewer: false,
+		});
+		expect(raw).not.toContain('taskLists');
+	});
+
 	test('adds GFM task lists, literal autolinks, punctuation, and tag filtering', () => {
 		const html = render(
 			'- [x] done\n\nVisit https://example.com/a_(b). Email dev@example.com.\n\n<script>alert(1)</script>\n',

@@ -83,6 +83,11 @@ function requireCount(
 }
 
 export function assertRenderCompatibility(html: string): void {
+	requireMatch(
+		html,
+		/data-bmp-preview-config="\{&quot;tableOfContents&quot;:true,&quot;smoothScrolling&quot;:true,&quot;mermaidViewer&quot;:true\}"/,
+		'default preview configuration marker',
+	);
 	requireMatch(html, /task-list-item/, 'task-list semantics');
 	requireMatch(html, /<dl[ >]/, 'definition-list semantics');
 	requireMatch(html, /footnote-ref/, 'footnote semantics');

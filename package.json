@@ -23,6 +23,83 @@
 	"main": "./dist/node/extension.js",
 	"browser": "./dist/web/extension.js",
 	"contributes": {
+		"configuration": {
+			"title": "Better Markdown Preview",
+			"properties": {
+				"betterMarkdownPreview.rendering.taskLists": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Render GFM task lists. When disabled, task-list syntax is delegated to VS Code and other Markdown extensions."
+				},
+				"betterMarkdownPreview.rendering.definitionLists": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Render definition lists. When disabled, definition-list syntax is delegated to VS Code and other Markdown extensions."
+				},
+				"betterMarkdownPreview.rendering.footnotes": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Render footnotes and backlinks. When disabled, footnote syntax is delegated to VS Code and other Markdown extensions."
+				},
+				"betterMarkdownPreview.rendering.githubAlerts": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Render GitHub-style alerts. When disabled, alert syntax is delegated to VS Code and other Markdown extensions."
+				},
+				"betterMarkdownPreview.rendering.tomlFrontmatter": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Render TOML frontmatter in a collapsed block. When disabled, TOML frontmatter is delegated to VS Code and other Markdown extensions."
+				},
+				"betterMarkdownPreview.rendering.columns": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Render responsive Pandoc-style columns. When disabled, column syntax is delegated to VS Code and other Markdown extensions."
+				},
+				"betterMarkdownPreview.rendering.enhancedAutolinks": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Fill missing GFM HTTP, HTTPS, email, and www literal links after VS Code's native linkifier."
+				},
+				"betterMarkdownPreview.rendering.richCodeBlocks": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Render code-block titles, highlighting, line numbers, word emphasis, and diff annotations."
+				},
+				"betterMarkdownPreview.rendering.mermaid": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Render exact lowercase Mermaid fences. When disabled, Mermaid fences are delegated to VS Code and other Markdown extensions."
+				},
+				"betterMarkdownPreview.navigation.tableOfContents": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Show the responsive table of contents and active-heading tracking."
+				},
+				"betterMarkdownPreview.navigation.smoothScrolling": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Animate in-document preview navigation when reduced motion is not requested."
+				},
+				"betterMarkdownPreview.mermaid.viewer": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Enable the full-screen zoom and pan viewer for rendered Mermaid diagrams."
+				}
+			}
+		},
 		"markdown.markdownItPlugins": true,
 		"markdown.previewStyles": [
 			"./dist/preview/preview.css"

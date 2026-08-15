@@ -64,6 +64,15 @@ fallback, theme rerender and defaults, reused Mermaid blocks, body replacement,
 TOC focus behavior, Mermaid viewer zoom/pan/focus, SVG sizing and clone
 isolation, and source-preserving highlighted code presentation.
 
+Configuration tests assert the exact manifest keys, boolean defaults, window
+scope, typed host reads, change filtering, reload command, and disposable
+registration. Parser tests render the default feature set and then disable each
+feature independently, retaining tag filtering and checking Mermaid/rich-fence
+independence. DOM tests exercise marker defaults and live updates across reused
+nodes and replaced Markdown bodies, including complete cleanup when the TOC,
+smooth scrolling, or Mermaid viewer is disabled. Presentation contracts pin the
+Mermaid backdrop opacity and the reduced-motion override.
+
 `test/fixtures/kitchen-sink.md` remains the shared manual/runtime document for
 light, dark, high-contrast, wide, and narrow preview checks.
 
@@ -72,7 +81,7 @@ light, dark, high-contrast, wide, and narrow preview checks.
 Desktop and web integration share the browser-safe fixture and semantic
 assertions in `src/test/render-contract.ts`. Both activate the development
 extension and render with `markdown.api.render`; neither constructs its own
-Markdown-It instance. The contract covers task lists, definitions, footnotes,
+Markdown-It instance. The contract covers default-on task lists, definitions, footnotes,
 known alerts, GFM literal links with native `fuzzyLink: false`, tag filtering,
 TOML frontmatter, columns, exact Mermaid fences, rich fence delegation, several
 extension-owned output markers, and native source-map attributes.

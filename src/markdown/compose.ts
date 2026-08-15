@@ -6,6 +6,11 @@ import footnote from 'markdown-it-footnote';
 import githubAlerts from 'markdown-it-github-alerts';
 import taskLists from 'markdown-it-task-lists';
 import { parse as parseToml } from 'smol-toml';
+import {
+	defaultConfiguration,
+	previewConfiguration,
+	type BetterMarkdownPreviewConfiguration,
+} from '../config';
 
 const blockedGfmTags =
 	/<(?=\/?(?:title|textarea|style|xmp|iframe|noembed|noframes|script|plaintext)(?:\s|>|\/))/gi;
@@ -17,20 +22,48 @@ const gfmLinkifier = new LinkifyIt({ fuzzyLink: true });
 let nestedBlockParseDepth = 0;
 type FenceRenderRule = NonNullable<MarkdownIt['renderer']['rules']['fence']>;
 
-export function extendMarkdownIt(md: MarkdownIt): MarkdownIt {
-	md.use(taskLists, { enabled: false });
-	md.use(definitionList);
-	md.use(footnote);
-	md.use(githubAlerts, {
-		classPrefix: 'better-markdown-preview-alert',
-		matchCaseSensitive: true,
-		icons: {},
-	});
-	installTomlFrontmatter(md);
-	installColumns(md);
-	installGfmAutolinks(md);
-	installGfmTagFilter(md);
-	installFenceRenderer(md);
+export function extendMarkdownIt(
+	md: MarkdownIt,
+	configuration: BetterMarkdownPreviewConfiguration = defaultConfiguration,
+): MarkdownIt {
+	if (configuration.rendering.taskLists) {
+		md.use(taskLists, { enabled: false });
+	}
+	if (configuration.rendering.definitionLists) {
+		md.use(definitionList);
+	}
+	if (configuration.rendering.footnotes) {
+		md.use(footnote);
+	}
+	if (configuration.rendering.githubAlerts) {
+		md.use(githubAlerts, {
+			classPrefix: 'better-markdown-preview-alert',
+			matchCaseSensitive: true,
+			icons: {},
+		});
+	}
+	if (configuration.rendering.tomlFrontmatter) {
+		installTomlFrontmatter(md);
+	}
+	if (configuration.rendering.columns) {
+		installColumns(md);
+	}
+	if (configuration.rendering.enhancedAutolinks) {
+		installGfmAutolinks(md);
+	}
+	installGfmTagFilter(
+		md,
+		configuration.rendering.enhancedAutolinks
+			? 'better_markdown_preview_gfm_autolink'
+			: 'linkify',
+	);
+	if (
+		configuration.rendering.mermaid ||
+		configuration.rendering.richCodeBlocks
+	) {
+		installFenceRenderer(md, configuration);
+	}
+	installPreviewConfiguration(md, configuration);
 	return md;
 }
 
@@ -156,9 +189,9 @@ function installGfmAutolinks(md: MarkdownIt): void {
 	);
 }
 
-function installGfmTagFilter(md: MarkdownIt): void {
+function installGfmTagFilter(md: MarkdownIt, afterRule: string): void {
 	md.core.ruler.after(
-		'better_markdown_preview_gfm_autolink',
+		afterRule,
 		'better_markdown_preview_tagfilter',
 		(state) => {
 			const visit = (tokens: Token[]): void => {
@@ -451,15 +484,21 @@ interface FenceMetadata {
 	lineNumbers: boolean;
 }
 
-function installFenceRenderer(md: MarkdownIt): void {
+function installFenceRenderer(
+	md: MarkdownIt,
+	configuration: BetterMarkdownPreviewConfiguration,
+): void {
 	const previous = md.renderer.rules.fence;
 	md.renderer.rules.fence = (tokens, index, options, env, renderer) => {
 		const token = tokens[index];
-		if (token.info === 'mermaid') {
+		if (configuration.rendering.mermaid && token.info === 'mermaid') {
 			token.attrJoin('class', 'better-markdown-preview-mermaid');
 			token.attrSet('data-bmp-mermaid-source', '');
 			token.attrSet('data-bmp-mermaid-state', 'source');
 			return `<pre${renderer.renderAttrs(token)}>${md.utils.escapeHtml(token.content)}</pre>\n`;
+		}
+		if (!configuration.rendering.richCodeBlocks) {
+			return renderPrevious(previous, tokens, index, options, env, renderer);
 		}
 		const metadata = parseFenceMetadata(token.info);
 		const annotations = parseDiffAnnotations(token.content);
@@ -498,6 +537,21 @@ function installFenceRenderer(md: MarkdownIt): void {
 			: '';
 		return `<figure class="better-markdown-preview-code"${attributes}>${caption}${renderPrevious(previous, clonedTokens, index, options, env, renderer)}</figure>\n`;
 	};
+}
+
+function installPreviewConfiguration(
+	md: MarkdownIt,
+	configuration: BetterMarkdownPreviewConfiguration,
+): void {
+	const value = md.utils.escapeHtml(
+		JSON.stringify(previewConfiguration(configuration)),
+	);
+	md.core.ruler.push('better_markdown_preview_configuration', (state) => {
+		const marker = new state.Token('html_block', '', 0);
+		marker.block = true;
+		marker.content = `<span hidden data-bmp-preview-config="${value}"></span>\n`;
+		state.tokens.push(marker);
+	});
 }
 
 function renderPrevious(
