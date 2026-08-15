@@ -17,6 +17,7 @@ const expectedEntries = [
 	'extension/dist/preview/preview.css',
 	'extension/dist/preview/preview.js',
 	'extension/dist/web/extension.js',
+	'extension/img/icon.png',
 	'extension/package.json',
 	'extension/readme.md',
 ].sort();
@@ -32,6 +33,7 @@ test('VSIX contains exactly the expected runtime archive', async () => {
 	const packagedManifest = JSON.parse(
 		new TextDecoder().decode(archive['extension/package.json']),
 	);
+	assert.equal(packagedManifest.icon, 'img/icon.png');
 	assert.equal(packagedManifest.main, './dist/node/extension.js');
 	assert.equal(packagedManifest.browser, './dist/web/extension.js');
 	assert.deepEqual(packagedManifest.contributes, {

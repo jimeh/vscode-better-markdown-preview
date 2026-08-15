@@ -7,6 +7,7 @@ const manifest = JSON.parse(
 );
 
 test('manifest exposes native Markdown preview hooks for desktop and web', () => {
+	assert.equal(manifest.icon, 'img/icon.png');
 	assert.equal(manifest.main, './dist/node/extension.js');
 	assert.equal(manifest.browser, './dist/web/extension.js');
 	assert.deepEqual(manifest.activationEvents, []);

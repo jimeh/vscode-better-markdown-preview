@@ -68,7 +68,10 @@ Better Markdown Preview extends VS Code's built-in Markdown preview. Read
 
 ## Dependencies and Automation
 
-New package releases cool down for seven days before pnpm resolves them. For an
+Keep Mise tool selectors at the major version and commit the exact multi-platform
+resolutions in `mise.lock`. Use `mise lock --bump` to refresh compatible tools.
+
+New package releases cool down for three days before pnpm resolves them. For an
 urgent reviewed security fix, add only the exact package to
 `minimumReleaseAgeExclude` in `pnpm-workspace.yaml`, update the lockfile, and
 remove the exception once the release ages in.

@@ -4,7 +4,9 @@
 	"recommendations": [
 		"dbaeumer.vscode-eslint",
 		"connor4312.esbuild-problem-matchers",
+		"esbenp.prettier-vscode",
 		"ms-vscode.extension-test-runner",
-		"hverlin.mise-vscode"
+		"hverlin.mise-vscode",
+		"swellaby.workspace-config-plus"
 	]
 }

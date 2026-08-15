@@ -9,6 +9,16 @@
 		},
 	},
 	"globs": ["**/*.md"],
+	"overrides": [
+		{
+			"filter": ["README.md"],
+			"config": {
+				"MD033": false,
+				"MD041": false,
+			},
+			"combine": "merge",
+		},
+	],
 	"ignores": [
 		".vscode-test/**",
 		"CLAUDE.md",
