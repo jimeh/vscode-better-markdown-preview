@@ -18,6 +18,8 @@ Use the narrowest task that proves the behavior under development:
   stable VS Code for the Web under headless Chromium.
 - `mise run package:validate` produces a VSIX and asserts its exact runtime
   contents.
+- `mise run release:check` exercises semantic version selection, release-note
+  visibility, runner outputs, and workflow orchestration without publishing.
 - `mise run ci:workflows` validates workflow syntax, security, and action pins.
 
 `mise run check` is the fast handoff gate: formatting, lint, all TypeScript
@@ -110,3 +112,10 @@ artifacts, and run their narrow compatibility consumer.
 
 This gives clean-environment evidence for the pushed revision without running
 the complete repository gate in every host job.
+
+On a `main` push, Semantic Release runs only after all three host jobs pass.
+Release preparation then supplies the calculated version to VSCE, reuses the
+exact package inventory contract, checks the generated current-release
+changelog, and verifies the checksum. Publication jobs download that one
+revision-bound artifact and independently publish it to both extension
+registries and the matching GitHub Release.

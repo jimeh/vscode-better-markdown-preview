@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'main-release' || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   validate:
@@ -114,3 +114,158 @@ jobs:
 
       - name: Run web compatibility contract
         run: mise run test:web:stable
+
+  release:
+    name: Release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs:
+      - validate
+      - desktop-host
+      - web-host
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      released: ${{ steps.semantic-release.outputs.released }}
+      version: ${{ steps.semantic-release.outputs.version }}
+      git_tag: ${{ steps.semantic-release.outputs.git_tag }}
+      vsix_path: ${{ steps.semantic-release.outputs.vsix_path }}
+      checksum_path: ${{ steps.semantic-release.outputs.checksum_path }}
+    steps:
+      - name: Check out complete release history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install locked tools
+        uses: jdx/mise-action@3c2e0cf82a5b2e5249f0d3635a4d83d0ae861518 # v4.2.5
+        with:
+          install: true
+          version: '2026.8.4'
+
+      - name: Install locked dependencies
+        run: mise run setup
+
+      - name: Create release bot token
+        id: release-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-issues: write
+
+      - name: Run Semantic Release
+        id: semantic-release
+        env:
+          GITHUB_TOKEN: ${{ steps.release-token.outputs.token }}
+        run: mise run release
+
+      - name: Upload immutable release package
+        if: steps.semantic-release.outputs.released == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-${{ steps.semantic-release.outputs.version }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-vscode:
+    name: Publish to Visual Studio Marketplace
+    if: needs.release.outputs.released == 'true'
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install locked tools
+        uses: jdx/mise-action@3c2e0cf82a5b2e5249f0d3635a4d83d0ae861518 # v4.2.5
+        with:
+          install: true
+          version: '2026.8.4'
+
+      - name: Install locked dependencies
+        run: mise run setup
+
+      - name: Download immutable release package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-${{ needs.release.outputs.version }}
+          path: artifacts
+
+      - name: Verify and publish VSIX
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          VSIX_PATH: ${{ needs.release.outputs.vsix_path }}
+        run: | # zizmor: ignore[use-trusted-publishing] PAT publishing
+          (cd artifacts && sha256sum --check "jimeh.better-markdown-preview-${VERSION}.vsix.sha256")
+          pnpm exec vsce publish --packagePath "$VSIX_PATH"
+
+  publish-openvsx:
+    name: Publish to Open VSX
+    if: needs.release.outputs.released == 'true'
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install locked tools
+        uses: jdx/mise-action@3c2e0cf82a5b2e5249f0d3635a4d83d0ae861518 # v4.2.5
+        with:
+          install: true
+          version: '2026.8.4'
+
+      - name: Install locked dependencies
+        run: mise run setup
+
+      - name: Download immutable release package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-${{ needs.release.outputs.version }}
+          path: artifacts
+
+      - name: Verify and publish VSIX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          VERSION: ${{ needs.release.outputs.version }}
+          VSIX_PATH: ${{ needs.release.outputs.vsix_path }}
+        run: | # zizmor: ignore[use-trusted-publishing] PAT publishing
+          (cd artifacts && sha256sum --check "jimeh.better-markdown-preview-${VERSION}.vsix.sha256")
+          pnpm exec ovsx publish "$VSIX_PATH"
+
+  upload-github-release:
+    name: Attach GitHub Release assets
+    if: needs.release.outputs.released == 'true'
+    needs: release
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download immutable release package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-${{ needs.release.outputs.version }}
+          path: artifacts
+
+      - name: Verify and attach release assets
+        env:
+          CHECKSUM_PATH: ${{ needs.release.outputs.checksum_path }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          GIT_TAG: ${{ needs.release.outputs.git_tag }}
+          VERSION: ${{ needs.release.outputs.version }}
+          VSIX_PATH: ${{ needs.release.outputs.vsix_path }}
+        run: |
+          (cd artifacts && sha256sum --check "jimeh.better-markdown-preview-${VERSION}.vsix.sha256")
+          gh release view "$GIT_TAG"
+          gh release upload "$GIT_TAG" "$VSIX_PATH" "$CHECKSUM_PATH" --clobber

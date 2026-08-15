@@ -125,10 +125,13 @@ are:
 - `mise run test:web:stable` exercises stable VS Code for the Web in Chromium
   after `mise run test:hosts:prepare`.
 - `mise run package:validate` builds and inspects the VSIX.
+- `mise run release:check` exercises versioning, notes, outputs, and workflow
+  contracts without publishing.
 - `mise run verify` runs the intended-final-head local gate.
 
 See [Architecture](docs/architecture.md) and [Testing](docs/testing.md) for the
-contracts those commands enforce.
+contracts those commands enforce. See [Releases](docs/releases.md) for the
+automated versioning, publication, and recovery contract.
 
 ## License
 
