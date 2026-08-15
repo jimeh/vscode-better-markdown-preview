@@ -4,6 +4,8 @@
 artifacts/**
 docs/**
 media/**
+img/*.svg
+img/logo.png
 out/**
 node_modules/**
 scripts/**

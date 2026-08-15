@@ -1,4 +1,22 @@
+<div align="center">
+
+<img width="196px" src="https://github.com/jimeh/vscode-better-markdown-preview/raw/refs/heads/main/img/logo.png" alt="Logo">
+
 # Better Markdown Preview
+
+**A better, theme-aware Markdown preview for Visual Studio Code.**
+
+[![GitHub Release](https://img.shields.io/github/v/release/jimeh/vscode-better-markdown-preview?logo=github&label=Release)](https://github.com/jimeh/vscode-better-markdown-preview/releases/latest)
+[![VSCode](https://img.shields.io/badge/Marketplace-blue.svg?logo=visualstudiocode&logoColor=white)][vscode-ext]
+[![OpenVSX](https://img.shields.io/badge/OpenVSX-purple.svg?logo=eclipseide&logoColor=white)][openvsx-ext]
+[![GitHub Issues](https://img.shields.io/github/issues/jimeh/vscode-better-markdown-preview?logo=github&label=Issues)](https://github.com/jimeh/vscode-better-markdown-preview/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/jimeh/vscode-better-markdown-preview?logo=github&label=PRs)](https://github.com/jimeh/vscode-better-markdown-preview/pulls)
+[![License](https://img.shields.io/github/license/jimeh/vscode-better-markdown-preview?label=License)](https://github.com/jimeh/vscode-better-markdown-preview/blob/main/LICENSE)
+
+</div>
+
+[vscode-ext]: https://marketplace.visualstudio.com/items?itemName=jimeh.better-markdown-preview
+[openvsx-ext]: https://open-vsx.org/extension/jimeh/better-markdown-preview
 
 Better Markdown Preview enhances Visual Studio Code's built-in Markdown preview
 without replacing it. Native source synchronization, resource resolution,

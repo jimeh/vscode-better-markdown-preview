@@ -34,4 +34,9 @@ test('extension test watcher uses the Extension Host compiler project', () => {
 		packageJson.scripts['watch-tests'],
 		'tsc -p tsconfig.extension-tests.json -w',
 	);
+	assert.match(
+		tasks,
+		/"label": "pnpm: watch-tests"[\s\S]*?"command": "pnpm run watch-tests"/,
+	);
+	assert.match(tasks, /"dependsOn": \["watch", "pnpm: watch-tests"\]/);
 });

@@ -68,6 +68,7 @@
 			}
 		},
 		{
+			"label": "pnpm: watch-tests",
 			"type": "shell",
 			"command": "pnpm run watch-tests",
 			"problemMatcher": "$tsc-watch",
