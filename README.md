@@ -18,21 +18,27 @@
 [vscode-ext]: https://marketplace.visualstudio.com/items?itemName=jimeh.better-markdown-preview
 [openvsx-ext]: https://open-vsx.org/extension/jimeh/better-markdown-preview
 
-Better Markdown Preview enhances Visual Studio Code's built-in Markdown preview
-without replacing it. Native source synchronization, resource resolution,
-security settings, code-copy controls, syntax highlighting, and user preview
-styles continue to work.
+Better Markdown Preview is a standalone, all-in-one enhancement for Visual
+Studio Code's built-in Markdown preview. Its goal is to bring the common preview
+features you would otherwise need several extensions for into one place,
+without replacing the native preview. Source synchronization, resource
+resolution, security settings, code-copy controls, syntax highlighting, and
+user preview styles continue to work.
+
+![Better Markdown Preview showing a table of contents, frontmatter, GitHub alert, columns, and a Mermaid diagram](img/preview.png)
 
 It adds:
 
 - Complete visible GFM behavior, including task lists, literal autolinks, and
   tag filtering.
+- A responsive H1-H3 table of contents with active-heading tracking.
 - GitHub alerts, footnotes, definition lists, and collapsible highlighted TOML
   and YAML frontmatter.
-- Responsive Pandoc-style columns and locally bundled Mermaid diagrams.
+- Responsive Pandoc-style columns.
+- Improved, locally bundled Mermaid rendering with a full-page viewer for
+  zooming and panning around large diagrams.
 - Code-block titles, highlighted lines and words, line numbers, and diff-line
   annotations while retaining VS Code's native highlighter.
-- A responsive H1-H3 table of contents with active-heading tracking.
 - A clean layout driven entirely by the active VS Code theme, including high
   contrast and print presentation.
 

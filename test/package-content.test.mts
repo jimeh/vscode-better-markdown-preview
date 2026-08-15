@@ -19,6 +19,7 @@ const expectedEntries = [
 	'extension/dist/preview/preview.js',
 	'extension/dist/web/extension.js',
 	'extension/img/icon.png',
+	'extension/img/preview.png',
 	'extension/package.json',
 	'extension/readme.md',
 ].sort();
