@@ -248,6 +248,7 @@ function createController(
 	});
 	contentObserver.observe(document.body, {
 		attributes: true,
+		attributeFilter: ['data-bmp-preview-config'],
 		childList: true,
 		subtree: true,
 	});

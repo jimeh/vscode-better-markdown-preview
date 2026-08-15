@@ -103,6 +103,7 @@ export async function assertConfigurationRoundTrip(
 	update: UpdateConfiguration,
 	original: OriginalConfiguration,
 ): Promise<void> {
+	let failure: { reason: unknown } | undefined;
 	try {
 		await update('mermaid.viewer', undefined);
 		await update('rendering.columns', undefined);
@@ -137,9 +138,22 @@ export async function assertConfigurationRoundTrip(
 				html.includes('&quot;mermaidViewer&quot;:true'),
 			'restore default rendering after resetting settings',
 		);
+	} catch (error) {
+		failure = { reason: error };
 	} finally {
-		await update('mermaid.viewer', original['mermaid.viewer']);
-		await update('rendering.columns', original['rendering.columns']);
+		const restoreResults = await Promise.allSettled([
+			update('mermaid.viewer', original['mermaid.viewer']),
+			update('rendering.columns', original['rendering.columns']),
+		]);
+		const restoreFailure = restoreResults.find(
+			(result) => result.status === 'rejected',
+		);
+		if (!failure && restoreFailure?.status === 'rejected') {
+			failure = { reason: restoreFailure.reason };
+		}
+	}
+	if (failure) {
+		throw failure.reason;
 	}
 }
 
