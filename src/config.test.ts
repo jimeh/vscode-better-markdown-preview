@@ -20,7 +20,7 @@ describe('configuration', () => {
 		);
 	});
 
-	test('reads all feature defaults as enabled', () => {
+	test('reads all feature defaults from the manifest contract', () => {
 		const seen: string[] = [];
 		const configuration = readConfiguration({
 			get(key, fallback) {
@@ -40,13 +40,17 @@ describe('configuration', () => {
 			'navigation.smoothScrolling',
 			'mermaid.viewer',
 		]);
+		const enabled = new Set(['rendering.emoticonShortcuts']);
 		const configuration = readConfiguration({
 			get(key, fallback) {
-				return (disabled.has(key) ? false : fallback) as typeof fallback;
+				return (
+					disabled.has(key) ? false : enabled.has(key) ? true : fallback
+				) as typeof fallback;
 			},
 		});
 
 		expect(configuration.rendering.mermaid).toBe(false);
+		expect(configuration.rendering.emoticonShortcuts).toBe(true);
 		expect(previewConfiguration(configuration)).toEqual({
 			tableOfContents: false,
 			smoothScrolling: false,

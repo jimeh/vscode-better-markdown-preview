@@ -5,6 +5,8 @@ export const configurationKeys = [
 	'rendering.definitionLists',
 	'rendering.footnotes',
 	'rendering.githubAlerts',
+	'rendering.emojiShortcodes',
+	'rendering.emoticonShortcuts',
 	'rendering.tomlFrontmatter',
 	'rendering.yamlFrontmatter',
 	'rendering.columns',
@@ -22,6 +24,8 @@ export interface BetterMarkdownPreviewConfiguration {
 		definitionLists: boolean;
 		footnotes: boolean;
 		githubAlerts: boolean;
+		emojiShortcodes: boolean;
+		emoticonShortcuts: boolean;
 		tomlFrontmatter: boolean;
 		yamlFrontmatter: boolean;
 		columns: boolean;
@@ -54,6 +58,8 @@ export const defaultConfiguration: BetterMarkdownPreviewConfiguration = {
 		definitionLists: true,
 		footnotes: true,
 		githubAlerts: true,
+		emojiShortcodes: true,
+		emoticonShortcuts: false,
 		tomlFrontmatter: true,
 		yamlFrontmatter: true,
 		columns: true,
@@ -73,14 +79,20 @@ export const defaultConfiguration: BetterMarkdownPreviewConfiguration = {
 export function readConfiguration(
 	configuration: ConfigurationReader,
 ): BetterMarkdownPreviewConfiguration {
+	const readBoolean = (
+		key: (typeof configurationKeys)[number],
+		defaultValue: boolean,
+	): boolean => configuration.get(key, defaultValue);
 	const enabled = (key: (typeof configurationKeys)[number]): boolean =>
-		configuration.get(key, true);
+		readBoolean(key, true);
 	return {
 		rendering: {
 			taskLists: enabled('rendering.taskLists'),
 			definitionLists: enabled('rendering.definitionLists'),
 			footnotes: enabled('rendering.footnotes'),
 			githubAlerts: enabled('rendering.githubAlerts'),
+			emojiShortcodes: enabled('rendering.emojiShortcodes'),
+			emoticonShortcuts: readBoolean('rendering.emoticonShortcuts', false),
 			tomlFrontmatter: enabled('rendering.tomlFrontmatter'),
 			yamlFrontmatter: enabled('rendering.yamlFrontmatter'),
 			columns: enabled('rendering.columns'),

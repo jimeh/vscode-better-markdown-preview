@@ -2,6 +2,7 @@ import type MarkdownIt from 'markdown-it';
 import type Token from 'markdown-it/lib/token.mjs';
 import { LinkifyIt } from 'linkify-it';
 import definitionList from 'markdown-it-deflist';
+import { full as emoji } from 'markdown-it-emoji';
 import footnote from 'markdown-it-footnote';
 import githubAlerts from 'markdown-it-github-alerts';
 import taskLists from 'markdown-it-task-lists';
@@ -50,6 +51,12 @@ export function extendMarkdownIt(
 	}
 	if (configuration.rendering.columns) {
 		installColumns(md);
+	}
+	if (configuration.rendering.emojiShortcodes) {
+		md.use(
+			emoji,
+			configuration.rendering.emoticonShortcuts ? {} : { shortcuts: {} },
+		);
 	}
 	if (configuration.rendering.enhancedAutolinks) {
 		installGfmAutolinks(md);

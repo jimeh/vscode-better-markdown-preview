@@ -37,6 +37,19 @@ Footnotes work too.[^one]
 
 [^one]: A footnote with a return link.
 
+## Emoji
+
+Named shortcodes render in ordinary text and link labels: :joy: :rocket:
+[celebrate :tada:](https://example.com/:tada:).
+
+Emoticon shortcuts are disabled by default, so this stays literal: :)
+
+Inline code stays literal too: `:joy: :)`.
+
+```text
+Block code also stays literal: :joy: :)
+```
+
 ## Responsive columns
 
 :::: {.columns}

@@ -15,11 +15,15 @@ the native renderer itself.
 ## Rendering Boundary
 
 `src/markdown/compose.ts` installs standard Markdown-It plugins for task lists,
-definition lists, footnotes, and GitHub alerts. Markdown-It's native linkify
-rule runs first when enabled. A narrow post-native `linkify-it` pass fills
-missing GFM HTTP, HTTPS, email, and `www.` literals independently of that
-setting, while filtering bare domains and other schemes and retaining native
-normalization, validation, nesting, and HTML-anchor guards.
+definition lists, footnotes, GitHub alerts, and named Unicode emoji shortcodes.
+Optional emoticon shortcuts are part of the emoji plugin and remain subordinate
+to the named-shortcode setting. Markdown-It's native linkify rule runs first
+when enabled. A narrow post-native `linkify-it` pass fills missing GFM HTTP,
+HTTPS, email, and `www.` literals independently of that setting, while filtering
+bare domains and other schemes and retaining native normalization, validation,
+nesting, and HTML-anchor guards. Emoji replacement runs after both linkifiers,
+so autolink text and destinations remain intact while ordinary text and link
+labels can contain shortcodes.
 VS Code 1.125 collapses some backslash-escaped punctuation before contributed
 core rules run, so an escaped `www\.` is indistinguishable from authored
 `www.` at this boundary. Local rules cover GFM tag filtering, TOML and YAML

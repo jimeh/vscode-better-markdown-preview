@@ -54,6 +54,12 @@ export async function run(): Promise<void> {
 		{
 			'rendering.columns':
 				configuration.inspect<boolean>('rendering.columns')?.globalValue,
+			'rendering.emojiShortcodes': configuration.inspect<boolean>(
+				'rendering.emojiShortcodes',
+			)?.globalValue,
+			'rendering.emoticonShortcuts': configuration.inspect<boolean>(
+				'rendering.emoticonShortcuts',
+			)?.globalValue,
 			'mermaid.viewer':
 				configuration.inspect<boolean>('mermaid.viewer')?.globalValue,
 		},

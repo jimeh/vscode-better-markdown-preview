@@ -25,8 +25,10 @@ test('manifest exposes native Markdown preview hooks for desktop and web', () =>
 	]);
 	assert.equal('commands' in manifest.contributes, false);
 	assert.equal(manifest.devDependencies['markdown-it'], '14.3.0');
+	assert.equal(manifest.devDependencies['@types/markdown-it-emoji'], '3.0.1');
+	assert.equal(manifest.dependencies['markdown-it-emoji'], '3.1.0');
 });
 
-test('manifest exposes the exact window-scoped feature settings enabled by default', () => {
+test('manifest exposes the exact window-scoped feature setting defaults', () => {
 	assertConfigurationContribution(manifest.contributes.configuration);
 });

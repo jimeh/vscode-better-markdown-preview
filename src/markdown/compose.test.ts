@@ -20,11 +20,17 @@ function render(
 function disableRendering(
 	feature: keyof BetterMarkdownPreviewConfiguration['rendering'],
 ): BetterMarkdownPreviewConfiguration {
+	return configureRendering({ [feature]: false });
+}
+
+function configureRendering(
+	overrides: Partial<BetterMarkdownPreviewConfiguration['rendering']>,
+): BetterMarkdownPreviewConfiguration {
 	return {
 		...defaultConfiguration,
 		rendering: {
 			...defaultConfiguration.rendering,
-			[feature]: false,
+			...overrides,
 		},
 	};
 }
@@ -32,13 +38,14 @@ function disableRendering(
 describe('Markdown composition', () => {
 	test('keeps every rendering feature enabled by default', () => {
 		const html = render(
-			'+++\ntitle = "Test"\n+++\n\n- [x] Task\n\nTerm\n: Definition\n\nFootnote[^1].\n\n[^1]: Note\n\n> [!NOTE]\n> Alert\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n\nhttps://example.com\n\n```mermaid\ngraph TD\nA-->B\n```\n\n```ts title="test.ts"\nvalue\n```\n',
+			'+++\ntitle = "Test"\n+++\n\n- [x] Task\n\nTerm\n: Definition\n\nFootnote[^1].\n\n[^1]: Note\n\n> [!NOTE]\n> Alert\n\nEmoji :joy:\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n\nhttps://example.com\n\n```mermaid\ngraph TD\nA-->B\n```\n\n```ts title="test.ts"\nvalue\n```\n',
 		);
 		for (const marker of [
 			'task-list-item',
 			'<dl>',
 			'footnote-ref',
 			'better-markdown-preview-alert-note',
+			'😂',
 			'better-markdown-preview-frontmatter',
 			'better-markdown-preview-columns',
 			'href="https://example.com"',
@@ -54,6 +61,7 @@ describe('Markdown composition', () => {
 		['definitionLists', '<dl>'],
 		['footnotes', 'footnote-ref'],
 		['githubAlerts', 'better-markdown-preview-alert-note'],
+		['emojiShortcodes', '😂'],
 		['tomlFrontmatter', 'better-markdown-preview-frontmatter'],
 		['columns', 'better-markdown-preview-columns'],
 		['enhancedAutolinks', 'href="https://example.com"'],
@@ -63,12 +71,13 @@ describe('Markdown composition', () => {
 			'<dl>',
 			'footnote-ref',
 			'better-markdown-preview-alert-note',
+			'😂',
 			'better-markdown-preview-frontmatter',
 			'better-markdown-preview-columns',
 			'href="https://example.com"',
 		];
 		const html = render(
-			'+++\ntitle = "Test"\n+++\n\n- [x] Task\n\nTerm\n: Definition\n\nFootnote[^1].\n\n[^1]: Note\n\n> [!NOTE]\n> Alert\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n\nhttps://example.com\n\n<script>blocked()</script>\n',
+			'+++\ntitle = "Test"\n+++\n\n- [x] Task\n\nTerm\n: Definition\n\nFootnote[^1].\n\n[^1]: Note\n\n> [!NOTE]\n> Alert\n\nEmoji :joy:\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n\nhttps://example.com\n\n<script>blocked()</script>\n',
 			undefined,
 			disableRendering(feature),
 		);
@@ -122,6 +131,44 @@ describe('Markdown composition', () => {
 		expect(md.renderInline('plain *inline* text')).toBe(
 			'plain <em>inline</em> text',
 		);
+	});
+
+	test('renders named emoji shortcodes without changing code, escapes, unknown names, or link destinations', () => {
+		const html = render(
+			'Named :joy:, unknown :bmp_unknown:, and escaped \\:joy:.\n\n[Label :joy:](https://example.com/:joy/) and https://example.com/:joy/.\n\n`inline :joy:`\n\n```text\nfenced :joy:\n```\n\n    indented :joy:\n',
+		);
+
+		expect(html).toContain(
+			'Named 😂, unknown :bmp_unknown:, and escaped :joy:.',
+		);
+		expect(html).toContain('<a href="https://example.com/:joy/">Label 😂</a>');
+		expect(html).toContain(
+			'<a href="https://example.com/:joy/">https://example.com/:joy/</a>',
+		);
+		expect(html).toContain('<code>inline :joy:</code>');
+		expect(html).toContain('fenced :joy:');
+		expect(html).toContain('indented :joy:');
+	});
+
+	test('keeps emoticon shortcuts opt-in and subordinate to emoji shortcodes', () => {
+		expect(render(':joy: :)\n')).toContain('<p>😂 :)</p>');
+		expect(
+			render(
+				':joy: :)\n',
+				undefined,
+				configureRendering({ emoticonShortcuts: true }),
+			),
+		).toContain('<p>😂 😃</p>');
+		expect(
+			render(
+				':joy: :)\n',
+				undefined,
+				configureRendering({
+					emojiShortcodes: false,
+					emoticonShortcuts: true,
+				}),
+			),
+		).toContain('<p>:joy: :)</p>');
 	});
 
 	test('adds GFM task lists, literal autolinks, punctuation, and tag filtering', () => {

@@ -34,6 +34,8 @@ It adds:
 - A responsive H1-H3 table of contents with active-heading tracking.
 - GitHub alerts, footnotes, definition lists, and collapsible highlighted TOML
   and YAML frontmatter.
+- Unicode emoji from named shortcodes such as `:joy:`, with optional emoticon
+  shortcuts such as `:)`.
 - Responsive Pandoc-style columns.
 - Improved, locally bundled Mermaid rendering with a full-page viewer for
   zooming and panning around large diagrams.
@@ -75,10 +77,14 @@ Only an exact lowercase `mermaid` fence renders as a diagram. Mermaid is loaded
 from the extension package only when the document contains such a block; source
 remains visible if loading or rendering fails.
 
+Named emoji shortcodes render as Unicode emoji in ordinary Markdown text and
+link labels, but remain literal in inline and block code. Emoticon shortcuts are
+available separately and disabled by default.
+
 ## Settings
 
-All Better Markdown Preview features are enabled by default and can be changed
-at user or workspace scope:
+Better Markdown Preview features can be changed at user or workspace scope. All
+are enabled by default except emoticon shortcuts:
 
 | Setting                                             | Behavior                                                       |
 | --------------------------------------------------- | -------------------------------------------------------------- |
@@ -86,6 +92,8 @@ at user or workspace scope:
 | `betterMarkdownPreview.rendering.definitionLists`   | Definition lists                                               |
 | `betterMarkdownPreview.rendering.footnotes`         | Footnotes and backlinks                                        |
 | `betterMarkdownPreview.rendering.githubAlerts`      | GitHub-style alerts                                            |
+| `betterMarkdownPreview.rendering.emojiShortcodes`   | Named emoji shortcodes such as `:joy:`                         |
+| `betterMarkdownPreview.rendering.emoticonShortcuts` | Emoticons such as `:)`; requires emoji shortcodes              |
 | `betterMarkdownPreview.rendering.tomlFrontmatter`   | Expanded, collapsible, highlighted TOML frontmatter            |
 | `betterMarkdownPreview.rendering.yamlFrontmatter`   | Expanded, collapsible, highlighted YAML frontmatter            |
 | `betterMarkdownPreview.rendering.columns`           | Responsive Pandoc-style columns                                |
