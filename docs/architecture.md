@@ -20,10 +20,21 @@ rule runs first when enabled. A narrow post-native `linkify-it` pass fills
 missing GFM HTTP, HTTPS, email, and `www.` literals independently of that
 setting, while filtering bare domains and other schemes and retaining native
 normalization, validation, nesting, and HTML-anchor guards.
-VS Code 1.125 collapses some backslash-escaped punctuation before contributed
-core rules run, so an escaped `www\.` is indistinguishable from authored
-`www.` at this boundary. Local rules cover GFM tag filtering, TOML and YAML
-frontmatter, responsive columns, exact Mermaid fences, and rich fence metadata.
+Local rules cover GFM tag filtering, TOML and YAML frontmatter, responsive
+columns, exact Mermaid fences, and rich fence metadata.
+
+VS Code 1.125 configures its supplied linkifier with `fuzzyLink: false` and
+reapplies per-render options after contributed plugins. The extension must not
+mutate `md.options.linkify` to compensate. Prose-oriented inline transformations
+must operate on parsed text tokens rather than raw source or rendered HTML so
+inline code, fenced code, HTML, existing links, and source maps keep their
+native semantics. Rule ordering around native and extension-owned linkification
+is part of the host compatibility contract.
+
+The host collapses backslash-escaped punctuation into plain inline text before
+contributed core rules run. If the resulting token is identical to unescaped
+authored text, do not guess at raw-source offsets; preserve source maps and
+record the native-host limitation instead.
 
 Renderer wrappers retain and invoke the rule already installed on the supplied
 Markdown-It instance. In particular, fenced code delegates to VS Code's native
@@ -34,6 +45,18 @@ that supplied fence renderer, while the extension owns only the expanded
 `details` wrapper. When YAML rendering is disabled, VS Code's later-installed
 native frontmatter rule remains free to render its configured table, code block,
 or hidden presentation.
+
+VS Code installs its `front_matter` YAML block rule after contributed plugins,
+immediately before `fence`. The extension's YAML rule therefore runs first when
+enabled, while omitting it delegates cleanly to the native rule. Airplan column
+closing delimiters allow trailing horizontal whitespace, and container-looking
+lines inside backtick or tilde fences are code rather than nested column syntax.
+
+VS Code's source-map core rule adds `data-line`, `code-line`, and `dir`
+attributes to mapped non-inline tokens before rendering. Owned block renderers
+must call `renderer.renderAttrs(token)` on their real wrapper; rendering an
+`html_block` string would leave those attributes on a separate empty mapping
+element.
 
 All emitted classes and data attributes are scoped with
 `better-markdown-preview` or `bmp`. Invalid extension syntax falls back to
@@ -69,6 +92,12 @@ reduced motion.
 it does not own a light or dark palette. VS Code loads user `markdown.styles`
 after contributed styles, so user overrides retain precedence.
 
+Native preview typography uses `--markdown-font-size` and
+`--markdown-line-height` without a `--vscode-` prefix. VS Code 1.125 exposes
+Markdown alert identifiers as custom properties such as
+`--vscode-markdownAlert-note.foreground`; CSS must escape the dot and retain the
+normalized hyphen form as a compatibility fallback.
+
 Mermaid is absent from both Extension Host bundles. The small preview runtime
 dynamically imports `dist/preview/mermaid-runtime.js` only after finding an
 exact Mermaid block. The renderer uses strict security, derives colors from
@@ -77,7 +106,8 @@ diagrams remain passive in the document so they do not capture preview
 scrolling. A preview-owned near-viewport dialog provides dedicated zoom and pan
 interaction, refreshes its SVG clone after theme or source rerenders, and
 rewrites cloned SVG IDs so Mermaid markers and gradients stay local to the
-dialog.
+dialog. Rewrites must cover selectors inside embedded `<style>` elements as
+well as `url(#id)`, ARIA references, and other ID-bearing attributes.
 
 ## Runtime Boundary
 
@@ -93,6 +123,10 @@ and keep shared rendering contracts platform-neutral.
 
 Both bundles are declared in `package.json` and asserted inside the produced
 VSIX. A successful desktop build alone is not sufficient evidence.
+
+VSCE accepts only `ui` and `workspace` in `extensionKind`; web-host eligibility
+comes from the manifest's `browser` entry point rather than a synthetic `web`
+extension kind.
 
 The repository's direct `markdown-it` development dependency is a controlled
 unit-test fixture only. Host compatibility tests render through the built-in
@@ -115,6 +149,10 @@ external tool cannot discover `.mts`. `@vscode/test-cli` 0.0.15 discovers
 `.vscode-test.mjs`, while Semantic Release discovers `release.config.mjs`.
 Reusable host and release policy remains in strictly checked `.mts` helpers
 rather than either compatibility file.
+
+TypeScript 7's default package export does not expose the legacy compiler API.
+Repository tooling must use CLI `tsc` invocations and parse strict JSON directly
+instead of importing `typescript` for JSONC helpers.
 
 ## Release Boundary
 
