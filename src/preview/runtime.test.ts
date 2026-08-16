@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { defaultMermaidColorShifts } from '../config';
 import {
 	enhancePreview,
 	parseLineSet,
@@ -15,6 +16,7 @@ function setDocument(html: string): void {
 describe('preview runtime', () => {
 	beforeEach(() => {
 		document.body.className = '';
+		document.body.removeAttribute('style');
 		setDocument('');
 		vi.restoreAllMocks();
 	});
@@ -26,12 +28,14 @@ describe('preview runtime', () => {
 			tableOfContents: true,
 			smoothScrolling: true,
 			mermaidViewer: true,
+			mermaidTheme: defaultMermaidColorShifts,
 		});
 		body.querySelector('[data-bmp-preview-config]')?.remove();
 		expect(readPreviewConfiguration(body)).toEqual({
 			tableOfContents: true,
 			smoothScrolling: true,
 			mermaidViewer: true,
+			mermaidTheme: defaultMermaidColorShifts,
 		});
 	});
 
@@ -58,6 +62,34 @@ describe('preview runtime', () => {
 			tableOfContents: false,
 			smoothScrolling: false,
 			mermaidViewer: false,
+			mermaidTheme: defaultMermaidColorShifts,
+		});
+	});
+
+	test('normalizes Mermaid color shifts from the preview marker', () => {
+		const configuration = JSON.stringify({
+			mermaidTheme: {
+				primary: 0,
+				secondary: 100,
+				tertiary: -10,
+				border: 'invalid',
+			},
+		});
+		setDocument(
+			`<span hidden data-bmp-preview-config='${configuration}'></span>`,
+		);
+
+		expect(
+			readPreviewConfiguration(
+				document.querySelector<HTMLElement>('.markdown-body')!,
+			),
+		).toMatchObject({
+			mermaidTheme: {
+				primary: 0,
+				secondary: 100,
+				tertiary: 0,
+				border: 45,
+			},
 		});
 	});
 
@@ -70,7 +102,7 @@ describe('preview runtime', () => {
 		setDocument(
 			`<span hidden data-bmp-preview-config='${disabled}'></span><h2 id="one">One</h2><h2 id="two">Two</h2><pre data-bmp-mermaid-source data-bmp-mermaid-state="source">graph TD\nA--&gt;B</pre>`,
 		);
-		const render = vi.fn(async (element: HTMLElement) => {
+		const render = vi.fn<MermaidAdapter['render']>(async (element) => {
 			element.innerHTML = '<svg viewBox="0 0 100 50"></svg>';
 		});
 		const controller = enhancePreview(document, {
@@ -125,6 +157,40 @@ describe('preview runtime', () => {
 		expect(document.documentElement.classList).not.toContain(
 			'better-markdown-preview-smooth-scroll',
 		);
+		controller.dispose();
+	});
+
+	test('rerenders Mermaid when configured color shifts change', async () => {
+		setDocument(
+			'<span hidden data-bmp-preview-config="{}"></span><pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>',
+		);
+		const render = vi.fn<MermaidAdapter['render']>(async (element) => {
+			element.innerHTML = '<svg viewBox="0 0 100 50"></svg>';
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await controller.ready;
+
+		const marker = document.querySelector<HTMLElement>(
+			'[data-bmp-preview-config]',
+		)!;
+		marker.dataset.bmpPreviewConfig = JSON.stringify({
+			mermaidTheme: {
+				primary: 24,
+				secondary: 30,
+				tertiary: 16,
+				border: 60,
+			},
+		});
+
+		await vi.waitFor(() => expect(render).toHaveBeenCalledTimes(2));
+		expect(render.mock.calls[1]?.[2].colorShifts).toEqual({
+			primary: 24,
+			secondary: 30,
+			tertiary: 16,
+			border: 60,
+		});
 		controller.dispose();
 	});
 
@@ -575,10 +641,36 @@ describe('preview runtime', () => {
 				dark: false,
 				background: '#ffffff',
 				foreground: '#1f2328',
-				border: '#8c8c8c',
 				accent: '#0969da',
+				contrastBorder: undefined,
+				colorShifts: defaultMermaidColorShifts,
 			},
 		);
+		controller.dispose();
+	});
+
+	test('uses VS Code high-contrast colors and dark derivation', async () => {
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		document.body.className = 'vscode-high-contrast';
+		document.body.style.setProperty('--vscode-editor-background', '#000000');
+		document.body.style.setProperty('--vscode-editor-foreground', '#ffffff');
+		document.body.style.setProperty('--vscode-textLink-foreground', '#00ffff');
+		document.body.style.setProperty('--vscode-contrastBorder', '#ffff00');
+		const render = vi.fn<MermaidAdapter['render']>(async (element) => {
+			element.innerHTML = '<svg viewBox="0 0 100 50"></svg>';
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+
+		await controller.ready;
+		expect(render.mock.calls[0]?.[2]).toMatchObject({
+			dark: true,
+			background: '#000000',
+			foreground: '#ffffff',
+			accent: '#00ffff',
+			contrastBorder: '#ffff00',
+		});
 		controller.dispose();
 	});
 

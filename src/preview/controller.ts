@@ -1,6 +1,8 @@
 import {
 	defaultConfiguration,
+	normalizeColorShift,
 	previewConfiguration,
+	type MermaidColorShifts,
 	type PreviewConfiguration,
 } from '../config';
 import { enhanceCodeBlocks } from './code-blocks';
@@ -107,7 +109,7 @@ function createController(
 	};
 
 	const renderMermaid = async (force = false): Promise<void> => {
-		await mermaid.render(force);
+		await mermaid.render(settings.mermaidTheme, force);
 		mermaid.syncViewer(settings.mermaidViewer);
 	};
 
@@ -179,7 +181,12 @@ function createController(
 			return;
 		}
 		const layout = ensureLayout(document, markdownBody);
+		const previousTheme = settings.mermaidTheme;
 		settings = readPreviewConfiguration(markdownBody);
+		const mermaidThemeChanged = !sameColorShifts(
+			previousTheme,
+			settings.mermaidTheme,
+		);
 		if (!settings.smoothScrolling) {
 			smoothScrollCleanup?.();
 		}
@@ -196,7 +203,7 @@ function createController(
 		if (settings.tableOfContents) {
 			updateActiveHeading();
 		}
-		await renderMermaid();
+		await renderMermaid(mermaidThemeChanged);
 	};
 
 	const schedule = (): void => {
@@ -303,10 +310,38 @@ export function readPreviewConfiguration(
 				typeof parsed.mermaidViewer === 'boolean'
 					? parsed.mermaidViewer
 					: defaults.mermaidViewer,
+			mermaidTheme: readMermaidThemeConfiguration(
+				parsed.mermaidTheme,
+				defaults.mermaidTheme,
+			),
 		};
 	} catch {
 		return defaults;
 	}
+}
+
+function readMermaidThemeConfiguration(
+	value: Partial<MermaidColorShifts> | undefined,
+	defaults: MermaidColorShifts,
+): MermaidColorShifts {
+	return {
+		primary: normalizeColorShift(value?.primary, defaults.primary),
+		secondary: normalizeColorShift(value?.secondary, defaults.secondary),
+		tertiary: normalizeColorShift(value?.tertiary, defaults.tertiary),
+		border: normalizeColorShift(value?.border, defaults.border),
+	};
+}
+
+function sameColorShifts(
+	left: MermaidColorShifts,
+	right: MermaidColorShifts,
+): boolean {
+	return (
+		left.primary === right.primary &&
+		left.secondary === right.secondary &&
+		left.tertiary === right.tertiary &&
+		left.border === right.border
+	);
 }
 
 async function defaultMermaidLoader(): Promise<MermaidAdapter> {

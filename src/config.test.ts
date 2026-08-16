@@ -4,6 +4,7 @@ import {
 	CONFIGURATION_SECTION,
 	configurationKeys,
 	defaultConfiguration,
+	defaultMermaidColorShifts,
 	previewConfiguration,
 	readConfiguration,
 } from './config';
@@ -34,17 +35,27 @@ describe('configuration', () => {
 	});
 
 	test('reads explicit values and exposes only browser-facing settings', () => {
-		const disabled = new Set([
+		const disabled = new Set<string>([
 			'rendering.mermaid',
 			'navigation.tableOfContents',
 			'navigation.smoothScrolling',
 			'mermaid.viewer',
 		]);
-		const enabled = new Set(['rendering.emoticonShortcuts']);
+		const enabled = new Set<string>(['rendering.emoticonShortcuts']);
+		const shifts = new Map<string, number>([
+			['mermaid.theme.primaryColorShift', 20],
+			['mermaid.theme.secondaryColorShift', 30],
+			['mermaid.theme.tertiaryColorShift', -5],
+			['mermaid.theme.borderColorShift', 120],
+		]);
 		const configuration = readConfiguration({
 			get(key, fallback) {
 				return (
-					disabled.has(key) ? false : enabled.has(key) ? true : fallback
+					disabled.has(key)
+						? false
+						: enabled.has(key)
+							? true
+							: (shifts.get(key) ?? fallback)
 				) as typeof fallback;
 			},
 		});
@@ -55,6 +66,18 @@ describe('configuration', () => {
 			tableOfContents: false,
 			smoothScrolling: false,
 			mermaidViewer: false,
+			mermaidTheme: {
+				primary: 20,
+				secondary: 30,
+				tertiary: 0,
+				border: 100,
+			},
+		});
+		expect(defaultMermaidColorShifts).toEqual({
+			primary: 12,
+			secondary: 18,
+			tertiary: 10,
+			border: 45,
 		});
 	});
 });

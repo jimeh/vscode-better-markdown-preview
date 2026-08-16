@@ -29,7 +29,7 @@ const fixture = `<!doctype html>
 		<h2 id="one">One</h2>
 		<h2 id="two">Two</h2>
 		<figure class="better-markdown-preview-code" data-bmp-lines="2"><pre><code>one\ntwo</code></pre></figure>
-		<pre class="better-markdown-preview-mermaid" data-bmp-mermaid-source data-bmp-mermaid-state="source">graph TD\nA--&gt;B</pre>
+		<pre class="better-markdown-preview-mermaid" data-bmp-mermaid-source data-bmp-mermaid-state="source">graph TD\nA--&gt;|transition|B</pre>
 	</div>
 	<script src="/dist/preview/preview.js"></script>
 </body>
@@ -136,6 +136,34 @@ window.addEventListener('unhandledrejection', event => {
 		);
 	}
 	await page.locator('[data-bmp-mermaid-state="rendered"] svg').waitFor();
+	const initialNodeColors = await page.evaluate<{
+		fill: string;
+		stroke: string;
+	}>(`(() => {
+		const node = document.querySelector(
+			'[data-bmp-mermaid-state="rendered"] .node rect'
+		);
+		const styles = window.getComputedStyle(node);
+		return { fill: styles.fill, stroke: styles.stroke };
+	})()`);
+	if (
+		initialNodeColors.fill !== 'rgb(224, 237, 249)' ||
+		initialNodeColors.stroke !== 'rgb(140, 186, 232)'
+	) {
+		throw new Error(
+			`Mermaid did not apply the default theme shifts: ${JSON.stringify(initialNodeColors)}`,
+		);
+	}
+	const initialEdgeLabelBackground = await page.evaluate<string>(
+		`window.getComputedStyle(
+			document.querySelector('[data-bmp-mermaid-state="rendered"] .edgeLabel p')
+		).backgroundColor`,
+	);
+	if (initialEdgeLabelBackground !== 'rgb(255, 255, 255)') {
+		throw new Error(
+			`Mermaid did not preserve the editor background behind edge labels: ${initialEdgeLabelBackground}`,
+		);
+	}
 
 	await expectCount(page, '[data-bmp-layout]', 1);
 	await expectCount(page, '[data-bmp-toc]', 1);
@@ -172,6 +200,45 @@ window.addEventListener('unhandledrejection', event => {
 	);
 	if (!triggerFocused) {
 		throw new Error('The Mermaid viewer did not restore trigger focus');
+	}
+
+	await page.evaluate(`(() => {
+		window.__bmpInitialSvg = document.querySelector(
+			'[data-bmp-mermaid-state="rendered"] svg'
+		);
+		const marker = document.createElement('span');
+		marker.hidden = true;
+		marker.dataset.bmpPreviewConfig = JSON.stringify({
+			mermaidTheme: {
+				primary: 30,
+				secondary: 36,
+				tertiary: 20,
+				border: 60,
+			},
+		});
+		document.querySelector('.markdown-body')?.append(marker);
+	})()`);
+	await page.waitForFunction(
+		`document.querySelector('[data-bmp-mermaid-state="rendered"] svg') !==
+			window.__bmpInitialSvg`,
+	);
+	const configuredNodeColors = await page.evaluate<{
+		fill: string;
+		stroke: string;
+	}>(`(() => {
+		const node = document.querySelector(
+			'[data-bmp-mermaid-state="rendered"] .node rect'
+		);
+		const styles = window.getComputedStyle(node);
+		return { fill: styles.fill, stroke: styles.stroke };
+	})()`);
+	if (
+		configuredNodeColors.fill !== 'rgb(179, 209, 240)' ||
+		configuredNodeColors.stroke !== 'rgb(102, 163, 224)'
+	) {
+		throw new Error(
+			`Mermaid did not apply configured theme shifts: ${JSON.stringify(configuredNodeColors)}`,
+		);
 	}
 
 	await page.evaluate(`window.__bmpInitialSvg = document.querySelector(
