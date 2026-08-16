@@ -19,6 +19,9 @@ importers:
       markdown-it-deflist:
         specifier: 4.0.0
         version: 4.0.0
+      markdown-it-emoji:
+        specifier: 3.1.0
+        version: 3.1.0
       markdown-it-footnote:
         specifier: 4.0.0
         version: 4.0.0
@@ -56,6 +59,9 @@ importers:
       '@types/markdown-it':
         specifier: 14.1.2
         version: 14.1.2
+      '@types/markdown-it-emoji':
+        specifier: 3.0.1
+        version: 3.0.1
       '@types/markdown-it-footnote':
         specifier: 3.0.4
         version: 3.0.4
@@ -1585,6 +1591,9 @@ packages:
 
   '@types/linkify-it@5.0.0':
     resolution: {integrity: sha512-sVDA58zAw4eWAffKOaQH5/5j3XeayukzDk+ewSsnv3p4yJEZHCCzMDiZM8e0OUrRvmpGZ85jf4yDHkHsgBNr9Q==}
+
+  '@types/markdown-it-emoji@3.0.1':
+    resolution: {integrity: sha512-cz1j8R35XivBqq9mwnsrP2fsz2yicLhB8+PDtuVkKOExwEdsVBNI+ROL3sbhtR5occRZ66vT0QnwFZCqdjf3pA==}
 
   '@types/markdown-it-footnote@3.0.4':
     resolution: {integrity: sha512-XJ6n+v+2u+2gmYLSHcxyoNT/YrgrKvHuDJQlykFjuxCQCr86P2/fx1V6/0lcKxv5cSIlCaJ6sUcNS3zDI7I+LA==}
@@ -3780,6 +3789,9 @@ packages:
 
   markdown-it-deflist@4.0.0:
     resolution: {integrity: sha512-06186ZWDwNLg638THD70MxBeFrDMF0+nL7IWU/qwCGHGOcUIm4MTYXbfjpv0ooWnVjkSnAjW8msKaOQmNRfY6Q==}
+
+  markdown-it-emoji@3.1.0:
+    resolution: {integrity: sha512-NhmMEH2ywduD4Nty1E8uB5NqfLhAT1VR0dyvoJyStKOqCzbZmVdn/+8wj7zpDsb/fLBikpCPsWwxqKlvMmbz4g==}
 
   markdown-it-footnote@4.0.0:
     resolution: {integrity: sha512-WYJ7urf+khJYl3DqofQpYfEYkZKbmXmwxQV8c8mO/hGIhgZ1wOe7R4HLFNwqx7TjILbnC98fuyeSsin19JdFcQ==}
@@ -6734,6 +6746,10 @@ snapshots:
 
   '@types/linkify-it@5.0.0': {}
 
+  '@types/markdown-it-emoji@3.0.1':
+    dependencies:
+      '@types/markdown-it': 14.1.2
+
   '@types/markdown-it-footnote@3.0.4':
     dependencies:
       '@types/markdown-it': 14.1.2
@@ -9062,6 +9078,8 @@ snapshots:
       semver: 7.8.5
 
   markdown-it-deflist@4.0.0: {}
+
+  markdown-it-emoji@3.1.0: {}
 
   markdown-it-footnote@4.0.0: {}
 

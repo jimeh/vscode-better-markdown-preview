@@ -16,6 +16,8 @@ Footnote[^1].
 > [!NOTE]
 > Known alert
 
+Emoji :joy:, escaped \\:joy:, internal :woman\\_technologist: and :\\+1:, emoticon :), and \`inline :joy:\`.
+
 https://secure.example/path http://plain.example dev@example.com www.example.com example.com
 
 <script>blocked()</script>
@@ -54,6 +56,8 @@ enabled: true
 
 const configurationRoundTripFixture = `# Configuration round trip
 
+Named :joy:. Shortcut :). Escaped \\:). Internal :\\).
+
 :::: {.columns}
 ::: {.column width=40%}
 Left
@@ -67,12 +71,18 @@ Right
 type RenderMarkdown = (source: string) => PromiseLike<string | undefined>;
 
 type UpdateConfiguration = (
-	key: 'rendering.columns' | 'mermaid.viewer',
+	key:
+		| 'rendering.columns'
+		| 'rendering.emojiShortcodes'
+		| 'rendering.emoticonShortcuts'
+		| 'mermaid.viewer',
 	value: boolean | undefined,
 ) => PromiseLike<void>;
 
 interface OriginalConfiguration {
 	'rendering.columns': boolean | undefined;
+	'rendering.emojiShortcodes': boolean | undefined;
+	'rendering.emoticonShortcuts': boolean | undefined;
 	'mermaid.viewer': boolean | undefined;
 }
 
@@ -107,13 +117,35 @@ export async function assertConfigurationRoundTrip(
 	try {
 		await update('mermaid.viewer', undefined);
 		await update('rendering.columns', undefined);
+		await update('rendering.emojiShortcodes', undefined);
+		await update('rendering.emoticonShortcuts', undefined);
 		await waitForRender(
 			render,
 			(html) =>
 				html.includes('better-markdown-preview-columns') &&
+				html.includes('Named 😂. Shortcut :). Escaped :). Internal :).') &&
 				html.includes('&quot;mermaidViewer&quot;:true'),
 			'start from default rendering settings',
 		);
+
+		await update('rendering.emoticonShortcuts', true);
+		await waitForRender(
+			render,
+			(html) =>
+				html.includes('Named 😂. Shortcut 😃. Escaped :). Internal :).'),
+			'enable emoticon shortcuts',
+		);
+
+		await update('rendering.emojiShortcodes', false);
+		await waitForRender(
+			render,
+			(html) =>
+				html.includes('Named :joy:. Shortcut :). Escaped :). Internal :).'),
+			'delegate named emoji and emoticon shortcuts together',
+		);
+
+		await update('rendering.emojiShortcodes', undefined);
+		await update('rendering.emoticonShortcuts', undefined);
 
 		await update('rendering.columns', false);
 		await waitForRender(
@@ -135,6 +167,7 @@ export async function assertConfigurationRoundTrip(
 			render,
 			(html) =>
 				html.includes('better-markdown-preview-columns') &&
+				html.includes('Named 😂. Shortcut :). Escaped :). Internal :).') &&
 				html.includes('&quot;mermaidViewer&quot;:true'),
 			'restore default rendering after resetting settings',
 		);
@@ -144,6 +177,14 @@ export async function assertConfigurationRoundTrip(
 		const restoreResults = await Promise.allSettled([
 			update('mermaid.viewer', original['mermaid.viewer']),
 			update('rendering.columns', original['rendering.columns']),
+			update(
+				'rendering.emojiShortcodes',
+				original['rendering.emojiShortcodes'],
+			),
+			update(
+				'rendering.emoticonShortcuts',
+				original['rendering.emoticonShortcuts'],
+			),
 		]);
 		const restoreFailures = restoreResults.flatMap((result) =>
 			result.status === 'rejected' ? [result.reason] : [],
@@ -220,6 +261,15 @@ export function assertRenderCompatibility(html: string): void {
 		/better-markdown-preview-alert-note/,
 		'known GitHub alert semantics',
 	);
+	requireMatch(html, /Emoji 😂,/, 'named emoji shortcodes');
+	requireMatch(html, /escaped :joy:/, 'escaped emoji shortcodes');
+	requireMatch(
+		html,
+		/internal :woman_technologist: and :\+1:/,
+		'internally escaped emoji shortcodes',
+	);
+	requireMatch(html, /emoticon :\),/, 'default-off emoticon shortcuts');
+	requireMatch(html, /<code>inline :joy:<\/code>/, 'inline code exclusion');
 	requireMatch(html, /href="https:\/\/secure\.example\/path"/, 'HTTPS link');
 	requireMatch(html, /href="http:\/\/plain\.example"/, 'HTTP link');
 	requireMatch(html, /href="mailto:dev@example\.com"/, 'email link');

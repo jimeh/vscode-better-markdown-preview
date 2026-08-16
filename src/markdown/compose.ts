@@ -2,6 +2,7 @@ import type MarkdownIt from 'markdown-it';
 import type Token from 'markdown-it/lib/token.mjs';
 import { LinkifyIt } from 'linkify-it';
 import definitionList from 'markdown-it-deflist';
+import { full as emoji } from 'markdown-it-emoji';
 import footnote from 'markdown-it-footnote';
 import githubAlerts from 'markdown-it-github-alerts';
 import taskLists from 'markdown-it-task-lists';
@@ -18,6 +19,8 @@ const columnsOpen = /^(:{4,})[ \t]+\{\.columns\}[ \t]*$/;
 const columnOpen =
 	/^(:{3,})[ \t]+\{\.column(?:[ \t]+width=(?:"((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%"|'((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%'|((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%))?\}[ \t]*$/;
 const colonClose = /^(:{3,})[ \t]*$/;
+const escapedMarkdownPunctuationToken =
+	'better_markdown_preview_escaped_punctuation';
 const gfmLinkifier = new LinkifyIt({ fuzzyLink: true });
 let nestedBlockParseDepth = 0;
 type FenceRenderRule = NonNullable<MarkdownIt['renderer']['rules']['fence']>;
@@ -51,6 +54,15 @@ export function extendMarkdownIt(
 	if (configuration.rendering.columns) {
 		installColumns(md);
 	}
+	if (configuration.rendering.emojiShortcodes) {
+		installEscapedMarkdownProtection(md);
+		md.use(
+			emoji,
+			configuration.rendering.emoticonShortcuts ? {} : { shortcuts: {} },
+		);
+	}
+	// Both rules insert after `linkify`; installing emoji first keeps the
+	// extension's autolink pass ahead of emoji replacement in the final order.
 	if (configuration.rendering.enhancedAutolinks) {
 		installGfmAutolinks(md);
 	}
@@ -68,6 +80,34 @@ export function extendMarkdownIt(
 	}
 	installPreviewConfiguration(md, configuration);
 	return md;
+}
+
+function installEscapedMarkdownProtection(md: MarkdownIt): void {
+	// VS Code 1.125's escape rule otherwise merges escaped punctuation back into
+	// adjacent text before the emoji core rule can distinguish authored syntax.
+	md.inline.ruler.before(
+		'escape',
+		escapedMarkdownPunctuationToken,
+		(state, silent) => {
+			const position = state.pos;
+			if (
+				position + 1 >= state.posMax ||
+				state.src.charCodeAt(position) !== 0x5c ||
+				!md.utils.isMdAsciiPunct(state.src.charCodeAt(position + 1))
+			) {
+				return false;
+			}
+			if (!silent) {
+				const token = state.push(escapedMarkdownPunctuationToken, '', 0);
+				token.content = state.src[position + 1];
+				token.markup = '\\';
+			}
+			state.pos = position + 2;
+			return true;
+		},
+	);
+	md.renderer.rules[escapedMarkdownPunctuationToken] = (tokens, index) =>
+		md.utils.escapeHtml(tokens[index].content);
 }
 
 function installGfmAutolinks(md: MarkdownIt): void {
@@ -123,7 +163,8 @@ function installGfmAutolinks(md: MarkdownIt): void {
 					if (
 						matches[0]?.index === 0 &&
 						index > 0 &&
-						tokens[index - 1].type === 'text_special'
+						(tokens[index - 1].type === 'text_special' ||
+							tokens[index - 1].type === escapedMarkdownPunctuationToken)
 					) {
 						matches = matches.slice(1);
 					}

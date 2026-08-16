@@ -15,11 +15,15 @@ the native renderer itself.
 ## Rendering Boundary
 
 `src/markdown/compose.ts` installs standard Markdown-It plugins for task lists,
-definition lists, footnotes, and GitHub alerts. Markdown-It's native linkify
-rule runs first when enabled. A narrow post-native `linkify-it` pass fills
-missing GFM HTTP, HTTPS, email, and `www.` literals independently of that
-setting, while filtering bare domains and other schemes and retaining native
-normalization, validation, nesting, and HTML-anchor guards.
+definition lists, footnotes, GitHub alerts, and named Unicode emoji shortcodes.
+Optional emoticon shortcuts are part of the emoji plugin and remain subordinate
+to the named-shortcode setting. Markdown-It's native linkify rule runs first
+when enabled. A narrow post-native `linkify-it` pass fills missing GFM HTTP,
+HTTPS, email, and `www.` literals independently of that setting, while filtering
+bare domains and other schemes and retaining native normalization, validation,
+nesting, and HTML-anchor guards. Emoji replacement runs after both linkifiers,
+so autolink text and destinations remain intact while ordinary text and link
+labels can contain shortcodes.
 Local rules cover GFM tag filtering, TOML and YAML frontmatter, responsive
 columns, exact Mermaid fences, and rich fence metadata.
 
@@ -31,10 +35,12 @@ inline code, fenced code, HTML, existing links, and source maps keep their
 native semantics. Rule ordering around native and extension-owned linkification
 is part of the host compatibility contract.
 
-The host collapses backslash-escaped punctuation into plain inline text before
-contributed core rules run. If the resulting token is identical to unescaped
-authored text, do not guess at raw-source offsets; preserve source maps and
-record the native-host limitation instead.
+VS Code 1.125 collapses backslash-escaped punctuation into plain inline text
+before contributed core rules run. While emoji parsing is active, an inline
+guard keeps each Markdown-escaped punctuation mark in a separate token. Emoji
+and enhanced-autolink rules treat that boundary like current Markdown-It's
+native `text_special` token, preserving escaped syntax across the engine floor
+without reconstructing raw-source offsets or changing source maps.
 
 Renderer wrappers retain and invoke the rule already installed on the supplied
 Markdown-It instance. In particular, fenced code delegates to VS Code's native

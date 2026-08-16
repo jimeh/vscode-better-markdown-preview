@@ -40,6 +40,11 @@ record accepted intent but are not proof that later phases shipped.
   their contracts and user documentation when they change intentionally.
 - Generated output belongs in `dist/`, `out/`, `artifacts/`, `coverage/`,
   `.vscode-test/`, or `.vscode-test-web/` and must stay untracked.
+- VS Code 1.125 collapses backslash-escaped punctuation into plain inline text
+  before contributed core rules run. While emoji parsing is active, preserve
+  every Markdown-escaped punctuation mark as a distinct token with an inline
+  rule before `escape`; later rules must treat that token like native
+  `text_special`. Do not reconstruct raw-source offsets in a core rule.
 - Use focused tasks while iterating, `mise run check` for the fast handoff gate,
   and `mise run verify` on an intended final head.
 - Oxfmt owns source, configuration, documentation, and CSS formatting; Taplo
