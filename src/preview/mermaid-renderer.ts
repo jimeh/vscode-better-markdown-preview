@@ -27,6 +27,8 @@ interface MermaidBlockRevision {
 	revision: number;
 }
 
+const authoredSources = new WeakMap<HTMLElement, string>();
+
 export function createMermaidRenderer(
 	document: Document,
 	loadMermaid: () => Promise<MermaidAdapter>,
@@ -39,18 +41,21 @@ export function createMermaidRenderer(
 
 	const readRevision = (block: HTMLElement): MermaidBlockRevision => {
 		const previous = revisions.get(block);
-		if (block.dataset.bmpMermaidState === 'source' || !previous) {
-			const source = block.textContent ?? '';
-			if (!previous || previous.source !== source) {
-				const current = {
-					source,
-					revision: (previous?.revision ?? 0) + 1,
-				};
-				revisions.set(block, current);
-				return current;
-			}
+		const sourceState = block.dataset.bmpMermaidState === 'source';
+		let source = authoredSources.get(block);
+		if (sourceState || source === undefined) {
+			source = block.textContent ?? '';
+			authoredSources.set(block, source);
 		}
-		return previous!;
+		if (!previous || previous.source !== source) {
+			const current = {
+				source,
+				revision: (previous?.revision ?? 0) + 1,
+			};
+			revisions.set(block, current);
+			return current;
+		}
+		return previous;
 	};
 
 	const revisionIsCurrent = (

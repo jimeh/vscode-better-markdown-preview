@@ -27,6 +27,10 @@ interface SharedController {
 
 const sharedControllers = new WeakMap<Document, SharedController>();
 
+/**
+ * Shares one controller per document. The first active caller owns its options
+ * until the final shared reference is disposed.
+ */
 export function enhancePreview(
 	document: Document,
 	options: PreviewOptions = {},
@@ -107,6 +111,23 @@ function createController(
 		mermaid.syncViewer(settings.mermaidViewer);
 	};
 
+	const clearOwnedUi = (): void => {
+		if (scrollFrame) {
+			cancelAnimationFrame(scrollFrame);
+			scrollFrame = 0;
+		}
+		smoothScrollCleanup?.();
+		mermaid.syncViewer(false);
+		for (const layout of document.querySelectorAll<HTMLElement>(
+			'[data-bmp-layout]',
+		)) {
+			clearToc(layout);
+			if (!layout.querySelector('.markdown-body')) {
+				layout.remove();
+			}
+		}
+	};
+
 	const updateActiveHeading = (): void => {
 		scrollFrame = 0;
 		const trackedLinks = Array.from(
@@ -150,6 +171,7 @@ function createController(
 		}
 		const markdownBody = document.querySelector<HTMLElement>('.markdown-body');
 		if (!markdownBody) {
+			clearOwnedUi();
 			return;
 		}
 		const layout = ensureLayout(document, markdownBody);
