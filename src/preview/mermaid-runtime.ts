@@ -89,8 +89,8 @@ function resolveColor(
 	fallback: string,
 	backdrop: string,
 ): string {
-	const parsed = parseHexColor(value) ?? parseHexColor(fallback);
-	const parsedBackdrop = parseHexColor(backdrop);
+	const parsed = parseColor(value) ?? parseColor(fallback);
+	const parsedBackdrop = parseColor(backdrop);
 	if (!parsed || !parsedBackdrop) {
 		return fallback;
 	}
@@ -102,24 +102,54 @@ function resolveColor(
 	});
 }
 
-function parseHexColor(value: string): RgbaColor | undefined {
+function parseColor(value: string): RgbaColor | undefined {
 	const match = /^#([\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/i.exec(value.trim());
-	if (!match) {
+	if (match) {
+		const hex = match[1]!;
+		const expanded =
+			hex.length <= 4
+				? Array.from(hex, (character) => `${character}${character}`).join('')
+				: hex;
+		return {
+			red: Number.parseInt(expanded.slice(0, 2), 16),
+			green: Number.parseInt(expanded.slice(2, 4), 16),
+			blue: Number.parseInt(expanded.slice(4, 6), 16),
+			alpha:
+				expanded.length === 8
+					? Number.parseInt(expanded.slice(6, 8), 16) / 255
+					: 1,
+		};
+	}
+
+	const rgbMatch =
+		/^(rgb|rgba)\(\s*(\d*\.?\d+)\s*,\s*(\d*\.?\d+)\s*,\s*(\d*\.?\d+)(?:\s*,\s*(\d*\.?\d+)\s*)?\)$/i.exec(
+			value.trim(),
+		);
+	if (!rgbMatch || (rgbMatch[1]?.toLowerCase() === 'rgba') !== !!rgbMatch[5]) {
 		return undefined;
 	}
-	const hex = match[1]!;
-	const expanded =
-		hex.length <= 4
-			? Array.from(hex, (character) => `${character}${character}`).join('')
-			: hex;
+	const red = Number(rgbMatch[2]);
+	const green = Number(rgbMatch[3]);
+	const blue = Number(rgbMatch[4]);
+	const alpha = rgbMatch[5] ? Number(rgbMatch[5]) : 1;
+	if (
+		![red, green, blue, alpha].every(Number.isFinite) ||
+		red < 0 ||
+		red > 255 ||
+		green < 0 ||
+		green > 255 ||
+		blue < 0 ||
+		blue > 255 ||
+		alpha < 0 ||
+		alpha > 1
+	) {
+		return undefined;
+	}
 	return {
-		red: Number.parseInt(expanded.slice(0, 2), 16),
-		green: Number.parseInt(expanded.slice(2, 4), 16),
-		blue: Number.parseInt(expanded.slice(4, 6), 16),
-		alpha:
-			expanded.length === 8
-				? Number.parseInt(expanded.slice(6, 8), 16) / 255
-				: 1,
+		red: Math.round(red),
+		green: Math.round(green),
+		blue: Math.round(blue),
+		alpha,
 	};
 }
 
@@ -128,8 +158,8 @@ function mixColors(
 	foreground: string,
 	shift: number,
 ): string {
-	const from = parseHexColor(background)!;
-	const to = parseHexColor(foreground)!;
+	const from = parseColor(background)!;
+	const to = parseColor(foreground)!;
 	const amount = Math.min(100, Math.max(0, shift)) / 100;
 	return formatHexColor({
 		red: blendChannel(from.red, to.red, amount),

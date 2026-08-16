@@ -99,7 +99,7 @@ describe('Mermaid adapter', () => {
 		expect(element.textContent).toBe('graph TD\nA-->B');
 	});
 
-	test('normalizes alpha theme colors to opaque Mermaid hex values', async () => {
+	test('normalizes VS Code rgba theme colors to opaque Mermaid hex values', async () => {
 		mermaidMock.render.mockResolvedValue({ svg: '<svg></svg>' });
 		const element = document.createElement('div');
 
@@ -107,8 +107,8 @@ describe('Mermaid adapter', () => {
 			dark: false,
 			background: '#fff',
 			foreground: '#222',
-			accent: '#06c8',
-			contrastBorder: '#0f08',
+			accent: 'rgba(0, 102, 204, 0.53)',
+			contrastBorder: 'rgba(0, 255, 0, 0.53)',
 			colorShifts: {
 				primary: 100,
 				secondary: 0,
@@ -123,12 +123,12 @@ describe('Mermaid adapter', () => {
 			theme: 'base',
 			themeVariables: expect.objectContaining({
 				background: '#ffffff',
-				primaryColor: '#77ade4',
+				primaryColor: '#78aee4',
 				secondaryColor: '#ffffff',
 				tertiaryColor: '#222222',
-				primaryBorderColor: '#77ff77',
-				secondaryBorderColor: '#77ff77',
-				tertiaryBorderColor: '#77ff77',
+				primaryBorderColor: '#78ff78',
+				secondaryBorderColor: '#78ff78',
+				tertiaryBorderColor: '#78ff78',
 				edgeLabelBackground: '#ffffff',
 			}),
 		});

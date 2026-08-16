@@ -186,7 +186,8 @@ function readTheme(
 	return {
 		dark:
 			document.body.classList.contains('vscode-dark') ||
-			document.body.classList.contains('vscode-high-contrast'),
+			(document.body.classList.contains('vscode-high-contrast') &&
+				!document.body.classList.contains('vscode-high-contrast-light')),
 		background: read('--vscode-editor-background', '#ffffff'),
 		foreground: read('--vscode-editor-foreground', '#1f2328'),
 		accent: read('--vscode-textLink-foreground', '#0969da'),

@@ -674,6 +674,31 @@ describe('preview runtime', () => {
 		controller.dispose();
 	});
 
+	test('uses light derivation for VS Code high-contrast light', async () => {
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		document.body.className = 'vscode-high-contrast-light vscode-high-contrast';
+		document.body.style.setProperty('--vscode-editor-background', '#ffffff');
+		document.body.style.setProperty('--vscode-editor-foreground', '#000000');
+		document.body.style.setProperty('--vscode-textLink-foreground', '#0000ff');
+		document.body.style.setProperty('--vscode-contrastBorder', '#000000');
+		const render = vi.fn<MermaidAdapter['render']>(async (element) => {
+			element.innerHTML = '<svg viewBox="0 0 100 50"></svg>';
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+
+		await controller.ready;
+		expect(render.mock.calls[0]?.[2]).toMatchObject({
+			dark: false,
+			background: '#ffffff',
+			foreground: '#000000',
+			accent: '#0000ff',
+			contrastBorder: '#000000',
+		});
+		controller.dispose();
+	});
+
 	test('serializes Mermaid passes across theme changes', async () => {
 		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
 		let finishFirst: (() => void) | undefined;
