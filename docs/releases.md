@@ -26,6 +26,11 @@ The tracked `package.json` stays at the valid development placeholder `0.0.0`.
 Semantic Release calculates the real version and passes it directly to VSCE,
 so the packaged extension manifest contains the released version.
 
+VSCE's positional package version runs `npm version` unless both
+`--no-git-tag-version` and `--no-update-package-json` are present. Keep both
+flags: Semantic Release has already selected the transient version, and the
+tracked manifest must remain `0.0.0`.
+
 The tracked changelog is an honest pointer to GitHub Releases. During release,
 Semantic Release temporarily prepends the current release notes before building
 the VSIX. The published VSIX therefore contains the current release entry plus
@@ -34,6 +39,11 @@ temporary changelog and version are not committed back to `main`.
 
 With no prior `v*` tag, the first successful release is `v1.0.0` and its notes
 cover the existing release-worthy Conventional Commit history.
+
+`@semantic-release/release-notes-generator` 14.1.1 is intentionally paired with
+`conventional-changelog-conventionalcommits` 9.3.1. Version 10 uses a newer
+writer contract and previously produced headings without commit entries; retain
+the executable release-notes contract when upgrading either package.
 
 ## Publication Flow
 
@@ -48,6 +58,10 @@ artifact carries the immutable pair to three independent jobs:
 
 Each consumer verifies the checksum before publishing and never rebuilds the
 VSIX.
+
+VSCE normalizes packaged README and changelog paths to lowercase and renames the
+license to `LICENSE.txt`. Package-content assertions must target those archive
+names rather than the source filenames.
 
 ## Required Repository Configuration
 

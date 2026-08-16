@@ -18,6 +18,28 @@ export const expectedConfigurationKeys = [
 	'betterMarkdownPreview.mermaid.viewer',
 ];
 
+export function assertConfigurationDocumentation(readme: string): void {
+	const start = readme.indexOf('## Settings');
+	assert.notEqual(start, -1, 'README must contain a Settings section');
+	const end = readme.indexOf('\n## ', start + 1);
+	assert.notEqual(
+		end,
+		-1,
+		'README Settings section must have a closing heading',
+	);
+
+	const section = readme.slice(start, end);
+	const documentedKeys = Array.from(
+		section.matchAll(/`(betterMarkdownPreview\.[^`]+)`/g),
+		(match) => match[1],
+	);
+	assert.deepEqual(
+		documentedKeys,
+		expectedConfigurationKeys,
+		'README Settings must list every public configuration key exactly once and in manifest order',
+	);
+}
+
 export function assertConfigurationContribution(value: unknown): void {
 	assert.ok(typeof value === 'object' && value !== null);
 	const contribution = value as Record<string, unknown>;

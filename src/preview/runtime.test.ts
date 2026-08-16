@@ -565,7 +565,7 @@ describe('preview runtime', () => {
 						'style',
 					);
 					style.textContent =
-						'#diagram-root .node { fill: red; } #arrow path { fill: blue; }';
+						'#diagram-root .node { fill: red; filter: url(#arrow); } #arrow path { fill: blue; }';
 					svg.prepend(style);
 				},
 			}),
@@ -615,7 +615,9 @@ describe('preview runtime', () => {
 		)?.textContent;
 		expect(clonedStyle).toContain(`#${clonedSvg?.id} .node`);
 		expect(clonedStyle).toContain(`#${clonedMarker?.id} path`);
+		expect(clonedStyle).toContain(`url(#${clonedMarker?.id})`);
 		expect(clonedStyle).not.toContain('#diagram-root');
+		expect(clonedStyle).not.toContain('url(#arrow)');
 		expect(
 			dialog
 				.querySelector('[data-bmp-mermaid-canvas] path')
