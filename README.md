@@ -120,6 +120,7 @@ are:
 - `mise run dev` watches the desktop, web, preview runtime, Mermaid, CSS, and
   TypeScript targets.
 - `mise run check` runs the fast formatter, linter, type, and unit gate.
+- `mise run lint` runs native and type-aware Oxlint, Stylelint, and Markdownlint.
 - `mise run test:coverage` enforces all-files V8 coverage floors.
 - `mise run test:desktop` exercises the engine floor and stable desktop hosts.
 - `mise run test:web:stable` exercises stable VS Code for the Web in Chromium

@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Validate and prepare hosts
+    name: Format, lint, typecheck, test, and prepare hosts
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -33,8 +33,26 @@ jobs:
       - name: Install locked dependencies
         run: mise run setup
 
-      - name: Validate repository
-        run: mise run validate
+      - name: Check formatting
+        run: mise run format:check
+
+      - name: Lint code, CSS, and Markdown
+        run: mise run lint
+
+      - name: Typecheck all TypeScript projects
+        run: mise run typecheck
+
+      - name: Run Node contract tests
+        run: mise run test:contracts
+
+      - name: Run unit tests with coverage
+        run: mise run test:coverage
+
+      - name: Validate package contents
+        run: mise run package:validate
+
+      - name: Validate GitHub Actions workflows
+        run: mise run ci:workflows
 
       - name: Build host test runners
         run: mise run test:host-runners:build

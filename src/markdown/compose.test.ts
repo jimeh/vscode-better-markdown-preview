@@ -173,7 +173,7 @@ describe('Markdown composition', () => {
 			'Keep blocked://unsafe.example literal.\n',
 			(md) => {
 				md.linkify.add('blocked:', { validate: /^\/\/[a-z.]+/ });
-				const validateLink = md.validateLink;
+				const validateLink = md.validateLink.bind(md);
 				md.validateLink = (url) =>
 					!url.startsWith('blocked:') && validateLink(url);
 			},
@@ -210,7 +210,7 @@ describe('Markdown composition', () => {
 
 		const rejected = render('www.blocked.com\n', (md) => {
 			md.linkify.set({ fuzzyLink: false });
-			const validateLink = md.validateLink;
+			const validateLink = md.validateLink.bind(md);
 			md.validateLink = (url) =>
 				url !== 'http://www.blocked.com' && validateLink(url);
 		});

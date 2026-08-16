@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import ts from 'typescript';
 import { buildTargets, selectBuildTargets } from '../esbuild.mts';
 
 interface PackageJson {
+	devDependencies: Record<string, string>;
 	scripts: Record<string, string>;
 }
 
@@ -21,22 +21,41 @@ interface VsCodeTasks {
 const packageJson = JSON.parse(
 	await readFile(new URL('../package.json', import.meta.url), 'utf8'),
 ) as PackageJson;
-const tasksDocument = await readFile(
-	new URL('../.vscode/tasks.json', import.meta.url),
+const tasks = JSON.parse(
+	await readFile(new URL('../.vscode/tasks.json', import.meta.url), 'utf8'),
+) as VsCodeTasks;
+const lefthookConfig = await readFile(
+	new URL('../lefthook.yml', import.meta.url),
 	'utf8',
 );
-const { config, error: tasksParseError } = ts.parseConfigFileTextToJson(
-	'.vscode/tasks.json',
-	tasksDocument,
-);
-const tasks = config as VsCodeTasks;
 
 function taskByLabel(label: string): VsCodeTask {
-	assert.equal(tasksParseError, undefined);
 	const task = tasks.tasks.find((candidate) => candidate.label === label);
 	assert.ok(task, `expected task labeled ${label}`);
 	return task;
 }
+
+test('quality scripts use the Oxc toolchain, type-aware linting, and CSS linting', () => {
+	assert.equal(packageJson.scripts.format, 'oxfmt --write .');
+	assert.equal(packageJson.scripts['format:check'], 'oxfmt --check .');
+	assert.equal(packageJson.scripts['lint:code'], 'oxlint --deny-warnings .');
+	assert.match(packageJson.scripts['lint:types'], /oxlint --type-aware/);
+	assert.equal(packageJson.scripts['lint:css'], 'stylelint "media/**/*.css"');
+	assert.match(packageJson.devDependencies.typescript, /^\^?7\./);
+	for (const replaced of ['eslint', 'prettier', 'typescript-eslint']) {
+		assert.equal(packageJson.devDependencies[replaced], undefined);
+	}
+});
+
+test('pre-commit hooks check staged files before conditional project checks', () => {
+	assert.match(lefthookConfig, /^pre-commit:\n  parallel: true/m);
+	assert.match(lefthookConfig, /oxfmt --check \{staged_files\}/);
+	assert.match(lefthookConfig, /oxlint --deny-warnings \{staged_files\}/);
+	assert.match(lefthookConfig, /stylelint \{staged_files\}/);
+	assert.match(lefthookConfig, /markdownlint-cli2 --no-globs \{staged_files\}/);
+	assert.doesNotMatch(lefthookConfig, /stage_fixed/);
+	assert.doesNotMatch(lefthookConfig, /^pre-push:/m);
+});
 
 test('watch tasks rebuild every production extension and preview artifact', () => {
 	assert.equal(
