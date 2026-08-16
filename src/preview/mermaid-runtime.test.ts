@@ -31,8 +31,13 @@ describe('Mermaid adapter', () => {
 			dark: true,
 			background: '#111111',
 			foreground: '#eeeeee',
-			border: '#777777',
 			accent: '#55aaff',
+			colorShifts: {
+				primary: 12,
+				secondary: 18,
+				tertiary: 10,
+				border: 45,
+			},
 		};
 
 		await render(first, 'graph TD\nA-->B', theme);
@@ -45,12 +50,19 @@ describe('Mermaid adapter', () => {
 			theme: 'base',
 			themeVariables: {
 				background: '#111111',
-				primaryColor: '#111111',
+				darkMode: true,
+				primaryColor: '#19232e',
 				primaryTextColor: '#eeeeee',
-				primaryBorderColor: '#777777',
+				primaryBorderColor: '#30567c',
 				lineColor: '#eeeeee',
-				secondaryColor: '#111111',
-				tertiaryColor: '#111111',
+				secondaryColor: '#1d2d3c',
+				secondaryTextColor: '#eeeeee',
+				secondaryBorderColor: '#30567c',
+				tertiaryColor: '#272727',
+				tertiaryTextColor: '#eeeeee',
+				tertiaryBorderColor: '#747474',
+				textColor: '#eeeeee',
+				edgeLabelBackground: '#111111',
 				fontFamily: 'var(--vscode-font-family)',
 			},
 		});
@@ -75,10 +87,50 @@ describe('Mermaid adapter', () => {
 				dark: false,
 				background: '#ffffff',
 				foreground: '#000000',
-				border: '#888888',
 				accent: '#0000ff',
+				colorShifts: {
+					primary: 12,
+					secondary: 18,
+					tertiary: 10,
+					border: 45,
+				},
 			}),
 		).rejects.toBe(failure);
 		expect(element.textContent).toBe('graph TD\nA-->B');
+	});
+
+	test('normalizes VS Code rgba theme colors to opaque Mermaid hex values', async () => {
+		mermaidMock.render.mockResolvedValue({ svg: '<svg></svg>' });
+		const element = document.createElement('div');
+
+		await render(element, 'graph TD\nA-->B', {
+			dark: false,
+			background: '#fff',
+			foreground: '#222',
+			accent: 'rgba(0, 102, 204, 0.53)',
+			contrastBorder: 'rgba(0, 255, 0, 0.53)',
+			colorShifts: {
+				primary: 100,
+				secondary: 0,
+				tertiary: 100,
+				border: 45,
+			},
+		});
+
+		expect(mermaidMock.initialize).toHaveBeenCalledWith({
+			startOnLoad: false,
+			securityLevel: 'strict',
+			theme: 'base',
+			themeVariables: expect.objectContaining({
+				background: '#ffffff',
+				primaryColor: '#78aee4',
+				secondaryColor: '#ffffff',
+				tertiaryColor: '#222222',
+				primaryBorderColor: '#78ff78',
+				secondaryBorderColor: '#78ff78',
+				tertiaryBorderColor: '#78ff78',
+				edgeLabelBackground: '#ffffff',
+			}),
+		});
 	});
 });

@@ -115,6 +115,38 @@
 					"default": true,
 					"scope": "window",
 					"description": "Enable the full-screen zoom and pan viewer for rendered Mermaid diagrams."
+				},
+				"betterMarkdownPreview.mermaid.theme.primaryColorShift": {
+					"type": "number",
+					"default": 12,
+					"minimum": 0,
+					"maximum": 100,
+					"scope": "window",
+					"description": "Percentage to shift primary Mermaid node fills from the editor background toward the theme's link accent color."
+				},
+				"betterMarkdownPreview.mermaid.theme.secondaryColorShift": {
+					"type": "number",
+					"default": 18,
+					"minimum": 0,
+					"maximum": 100,
+					"scope": "window",
+					"description": "Percentage to shift secondary Mermaid node fills from the editor background toward the theme's link accent color."
+				},
+				"betterMarkdownPreview.mermaid.theme.tertiaryColorShift": {
+					"type": "number",
+					"default": 10,
+					"minimum": 0,
+					"maximum": 100,
+					"scope": "window",
+					"description": "Percentage to shift tertiary Mermaid node and grouping fills from the editor background toward the editor foreground color."
+				},
+				"betterMarkdownPreview.mermaid.theme.borderColorShift": {
+					"type": "number",
+					"default": 45,
+					"minimum": 0,
+					"maximum": 100,
+					"scope": "window",
+					"description": "Percentage to shift Mermaid borders from the editor background toward their theme-derived accent or foreground color. High-contrast themes use VS Code's contrast border when available."
 				}
 			}
 		},

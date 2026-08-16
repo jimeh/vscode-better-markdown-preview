@@ -250,7 +250,7 @@ function requireCount(
 export function assertRenderCompatibility(html: string): void {
 	requireMatch(
 		html,
-		/data-bmp-preview-config="\{&quot;tableOfContents&quot;:true,&quot;smoothScrolling&quot;:true,&quot;mermaidViewer&quot;:true\}"/,
+		/data-bmp-preview-config="\{&quot;tableOfContents&quot;:true,&quot;smoothScrolling&quot;:true,&quot;mermaidViewer&quot;:true,&quot;mermaidTheme&quot;:\{&quot;primary&quot;:12,&quot;secondary&quot;:18,&quot;tertiary&quot;:10,&quot;border&quot;:45\}\}"/,
 		'default preview configuration marker',
 	);
 	requireMatch(html, /task-list-item/, 'task-list semantics');

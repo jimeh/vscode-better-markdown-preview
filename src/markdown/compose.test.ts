@@ -110,7 +110,15 @@ describe('Markdown composition', () => {
 		const configuration: BetterMarkdownPreviewConfiguration = {
 			...defaultConfiguration,
 			navigation: { tableOfContents: false, smoothScrolling: true },
-			mermaid: { viewer: false },
+			mermaid: {
+				viewer: false,
+				theme: {
+					primary: 20,
+					secondary: 30,
+					tertiary: 15,
+					border: 50,
+				},
+			},
 		};
 		const html = render('# Configured\n', undefined, configuration);
 		const raw = /data-bmp-preview-config="([^"]+)"/.exec(html)?.[1];
@@ -121,6 +129,12 @@ describe('Markdown composition', () => {
 			tableOfContents: false,
 			smoothScrolling: true,
 			mermaidViewer: false,
+			mermaidTheme: {
+				primary: 20,
+				secondary: 30,
+				tertiary: 15,
+				border: 50,
+			},
 		});
 		expect(raw).not.toContain('taskLists');
 	});

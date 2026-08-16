@@ -1,11 +1,13 @@
 import { createMermaidViewer, type MermaidViewer } from './mermaid-viewer';
+import type { MermaidColorShifts } from '../config';
 
 export interface MermaidTheme {
 	dark: boolean;
 	background: string;
 	foreground: string;
-	border: string;
 	accent: string;
+	contrastBorder?: string;
+	colorShifts: MermaidColorShifts;
 }
 
 export interface MermaidAdapter {
@@ -17,7 +19,7 @@ export interface MermaidAdapter {
 }
 
 export interface MermaidRenderer {
-	render(force?: boolean): Promise<void>;
+	render(colorShifts: MermaidColorShifts, force?: boolean): Promise<void>;
 	syncViewer(enabled: boolean): void;
 	dispose(): void;
 }
@@ -68,7 +70,10 @@ export function createMermaidRenderer(
 		return !disposed && block.isConnected && revisions.get(block) === revision;
 	};
 
-	const renderPass = async (force: boolean): Promise<void> => {
+	const renderPass = async (
+		colorShifts: MermaidColorShifts,
+		force: boolean,
+	): Promise<void> => {
 		if (disposed) {
 			return;
 		}
@@ -98,7 +103,7 @@ export function createMermaidRenderer(
 		if (disposed) {
 			return;
 		}
-		const theme = readTheme(document);
+		const theme = readTheme(document, colorShifts);
 		for (const { block, revision } of pending) {
 			if (!revisionIsCurrent(block, revision)) {
 				continue;
@@ -122,10 +127,10 @@ export function createMermaidRenderer(
 	};
 
 	const renderer: MermaidRenderer = {
-		render(force = false) {
+		render(colorShifts, force = false) {
 			const queued = queue.then(async () => {
 				if (!disposed) {
-					await renderPass(force);
+					await renderPass(colorShifts, force);
 				}
 			});
 			queue = queued.catch(() => undefined);
@@ -168,15 +173,25 @@ function removeViewerTriggers(document: Document): void {
 	}
 }
 
-function readTheme(document: Document): MermaidTheme {
+function readTheme(
+	document: Document,
+	colorShifts: MermaidColorShifts,
+): MermaidTheme {
 	const styles = getComputedStyle(document.body);
 	const read = (name: string, fallback: string): string =>
 		styles.getPropertyValue(name).trim() || fallback;
+	const contrastBorder = styles
+		.getPropertyValue('--vscode-contrastBorder')
+		.trim();
 	return {
-		dark: document.body.classList.contains('vscode-dark'),
+		dark:
+			document.body.classList.contains('vscode-dark') ||
+			(document.body.classList.contains('vscode-high-contrast') &&
+				!document.body.classList.contains('vscode-high-contrast-light')),
 		background: read('--vscode-editor-background', '#ffffff'),
 		foreground: read('--vscode-editor-foreground', '#1f2328'),
-		border: read('--vscode-panel-border', '#8c8c8c'),
 		accent: read('--vscode-textLink-foreground', '#0969da'),
+		contrastBorder: contrastBorder || undefined,
+		colorShifts,
 	};
 }

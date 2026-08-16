@@ -88,17 +88,17 @@ in a layout without replacing that element, preserves heading and `data-line`
 nodes, rebuilds the TOC after content replacement or body retargeting, and
 augments rich code blocks while retaining their authored text.
 
-Each render appends a hidden, escaped configuration marker containing only the
-table-of-contents, smooth-scrolling, and Mermaid-viewer booleans needed in the
-webview. The runtime re-reads that marker when preview content changes or the
-Markdown body is replaced. It removes owned navigation or viewer UI when a
-feature becomes disabled, including open dialogs and controls attached to
-reused Mermaid nodes. Owned TOC link activation applies a root smooth-scroll
-class synchronously for native fragment navigation, then removes it on the next
-animation frame. A bounded timeout covers a stalled frame without extending the
-normal window into editor-to-preview synchronization. The contributed
-stylesheet overrides the class exactly when the operating system requests
-reduced motion.
+Each render appends a hidden, escaped configuration marker containing the
+table-of-contents, smooth-scrolling, and Mermaid-viewer booleans plus Mermaid
+color-shift values needed in the webview. The runtime re-reads that marker when
+preview content changes or the Markdown body is replaced. It removes owned
+navigation or viewer UI when a feature becomes disabled, including open dialogs
+and controls attached to reused Mermaid nodes. Owned TOC link activation applies
+a root smooth-scroll class synchronously for native fragment navigation, then
+removes it on the next animation frame. A bounded timeout covers a stalled frame
+without extending the normal window into editor-to-preview synchronization. The
+contributed stylesheet overrides the class exactly when the operating system
+requests reduced motion.
 
 `media/preview.css` uses VS Code webview color variables and body theme classes;
 it does not own a light or dark palette. VS Code loads user `markdown.styles`
@@ -113,18 +113,20 @@ normalized hyphen form as a compatibility fallback.
 Mermaid is absent from both Extension Host bundles. The small preview runtime
 dynamically imports `dist/preview/mermaid-runtime.js` only after finding an
 exact Mermaid block. The renderer uses strict security, derives colors from
-VS Code variables, and restores escaped source on every failure path. Rendered
-diagrams are produced in detached staging elements and committed only when the
-block's source revision is still current. Serialized rendering therefore cannot
-let an older success or failure overwrite a same-block live edit. Final
-controller disposal invalidates queued work before removing owned navigation
-and viewer controls. Diagrams remain passive in the document so they do not
-capture preview scrolling. A preview-owned near-viewport dialog provides
-dedicated zoom and pan interaction, refreshes its SVG clone after theme or
-source rerenders, and rewrites cloned SVG IDs so Mermaid markers and gradients
-stay local to the dialog. Rewrites must cover selectors and `url(#id)`
-references inside embedded `<style>` elements as well as `url(#id)`, ARIA
-references, and other ID-bearing attributes.
+VS Code variables, and restores escaped source on every failure path. Mermaid
+fills and borders use configurable percentage shifts from the editor background
+toward the theme's link accent or editor foreground. High-contrast themes use
+VS Code's contrast border when available. Rendered diagrams are produced in
+detached staging elements and committed only when the block's source revision is
+still current. Serialized rendering therefore cannot let an older success or
+failure overwrite a same-block live edit. Final controller disposal invalidates
+queued work before removing owned navigation and viewer controls. Diagrams
+remain passive in the document so they do not capture preview scrolling. A
+preview-owned near-viewport dialog provides dedicated zoom and pan interaction,
+refreshes its SVG clone after theme or source rerenders, and rewrites cloned SVG
+IDs so Mermaid markers and gradients stay local to the dialog. Rewrites must
+cover selectors and `url(#id)` references inside embedded `<style>` elements as
+well as `url(#id)`, ARIA references, and other ID-bearing attributes.
 
 ## Runtime Boundary
 

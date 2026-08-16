@@ -4,13 +4,14 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const vscode = vi.hoisted(() => {
 	let listener: ((event: ConfigurationChangeEvent) => void) | undefined;
-	const values = new Map<string, boolean>();
+	const values = new Map<string, boolean | number>();
 	const disposable = { dispose: vi.fn() };
 	return {
 		commands: { executeCommand: vi.fn(async () => undefined) },
 		workspace: {
 			getConfiguration: vi.fn(() => ({
-				get: (key: string, fallback: boolean) => values.get(key) ?? fallback,
+				get: <T>(key: string, fallback: T) =>
+					(values.get(key) ?? fallback) as T,
 			})),
 			onDidChangeConfiguration: vi.fn(
 				(callback: (event: ConfigurationChangeEvent) => void) => {

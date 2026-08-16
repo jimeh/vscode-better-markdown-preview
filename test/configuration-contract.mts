@@ -16,6 +16,10 @@ export const expectedConfigurationKeys = [
 	'betterMarkdownPreview.navigation.tableOfContents',
 	'betterMarkdownPreview.navigation.smoothScrolling',
 	'betterMarkdownPreview.mermaid.viewer',
+	'betterMarkdownPreview.mermaid.theme.primaryColorShift',
+	'betterMarkdownPreview.mermaid.theme.secondaryColorShift',
+	'betterMarkdownPreview.mermaid.theme.tertiaryColorShift',
+	'betterMarkdownPreview.mermaid.theme.borderColorShift',
 ];
 
 export function assertConfigurationDocumentation(readme: string): void {
@@ -50,14 +54,31 @@ export function assertConfigurationContribution(value: unknown): void {
 	);
 	const properties = contribution.properties as Record<string, unknown>;
 	assert.deepEqual(Object.keys(properties), expectedConfigurationKeys);
-	const defaults: Record<string, boolean> = {
+	const booleanDefaults: Record<string, boolean> = {
 		'betterMarkdownPreview.rendering.emoticonShortcuts': false,
+	};
+	const numberDefaults: Record<string, number> = {
+		'betterMarkdownPreview.mermaid.theme.primaryColorShift': 12,
+		'betterMarkdownPreview.mermaid.theme.secondaryColorShift': 18,
+		'betterMarkdownPreview.mermaid.theme.tertiaryColorShift': 10,
+		'betterMarkdownPreview.mermaid.theme.borderColorShift': 45,
 	};
 	for (const key of expectedConfigurationKeys) {
 		assert.ok(typeof properties[key] === 'object' && properties[key] !== null);
 		const property = properties[key] as Record<string, unknown>;
-		assert.equal(property.type, 'boolean', `${key} type`);
-		assert.equal(property.default, defaults[key] ?? true, `${key} default`);
+		if (key in numberDefaults) {
+			assert.equal(property.type, 'number', `${key} type`);
+			assert.equal(property.default, numberDefaults[key], `${key} default`);
+			assert.equal(property.minimum, 0, `${key} minimum`);
+			assert.equal(property.maximum, 100, `${key} maximum`);
+		} else {
+			assert.equal(property.type, 'boolean', `${key} type`);
+			assert.equal(
+				property.default,
+				booleanDefaults[key] ?? true,
+				`${key} default`,
+			);
+		}
 		assert.equal(property.scope, 'window', `${key} scope`);
 		assert.equal(typeof property.description, 'string');
 		assert.ok(

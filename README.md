@@ -89,7 +89,10 @@ const needle = true; // [!code ++]
 
 Only an exact lowercase `mermaid` fence renders as a diagram. Mermaid is loaded
 from the extension package only when the document contains such a block; source
-remains visible if loading or rendering fails.
+remains visible if loading or rendering fails. Diagram surfaces are derived from
+the active editor background, foreground, and link accent colors. The Mermaid
+theme shift settings control how far fills and borders move toward those theme
+colors.
 
 ### Emoji
 
@@ -99,26 +102,31 @@ available separately and disabled by default.
 
 ## Settings
 
-Better Markdown Preview features can be changed at user or workspace scope. All
-are enabled by default except emoticon shortcuts:
+Better Markdown Preview features can be changed at user or workspace scope.
+Boolean features are enabled by default except emoticon shortcuts; Mermaid theme
+shifts are percentages from 0 to 100:
 
-| Setting                                             | Behavior                                                       |
-| --------------------------------------------------- | -------------------------------------------------------------- |
-| `betterMarkdownPreview.rendering.taskLists`         | GFM task lists                                                 |
-| `betterMarkdownPreview.rendering.definitionLists`   | Definition lists                                               |
-| `betterMarkdownPreview.rendering.footnotes`         | Footnotes and backlinks                                        |
-| `betterMarkdownPreview.rendering.githubAlerts`      | GitHub-style alerts                                            |
-| `betterMarkdownPreview.rendering.emojiShortcodes`   | Named emoji shortcodes such as `:joy:`                         |
-| `betterMarkdownPreview.rendering.emoticonShortcuts` | Emoticons such as `:)`; requires emoji shortcodes              |
-| `betterMarkdownPreview.rendering.tomlFrontmatter`   | Expanded, collapsible, highlighted TOML frontmatter            |
-| `betterMarkdownPreview.rendering.yamlFrontmatter`   | Expanded, collapsible, highlighted YAML frontmatter            |
-| `betterMarkdownPreview.rendering.columns`           | Responsive Pandoc-style columns                                |
-| `betterMarkdownPreview.rendering.enhancedAutolinks` | Missing GFM HTTP, HTTPS, email, and `www.` literal links       |
-| `betterMarkdownPreview.rendering.richCodeBlocks`    | Rich code-block metadata and diff annotations                  |
-| `betterMarkdownPreview.rendering.mermaid`           | Local Mermaid fence rendering                                  |
-| `betterMarkdownPreview.navigation.tableOfContents`  | Responsive table of contents and active-heading tracking       |
-| `betterMarkdownPreview.navigation.smoothScrolling`  | Animated ToC navigation, subject to reduced-motion preferences |
-| `betterMarkdownPreview.mermaid.viewer`              | Full-screen Mermaid zoom and pan viewer                        |
+| Setting                                                   | Behavior                                                          |
+| --------------------------------------------------------- | ----------------------------------------------------------------- |
+| `betterMarkdownPreview.rendering.taskLists`               | GFM task lists                                                    |
+| `betterMarkdownPreview.rendering.definitionLists`         | Definition lists                                                  |
+| `betterMarkdownPreview.rendering.footnotes`               | Footnotes and backlinks                                           |
+| `betterMarkdownPreview.rendering.githubAlerts`            | GitHub-style alerts                                               |
+| `betterMarkdownPreview.rendering.emojiShortcodes`         | Named emoji shortcodes such as `:joy:`                            |
+| `betterMarkdownPreview.rendering.emoticonShortcuts`       | Emoticons such as `:)`; requires emoji shortcodes                 |
+| `betterMarkdownPreview.rendering.tomlFrontmatter`         | Expanded, collapsible, highlighted TOML frontmatter               |
+| `betterMarkdownPreview.rendering.yamlFrontmatter`         | Expanded, collapsible, highlighted YAML frontmatter               |
+| `betterMarkdownPreview.rendering.columns`                 | Responsive Pandoc-style columns                                   |
+| `betterMarkdownPreview.rendering.enhancedAutolinks`       | Missing GFM HTTP, HTTPS, email, and `www.` literal links          |
+| `betterMarkdownPreview.rendering.richCodeBlocks`          | Rich code-block metadata and diff annotations                     |
+| `betterMarkdownPreview.rendering.mermaid`                 | Local Mermaid fence rendering                                     |
+| `betterMarkdownPreview.navigation.tableOfContents`        | Responsive table of contents and active-heading tracking          |
+| `betterMarkdownPreview.navigation.smoothScrolling`        | Animated ToC navigation, subject to reduced-motion preferences    |
+| `betterMarkdownPreview.mermaid.viewer`                    | Full-screen Mermaid zoom and pan viewer                           |
+| `betterMarkdownPreview.mermaid.theme.primaryColorShift`   | Primary fill shift toward the theme link accent (default 12%)     |
+| `betterMarkdownPreview.mermaid.theme.secondaryColorShift` | Secondary fill shift toward the theme link accent (default 18%)   |
+| `betterMarkdownPreview.mermaid.theme.tertiaryColorShift`  | Tertiary fill shift toward the editor foreground (default 10%)    |
+| `betterMarkdownPreview.mermaid.theme.borderColorShift`    | Border shift toward its accent or foreground source (default 45%) |
 
 Disabling a rendering feature stops Better Markdown Preview from handling that
 syntax and delegates it to VS Code or another Markdown extension. It does not
