@@ -83,6 +83,10 @@ run = "pnpm run test:contracts"
 description = "Run all-files V8 unit coverage with global and per-file floors"
 run = "pnpm run test:coverage"
 
+[tasks."test:preview-browser"]
+description = "Build and exercise the preview bundles in real Chromium"
+run = ["mise run build", "pnpm run test:preview-browser"]
+
 [tasks."test:hosts:prepare"]
 description = "Build production artifacts and desktop and web host test runners"
 run = "pnpm run test:hosts:prepare"
@@ -147,6 +151,7 @@ run = ["mise run check", "mise run package:validate", "mise run ci:workflows"]
 description = "Run the intended-final-head local validation gate"
 run = [
   "mise run validate",
+  "mise run test:preview-browser",
   "mise run test:host-runners:build",
   "mise run test:desktop:floor",
   "mise run test:desktop:stable",

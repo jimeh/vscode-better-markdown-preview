@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { posix, win32 } from 'node:path';
 import test from 'node:test';
 import { buildTargets, selectBuildTargets } from '../esbuild.mts';
+import { isPathWithin } from '../scripts/lib/paths.mts';
 
 interface PackageJson {
 	devDependencies: Record<string, string>;
@@ -35,6 +37,10 @@ const lefthookConfig = await readFile(
 	new URL('../lefthook.yml', import.meta.url),
 	'utf8',
 );
+const miseConfig = await readFile(
+	new URL('../mise.toml', import.meta.url),
+	'utf8',
+);
 
 function taskByLabel(label: string): VsCodeTask {
 	const task = tasks.tasks.find((candidate) => candidate.label === label);
@@ -52,6 +58,14 @@ function lefthookJob(name: string): string {
 
 function escapeRegExp(value: string): string {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function miseTask(name: string): string {
+	const marker = name.includes(':') ? `[tasks."${name}"]` : `[tasks.${name}]`;
+	const start = miseConfig.indexOf(marker);
+	assert.notEqual(start, -1, `expected Mise task named ${name}`);
+	const end = miseConfig.indexOf('\n[tasks.', start + marker.length);
+	return miseConfig.slice(start, end === -1 ? undefined : end);
 }
 
 test('quality scripts use the Oxc toolchain, type-aware linting, and CSS linting', () => {
@@ -151,6 +165,57 @@ test('web host runner is browser-targeted and excluded from production builds', 
 		external: ['vscode'],
 	});
 	assert.equal(buildTargets.filter((target) => target.testOnly).length, 1);
+});
+
+test('preview browser verification is discoverable and part of the final gate', () => {
+	assert.equal(
+		packageJson.scripts['test:preview-browser'],
+		'node scripts/run-preview-browser-tests.mts',
+	);
+	assert.match(
+		miseTask('test:preview-browser'),
+		/run = \["mise run build", "pnpm run test:preview-browser"\]/,
+	);
+	assert.match(miseTask('verify'), /"mise run test:preview-browser"/);
+});
+
+test('preview browser assets stay inside their root on POSIX and Windows', () => {
+	assert.equal(
+		isPathWithin('/repo/dist/preview', '/repo/dist/preview/preview.js', posix),
+		true,
+	);
+	assert.equal(
+		isPathWithin(
+			'/repo/dist/preview',
+			'/repo/dist/preview-other/file.js',
+			posix,
+		),
+		false,
+	);
+	assert.equal(
+		isPathWithin(
+			'C:\\repo\\dist\\preview',
+			'C:\\repo\\dist\\preview\\preview.js',
+			win32,
+		),
+		true,
+	);
+	assert.equal(
+		isPathWithin(
+			'C:\\repo\\dist\\preview',
+			'C:\\repo\\dist\\preview-other\\file.js',
+			win32,
+		),
+		false,
+	);
+	assert.equal(
+		isPathWithin(
+			'C:\\repo\\dist\\preview',
+			'D:\\repo\\dist\\preview\\preview.js',
+			win32,
+		),
+		false,
+	);
 });
 
 test('extension test watcher uses the Extension Host compiler project', () => {

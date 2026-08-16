@@ -14,8 +14,11 @@ the native renderer itself.
 
 ## Rendering Boundary
 
-`src/markdown/compose.ts` installs standard Markdown-It plugins for task lists,
-definition lists, footnotes, GitHub alerts, and named Unicode emoji shortcodes.
+`src/markdown/compose.ts` orders standard Markdown-It plugins and the focused
+rules in `src/markdown/columns.ts`, `frontmatter.ts`, `inline.ts`, and
+`fences.ts`. Those modules own their feature-specific parsing and rendering.
+The standard plugins cover task lists, definition lists, footnotes, GitHub
+alerts, and named Unicode emoji shortcodes.
 Optional emoticon shortcuts are part of the emoji plugin and remain subordinate
 to the named-shortcode setting. Markdown-It's native linkify rule runs first
 when enabled. A narrow post-native `linkify-it` pass fills missing GFM HTTP,
@@ -77,10 +80,13 @@ remain free to handle their syntax. GFM tag filtering is unconditional.
 
 ## Preview Boundary
 
-`src/preview/runtime.ts` owns idempotent DOM enhancement. It wraps the existing
-`.markdown-body` in a layout without replacing that element, preserves heading
-and `data-line` nodes, rebuilds the TOC after content replacement or body
-retargeting, and augments rich code blocks while retaining their authored text.
+`src/preview/runtime.ts` retains the stable façade while `controller.ts`
+coordinates shared ownership, observers, scheduling, and disposal. Focused
+modules own the TOC/layout, rich code-block enhancement, revision-aware Mermaid
+renderer, and Mermaid viewer. The controller wraps the existing `.markdown-body`
+in a layout without replacing that element, preserves heading and `data-line`
+nodes, rebuilds the TOC after content replacement or body retargeting, and
+augments rich code blocks while retaining their authored text.
 
 Each render appends a hidden, escaped configuration marker containing only the
 table-of-contents, smooth-scrolling, and Mermaid-viewer booleans needed in the
@@ -108,13 +114,17 @@ Mermaid is absent from both Extension Host bundles. The small preview runtime
 dynamically imports `dist/preview/mermaid-runtime.js` only after finding an
 exact Mermaid block. The renderer uses strict security, derives colors from
 VS Code variables, and restores escaped source on every failure path. Rendered
-diagrams remain passive in the document so they do not capture preview
-scrolling. A preview-owned near-viewport dialog provides dedicated zoom and pan
-interaction, refreshes its SVG clone after theme or source rerenders, and
-rewrites cloned SVG IDs so Mermaid markers and gradients stay local to the
-dialog. Rewrites must cover selectors and `url(#id)` references inside embedded
-`<style>` elements as well as `url(#id)`, ARIA references, and other ID-bearing
-attributes.
+diagrams are produced in detached staging elements and committed only when the
+block's source revision is still current. Serialized rendering therefore cannot
+let an older success or failure overwrite a same-block live edit. Final
+controller disposal invalidates queued work before removing owned navigation
+and viewer controls. Diagrams remain passive in the document so they do not
+capture preview scrolling. A preview-owned near-viewport dialog provides
+dedicated zoom and pan interaction, refreshes its SVG clone after theme or
+source rerenders, and rewrites cloned SVG IDs so Mermaid markers and gradients
+stay local to the dialog. Rewrites must cover selectors and `url(#id)`
+references inside embedded `<style>` elements as well as `url(#id)`, ARIA
+references, and other ID-bearing attributes.
 
 ## Runtime Boundary
 

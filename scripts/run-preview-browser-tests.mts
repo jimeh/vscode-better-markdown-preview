@@ -1,0 +1,231 @@
+import { readFile } from 'node:fs/promises';
+import { createServer, type Server } from 'node:http';
+import { extname, resolve } from 'node:path';
+import { chromium, type Browser, type Page } from 'playwright-core';
+import { isPathWithin } from './lib/paths.mts';
+
+const repositoryRoot = resolve(import.meta.dirname, '..');
+const previewRoot = resolve(repositoryRoot, 'dist/preview');
+const fixtureCsp = [
+	"default-src 'none'",
+	"script-src 'self'",
+	"style-src 'self' 'unsafe-inline'",
+	"base-uri 'none'",
+].join('; ');
+
+const fixture = `<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="/dist/preview/preview.css">
+	<style>
+		:root { --vscode-editor-background: #fff; --vscode-editor-foreground: #222; --vscode-panel-border: #888; --vscode-textLink-foreground: #06c; }
+	</style>
+</head>
+<body class="vscode-light">
+	<div class="markdown-body">
+		<h1 id="title">Fixture</h1>
+		<h2 id="one">One</h2>
+		<h2 id="two">Two</h2>
+		<figure class="better-markdown-preview-code" data-bmp-lines="2"><pre><code>one\ntwo</code></pre></figure>
+		<pre class="better-markdown-preview-mermaid" data-bmp-mermaid-source data-bmp-mermaid-state="source">graph TD\nA--&gt;B</pre>
+	</div>
+	<script src="/dist/preview/preview.js"></script>
+</body>
+</html>`;
+
+function contentType(path: string): string {
+	return (
+		{
+			'.css': 'text/css; charset=utf-8',
+			'.js': 'text/javascript; charset=utf-8',
+		}[extname(path)] ?? 'application/octet-stream'
+	);
+}
+
+async function listen(server: Server): Promise<number> {
+	await new Promise<void>((resolve, reject) => {
+		server.once('error', reject);
+		server.listen(0, '127.0.0.1', () => resolve());
+	});
+	const address = server.address();
+	if (!address || typeof address === 'string') {
+		throw new Error('Preview browser server did not bind a TCP port');
+	}
+	return address.port;
+}
+
+async function closeServer(server: Server): Promise<void> {
+	if (!server.listening) {
+		return;
+	}
+	await new Promise<void>((resolve, reject) => {
+		server.close((error) => (error ? reject(error) : resolve()));
+	});
+}
+
+async function expectCount(
+	page: Page,
+	selector: string,
+	count: number,
+): Promise<void> {
+	const actual = await page.locator(selector).count();
+	if (actual !== count) {
+		throw new Error(
+			`Expected ${count} ${selector} elements, received ${actual}`,
+		);
+	}
+}
+
+const server = createServer(async (request, response) => {
+	try {
+		const url = new URL(request.url ?? '/', 'http://127.0.0.1');
+		if (url.pathname === '/') {
+			response.writeHead(200, {
+				'content-security-policy': fixtureCsp,
+				'content-type': 'text/html; charset=utf-8',
+			});
+			response.end(fixture);
+			return;
+		}
+		if (!url.pathname.startsWith('/dist/preview/')) {
+			response.writeHead(404).end();
+			return;
+		}
+		const relative = url.pathname.slice('/dist/preview/'.length);
+		const path = resolve(previewRoot, relative);
+		if (!isPathWithin(previewRoot, path)) {
+			response.writeHead(403).end();
+			return;
+		}
+		response.writeHead(200, { 'content-type': contentType(path) });
+		response.end(await readFile(path));
+	} catch (error) {
+		response.writeHead(500).end(String(error));
+	}
+});
+
+let browser: Browser | undefined;
+let page: Page | undefined;
+let primaryFailure: unknown;
+try {
+	const port = await listen(server);
+	browser = await chromium.launch({ headless: true });
+	page = await browser.newPage();
+	const errors: string[] = [];
+	page.on('console', (message) => {
+		if (message.type() === 'error') {
+			errors.push(`console: ${message.text()}`);
+		}
+	});
+	page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
+	await page.addInitScript({
+		content: `window.__bmpUnhandledRejections = [];
+window.addEventListener('unhandledrejection', event => {
+	window.__bmpUnhandledRejections.push(String(event.reason));
+});`,
+	});
+
+	const navigation = await page.goto(`http://127.0.0.1:${port}/`, {
+		waitUntil: 'networkidle',
+	});
+	if (navigation?.headers()['content-security-policy'] !== fixtureCsp) {
+		throw new Error(
+			'The preview fixture response did not apply its expected CSP',
+		);
+	}
+	await page.locator('[data-bmp-mermaid-state="rendered"] svg').waitFor();
+
+	await expectCount(page, '[data-bmp-layout]', 1);
+	await expectCount(page, '[data-bmp-toc]', 1);
+	await expectCount(page, '[data-bmp-toc] a', 2);
+	if (
+		(await page.locator('[data-bmp-toc]').textContent())?.includes('Fixture')
+	) {
+		throw new Error('The browser TOC unexpectedly included the leading H1');
+	}
+	await expectCount(page, '[data-bmp-code-line]', 2);
+	await expectCount(page, '[data-bmp-mermaid-open]', 1);
+
+	const trigger = page.locator('[data-bmp-mermaid-open]');
+	await trigger.focus();
+	await trigger.click();
+	await page.locator('[data-bmp-mermaid-dialog][open]').waitFor();
+	const canvasFocused = await page.evaluate<boolean>(
+		'document.activeElement?.hasAttribute("data-bmp-mermaid-canvas") === true',
+	);
+	if (!canvasFocused) {
+		const active = await page.evaluate<string>(
+			'document.activeElement?.outerHTML ?? "none"',
+		);
+		throw new Error(
+			`The Mermaid viewer canvas did not receive focus; active element: ${active}`,
+		);
+	}
+	await page.keyboard.press('Escape');
+	await page.waitForFunction(
+		'!document.querySelector("[data-bmp-mermaid-dialog]")?.hasAttribute("open")',
+	);
+	const triggerFocused = await page.evaluate<boolean>(
+		'document.activeElement?.hasAttribute("data-bmp-mermaid-open") === true',
+	);
+	if (!triggerFocused) {
+		throw new Error('The Mermaid viewer did not restore trigger focus');
+	}
+
+	await page.evaluate(`window.__bmpInitialSvg = document.querySelector(
+		'[data-bmp-mermaid-state="rendered"] svg'
+	);
+	document.body.classList.replace('vscode-light', 'vscode-dark');`);
+	await page.waitForFunction(
+		`document.querySelector('[data-bmp-mermaid-state="rendered"] svg') !==
+			window.__bmpInitialSvg`,
+	);
+
+	await page.evaluate(`(() => {
+		const replacement = document.createElement('div');
+		replacement.className = 'markdown-body';
+		replacement.innerHTML =
+			'<h2 id="three">Three</h2><h2 id="four">Four</h2><p>Replacement body</p>';
+		document.querySelector('.markdown-body')?.replaceWith(replacement);
+	})()`);
+	await page.locator('[data-bmp-toc] a', { hasText: 'Four' }).waitFor();
+	await expectCount(page, '[data-bmp-layout]', 1);
+	await expectCount(page, '[data-bmp-toc]', 1);
+	await expectCount(page, '[data-bmp-mermaid-open]', 0);
+
+	const unhandled = await page.evaluate<string[]>(
+		'window.__bmpUnhandledRejections',
+	);
+	if (unhandled.length > 0) {
+		errors.push(...unhandled.map((error) => `unhandledrejection: ${error}`));
+	}
+	if (errors.length > 0) {
+		throw new Error(`Browser errors:\n${errors.join('\n')}`);
+	}
+	console.log(
+		'Preview browser contract passed: CSP-restricted bundles, TOC/body replacement, code enhancement, Mermaid import/theme rerender, and dialog focus.',
+	);
+} catch (error) {
+	primaryFailure = error;
+}
+
+const cleanupErrors: unknown[] = [];
+for (const cleanup of [
+	async () => page?.close(),
+	async () => browser?.close(),
+	async () => closeServer(server),
+]) {
+	try {
+		await cleanup();
+	} catch (error) {
+		cleanupErrors.push(error);
+	}
+}
+if (primaryFailure !== undefined) {
+	throw primaryFailure;
+}
+if (cleanupErrors.length > 0) {
+	throw cleanupErrors[0];
+}

@@ -236,7 +236,9 @@ describe('preview runtime', () => {
 		);
 		expect(document.querySelectorAll('[data-bmp-toc] a')).toHaveLength(2);
 		first.dispose();
+		expect(document.querySelectorAll('[data-bmp-toc]')).toHaveLength(1);
 		second.dispose();
+		expect(document.querySelector('[data-bmp-toc]')).toBeNull();
 
 		setDocument('<h1 id="title">Title</h1><h2 id="one">One</h2>');
 		const sparse = enhancePreview(document);
@@ -424,6 +426,86 @@ describe('preview runtime', () => {
 		controller.dispose();
 	});
 
+	test('prunes an orphaned layout when VS Code replaces the body in one mutation batch', async () => {
+		setDocument(
+			'<h2 id="one">One</h2><h2 id="two">Two</h2><pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>',
+		);
+		const render = vi.fn<MermaidAdapter['render']>(async (element) => {
+			element.innerHTML = '<svg viewBox="0 0 100 50"></svg>';
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await controller.ready;
+
+		const oldBody = document.querySelector<HTMLElement>('.markdown-body')!;
+		const replacement = document.createElement('div');
+		replacement.className = 'markdown-body';
+		replacement.innerHTML =
+			'<h2 id="three">Three</h2><h2 id="four">Four</h2><pre data-bmp-mermaid-source>graph TD\nC--&gt;D</pre>';
+		oldBody.remove();
+		document.body.append(replacement);
+
+		await vi.waitFor(() => expect(render).toHaveBeenCalledTimes(2));
+		expect(document.querySelectorAll('[data-bmp-layout]')).toHaveLength(1);
+		expect(document.querySelectorAll('[data-bmp-toc]')).toHaveLength(1);
+		expect(document.querySelectorAll('[data-bmp-toc-trigger]')).toHaveLength(1);
+		expect(document.querySelectorAll('[data-bmp-toc-dialog]')).toHaveLength(1);
+		expect(document.querySelectorAll('[data-bmp-mermaid-open]')).toHaveLength(
+			1,
+		);
+		expect(document.querySelectorAll('[data-bmp-mermaid-dialog]')).toHaveLength(
+			1,
+		);
+		const toc = document.querySelector('[data-bmp-toc]')!;
+		expect(toc.textContent).toContain('Four');
+		expect(toc.textContent).not.toContain('One');
+		expect(replacement.closest('[data-bmp-layout]')).not.toBeNull();
+		expect(
+			replacement.querySelector('[data-bmp-mermaid-source] svg'),
+		).not.toBeNull();
+		controller.dispose();
+	});
+
+	test('clears owned UI while the markdown body is absent and recovers when it returns', async () => {
+		setDocument(
+			'<h2 id="one">One</h2><h2 id="two">Two</h2><pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>',
+		);
+		const render = vi.fn<MermaidAdapter['render']>(async (element) => {
+			element.innerHTML = '<svg viewBox="0 0 100 50"></svg>';
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await controller.ready;
+
+		document.querySelector('.markdown-body')!.remove();
+		await vi.waitFor(() => {
+			expect(document.querySelector('[data-bmp-toc]')).toBeNull();
+			expect(document.querySelector('[data-bmp-toc-trigger]')).toBeNull();
+			expect(document.querySelector('[data-bmp-toc-dialog]')).toBeNull();
+			expect(document.querySelector('[data-bmp-mermaid-open]')).toBeNull();
+			expect(document.querySelector('[data-bmp-mermaid-dialog]')).toBeNull();
+		});
+
+		const replacement = document.createElement('div');
+		replacement.className = 'markdown-body';
+		replacement.innerHTML =
+			'<h2 id="three">Three</h2><h2 id="four">Four</h2><pre data-bmp-mermaid-source>graph TD\nC--&gt;D</pre>';
+		document.body.append(replacement);
+		await vi.waitFor(() => {
+			expect(document.querySelector('[data-bmp-toc]')?.textContent).toContain(
+				'Four',
+			);
+			expect(document.querySelector('[data-bmp-mermaid-open]')).not.toBeNull();
+			expect(
+				document.querySelector('[data-bmp-mermaid-dialog]'),
+			).not.toBeNull();
+		});
+		expect(render).toHaveBeenCalledTimes(2);
+		controller.dispose();
+	});
+
 	test('loads Mermaid conditionally, keeps fallback on failure, and rerenders on theme change', async () => {
 		setDocument('<p>No diagrams</p>');
 		const loader = vi.fn<() => Promise<MermaidAdapter>>();
@@ -552,6 +634,171 @@ describe('preview runtime', () => {
 		controller.dispose();
 	});
 
+	test('does not commit a stale Mermaid success over a same-block edit', async () => {
+		setDocument(
+			'<pre data-bmp-mermaid-source data-bmp-mermaid-state="source">graph TD\nA--&gt;B</pre>',
+		);
+		let finishFirst: (() => void) | undefined;
+		const firstRender = new Promise<void>((resolve) => {
+			finishFirst = resolve;
+		});
+		const sources: string[] = [];
+		const render = vi.fn<MermaidAdapter['render']>(async (element, source) => {
+			sources.push(source);
+			if (source.includes('A-->B')) {
+				await firstRender;
+			}
+			element.innerHTML = `<svg data-source="${source.at(-1)}"></svg>`;
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await vi.waitFor(() => expect(render).toHaveBeenCalledOnce());
+		const block = document.querySelector<HTMLElement>(
+			'[data-bmp-mermaid-source]',
+		)!;
+		block.dataset.bmpMermaidState = 'source';
+		block.textContent = 'graph TD\nA-->C';
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		finishFirst?.();
+		await vi.waitFor(() => expect(render).toHaveBeenCalledTimes(2));
+		expect(sources).toEqual(['graph TD\nA-->B', 'graph TD\nA-->C']);
+		expect(block.querySelector('svg')?.dataset.source).toBe('C');
+		expect(block.dataset.bmpMermaidState).toBe('rendered');
+		controller.dispose();
+	});
+
+	test('does not restore stale Mermaid failure source over a same-block edit', async () => {
+		setDocument(
+			'<pre data-bmp-mermaid-source data-bmp-mermaid-state="source">graph TD\nA--&gt;B</pre>',
+		);
+		let failFirst: (() => void) | undefined;
+		const firstRender = new Promise<void>((_resolve, reject) => {
+			failFirst = () => reject(new Error('stale failure'));
+		});
+		const sources: string[] = [];
+		const render = vi.fn<MermaidAdapter['render']>(async (element, source) => {
+			sources.push(source);
+			if (source.includes('A-->B')) {
+				await firstRender;
+			}
+			element.innerHTML = `<svg data-source="${source.at(-1)}"></svg>`;
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await vi.waitFor(() => expect(render).toHaveBeenCalledOnce());
+		const block = document.querySelector<HTMLElement>(
+			'[data-bmp-mermaid-source]',
+		)!;
+		block.dataset.bmpMermaidState = 'source';
+		block.textContent = 'graph TD\nA-->C';
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		failFirst?.();
+		await vi.waitFor(() => expect(render).toHaveBeenCalledTimes(2));
+		expect(sources).toEqual(['graph TD\nA-->B', 'graph TD\nA-->C']);
+		expect(block.querySelector('svg')?.dataset.source).toBe('C');
+		expect(block.dataset.bmpMermaidState).toBe('rendered');
+		controller.dispose();
+	});
+
+	test('does not create Mermaid UI after disposal while loading', async () => {
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		let finishLoad: ((adapter: MermaidAdapter) => void) | undefined;
+		const loading = new Promise<MermaidAdapter>((resolve) => {
+			finishLoad = resolve;
+		});
+		const loadMermaid = vi.fn(() => loading);
+		const render = vi.fn<MermaidAdapter['render']>(async (element) => {
+			element.innerHTML = '<svg></svg>';
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid,
+		});
+		await vi.waitFor(() => expect(loadMermaid).toHaveBeenCalledOnce());
+		expect(render).not.toHaveBeenCalled();
+		controller.dispose();
+		finishLoad?.({ render });
+		await controller.ready;
+		expect(render).not.toHaveBeenCalled();
+		expect(document.querySelector('[data-bmp-mermaid-dialog]')).toBeNull();
+		expect(document.querySelector('[data-bmp-mermaid-open]')).toBeNull();
+	});
+
+	test('does not commit Mermaid output after disposal during rendering', async () => {
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		let finishRender: (() => void) | undefined;
+		const rendering = new Promise<void>((resolve) => {
+			finishRender = resolve;
+		});
+		const render = vi.fn<MermaidAdapter['render']>(async (element) => {
+			await rendering;
+			element.innerHTML = '<svg></svg>';
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await vi.waitFor(() => expect(render).toHaveBeenCalledOnce());
+		controller.dispose();
+		finishRender?.();
+		await controller.ready;
+		const block = document.querySelector('[data-bmp-mermaid-source]')!;
+		expect(block.querySelector('svg')).toBeNull();
+		expect(document.querySelector('[data-bmp-mermaid-dialog]')).toBeNull();
+		expect(document.querySelector('[data-bmp-mermaid-open]')).toBeNull();
+	});
+
+	test('removes owned interactive UI on dispose and preserves Mermaid source on recreate', async () => {
+		const source = 'graph TD\nA-->B';
+		setDocument(
+			'<h2 id="one">One</h2><h2 id="two">Two</h2><pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>',
+		);
+		const render = vi.fn<MermaidAdapter['render']>(
+			async (element, renderedSource) => {
+				element.innerHTML =
+					'<svg viewBox="0 0 100 50"><text>Rendered diagram</text></svg>';
+				expect(renderedSource).toBe(source);
+			},
+		);
+		const first = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await first.ready;
+		first.dispose();
+		expect(document.querySelector('[data-bmp-toc]')).toBeNull();
+		expect(document.querySelector('[data-bmp-toc-trigger]')).toBeNull();
+		expect(document.querySelector('[data-bmp-toc-dialog]')).toBeNull();
+		expect(document.querySelector('[data-bmp-mermaid-open]')).toBeNull();
+		expect(document.querySelector('[data-bmp-mermaid-dialog]')).toBeNull();
+
+		const second = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await second.ready;
+		const trigger = document.querySelector<HTMLButtonElement>(
+			'[data-bmp-mermaid-open]',
+		)!;
+		const dialog = document.querySelector<HTMLDialogElement>(
+			'[data-bmp-mermaid-dialog]',
+		)!;
+		dialog.showModal = vi.fn(() => dialog.setAttribute('open', ''));
+		trigger.click();
+		expect(dialog.hasAttribute('open')).toBe(true);
+		document.body.classList.add('vscode-dark');
+		await vi.waitFor(() => expect(render).toHaveBeenCalledTimes(2));
+		expect(
+			render.mock.calls.map(([, renderedSource]) => renderedSource),
+		).toEqual([source, source]);
+		expect(
+			document.querySelector('[data-bmp-mermaid-source] svg'),
+		).not.toBeNull();
+		expect(
+			document.querySelector<HTMLElement>('[data-bmp-mermaid-source]')?.dataset
+				.bmpMermaidState,
+		).toBe('rendered');
+		second.dispose();
+	});
+
 	test('opens a near-viewport Mermaid viewer with zoom, pan, fit, and focus restoration', async () => {
 		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
 		const controller = enhancePreview(document, {
@@ -633,6 +880,24 @@ describe('preview runtime', () => {
 		expect(
 			dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
 		).toBe('125%');
+		dialog
+			.querySelector<HTMLButtonElement>('[data-bmp-mermaid-zoom-out]')
+			?.click();
+		expect(
+			dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
+		).toBe('100%');
+		for (const [key, expected] of [
+			['+', '125%'],
+			['-', '100%'],
+			['0', '100%'],
+		] as const) {
+			dialog.dispatchEvent(
+				new KeyboardEvent('keydown', { key, bubbles: true }),
+			);
+			expect(
+				dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
+			).toBe(expected);
+		}
 		canvas.dispatchEvent(
 			new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
 		);
@@ -651,7 +916,7 @@ describe('preview runtime', () => {
 		);
 		expect(
 			dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
-		).toBe('150%');
+		).toBe('120%');
 		dialog.querySelector<HTMLButtonElement>('[data-bmp-mermaid-fit]')?.click();
 		expect(
 			dialog.querySelector<HTMLElement>('[data-bmp-mermaid-surface]')?.style
@@ -685,10 +950,18 @@ describe('preview runtime', () => {
 				.transform,
 		).toContain('translate(25px, 35px)');
 
+		dialog
+			.querySelector<HTMLButtonElement>('[data-bmp-mermaid-close]')
+			?.click();
+		expect(close).toHaveBeenCalledOnce();
+		trigger.click();
+		dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
+		expect(close).toHaveBeenCalledTimes(2);
+		trigger.click();
 		dialog.dispatchEvent(
 			new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
 		);
-		expect(close).toHaveBeenCalledOnce();
+		expect(close).toHaveBeenCalledTimes(3);
 		expect(document.activeElement).toBe(trigger);
 		controller.dispose();
 	});

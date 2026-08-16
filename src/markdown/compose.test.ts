@@ -447,6 +447,24 @@ describe('Markdown composition', () => {
 		}
 	});
 
+	test('does not treat indented fence-like code as a Markdown fence', () => {
+		for (const indent of ['    ', '\t']) {
+			const html = render(
+				`:::: {.columns}\n::: {.column}\n${indent}\`\`\`\nIndented code\n:::\n::: {.column}\nB\n:::\n::::\n`,
+			);
+			expect(html).toContain('better-markdown-preview-columns');
+			expect(html).toContain('<pre><code>```');
+		}
+	});
+
+	test('does not treat invalid backtick fence info as an opener', () => {
+		const html = render(
+			':::: {.columns}\n::: {.column}\n```bad`info\nNot a fence\n:::\n::: {.column}\nB\n:::\n::::\n',
+		);
+		expect(html).toContain('better-markdown-preview-columns');
+		expect(html).not.toContain('<code class="language-bad`info">');
+	});
+
 	test('matches only exact lowercase Mermaid fences and escapes fallback source', () => {
 		const html = render('```mermaid\ngraph TD\nA[<unsafe>]-->B\n```\n');
 		expect(html).toContain('data-bmp-mermaid-source');

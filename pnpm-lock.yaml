@@ -125,6 +125,9 @@ importers:
       oxlint-tsgolint:
         specifier: 7.0.2001
         version: 7.0.2001
+      playwright-core:
+        specifier: 1.62.1
+        version: 1.62.1
       semantic-release:
         specifier: 25.0.9
         version: 25.0.9(supports-color@8.1.1)(typescript@7.0.2)
