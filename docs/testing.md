@@ -31,10 +31,11 @@ JavaScript, TypeScript, JSON, Markdown, and YAML, while Taplo remains the TOML
 formatter.
 
 `mise run setup` also installs Lefthook. Its read-only parallel pre-commit jobs
-check formatting and lint only matching staged files, then conditionally run
-the fast type-aware product lint, full TypeScript typecheck, and unit suite when
-relevant source files are staged. Longer host and package checks remain
-explicit Mise and CI gates.
+check Oxfmt, Taplo, and lint only against matching staged files, then
+conditionally run the fast type-aware product lint, full TypeScript typecheck,
+unit suite, and Node contracts when relevant source, configuration, or
+dependency files are staged. Longer host and package checks remain explicit
+Mise and CI gates.
 
 `mise run check` is the fast handoff gate: formatting, lint, all TypeScript
 projects, Node contracts, and coverage. `mise run validate` adds the package and

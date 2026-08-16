@@ -131,7 +131,7 @@
 		"lint": "npm-run-all -s lint:code lint:types lint:css lint:markdown",
 		"lint:code": "oxlint --deny-warnings .",
 		"lint:code:fix": "oxlint --fix --deny-warnings .",
-		"lint:types": "oxlint --type-aware --deny-warnings src/config.ts src/config.test.ts src/extension.ts src/extension.test.ts src/markdown src/preview src/types",
+		"lint:types": "oxlint --type-aware --deny-warnings --ignore-pattern 'src/test/**' src",
 		"lint:css": "stylelint \"media/**/*.css\"",
 		"lint:css:fix": "stylelint --fix \"media/**/*.css\"",
 		"lint:fix": "npm-run-all -s lint:code:fix lint:css:fix lint:markdown:fix",

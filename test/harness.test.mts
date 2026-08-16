@@ -35,6 +35,14 @@ function taskByLabel(label: string): VsCodeTask {
 	return task;
 }
 
+function lefthookJob(name: string): string {
+	const marker = `    - name: ${name}\n`;
+	const start = lefthookConfig.indexOf(marker);
+	assert.notEqual(start, -1, `expected Lefthook job named ${name}`);
+	const end = lefthookConfig.indexOf('\n    - name:', start + marker.length);
+	return lefthookConfig.slice(start, end === -1 ? undefined : end);
+}
+
 test('quality scripts use the Oxc toolchain, type-aware linting, and CSS linting', () => {
 	assert.equal(packageJson.scripts.format, 'oxfmt --write .');
 	assert.equal(packageJson.scripts['format:check'], 'oxfmt --check .');
@@ -55,6 +63,30 @@ test('pre-commit hooks check staged files before conditional project checks', ()
 	assert.match(lefthookConfig, /markdownlint-cli2 --no-globs \{staged_files\}/);
 	assert.doesNotMatch(lefthookConfig, /stage_fixed/);
 	assert.doesNotMatch(lefthookConfig, /^pre-push:/m);
+});
+
+test('pre-commit routes configuration and test inputs to relevant checks', () => {
+	const formatting = lefthookJob('check staged formatting');
+	assert.match(formatting, /exclude:/);
+	assert.match(formatting, /'docs\/plans\/\*\*'/);
+	assert.match(formatting, /'pnpm-lock\.yaml'/);
+
+	const typeAwareLint = lefthookJob('type-aware product lint');
+	assert.match(typeAwareLint, /'\.oxlintrc\.json'/);
+	assert.match(typeAwareLint, /'pnpm-lock\.yaml'/);
+
+	const typecheck = lefthookJob('typecheck TypeScript projects');
+	assert.match(typecheck, /'pnpm-lock\.yaml'/);
+
+	const unitTests = lefthookJob('run unit tests');
+	assert.match(unitTests, /'vitest\.config\.mts'/);
+	assert.match(unitTests, /'pnpm-lock\.yaml'/);
+	assert.doesNotMatch(unitTests, /'test\/\*\*/);
+
+	const contractTests = lefthookJob('run Node contract tests');
+	assert.match(contractTests, /'test\/\*\*/);
+	assert.match(contractTests, /'pnpm-lock\.yaml'/);
+	assert.match(contractTests, /pnpm run test:contracts/);
 });
 
 test('watch tasks rebuild every production extension and preview artifact', () => {

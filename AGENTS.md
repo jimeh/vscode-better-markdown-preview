@@ -84,6 +84,9 @@ Better Markdown Preview extends VS Code's built-in Markdown preview. Read
   directly instead of importing `typescript` for JSONC helpers.
 - Oxfmt owns source, configuration, documentation, and CSS formatting, but
   `mise.toml` remains excluded because Taplo is the canonical TOML formatter.
+- Oxfmt exits with an error when every explicit path is ignored. Keep
+  Lefthook's staged-format exclusions aligned with `.oxfmtrc.json` so ignored
+  lockfiles and plan documents skip the job instead of blocking commits.
 
 ## Dependencies and Automation
 

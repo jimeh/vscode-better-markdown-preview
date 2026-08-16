@@ -20,16 +20,19 @@ test('CI names every repository quality gate explicitly', () => {
 		ciWorkflow,
 		/name: Format, lint, typecheck, test, and prepare hosts/,
 	);
-	for (const step of [
-		'Check formatting',
-		'Lint code, CSS, and Markdown',
-		'Typecheck all TypeScript projects',
-		'Run Node contract tests',
-		'Run unit tests with coverage',
-		'Validate package contents',
-		'Validate GitHub Actions workflows',
+	for (const [step, task] of [
+		['Check formatting', 'format:check'],
+		['Lint code, CSS, and Markdown', 'lint'],
+		['Typecheck all TypeScript projects', 'typecheck'],
+		['Run Node contract tests', 'test:contracts'],
+		['Run unit tests with coverage', 'test:coverage'],
+		['Validate package contents', 'package:validate'],
+		['Validate GitHub Actions workflows', 'ci:workflows'],
 	]) {
-		assert.match(ciWorkflow, new RegExp(`name: ${step}`));
+		assert.match(
+			ciWorkflow,
+			new RegExp(`name: ${step}\\n\\s+run: mise run ${task}`),
+		);
 	}
 });
 

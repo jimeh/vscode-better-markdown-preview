@@ -3,7 +3,23 @@ pre-commit:
   jobs:
     - name: check staged formatting
       glob: '*.{css,html,js,json,jsonc,md,mjs,mts,ts,yaml,yml}'
+      exclude:
+        - '.vscode-test/**'
+        - '.vscode-test-web/**'
+        - 'artifacts/**'
+        - 'coverage/**'
+        - 'dist/**'
+        - 'docs/plans/**'
+        - 'mise.lock'
+        - 'mise.toml'
+        - 'node_modules/**'
+        - 'out/**'
+        - 'pnpm-lock.yaml'
       run: pnpm exec oxfmt --check {staged_files}
+
+    - name: check staged TOML formatting
+      glob: 'mise.toml'
+      run: mise exec -- taplo format --check {staged_files}
 
     - name: lint staged code
       glob: '*.{js,mjs,mts,ts}'
@@ -19,18 +35,41 @@ pre-commit:
 
     - name: type-aware product lint
       glob:
+        - '.oxlintrc.json'
+        - 'package.json'
+        - 'pnpm-lock.yaml'
+        - 'pnpm-workspace.yaml'
         - 'src/*.{ts,mts}'
         - 'src/**/*.{ts,mts}'
+        - 'tsconfig.json'
       run: pnpm run lint:types
 
     - name: typecheck TypeScript projects
-      glob: '*.{js,json,mjs,mts,ts}'
+      glob:
+        - '*.{js,json,mjs,mts,ts}'
+        - 'pnpm-lock.yaml'
+        - 'pnpm-workspace.yaml'
       run: pnpm run typecheck
 
     - name: run unit tests
       glob:
+        - 'package.json'
+        - 'pnpm-lock.yaml'
+        - 'pnpm-workspace.yaml'
         - 'src/*.{ts,mts}'
         - 'src/**/*.{ts,mts}'
+        - 'vitest.config.mts'
+      run: pnpm run test:unit
+
+    - name: run Node contract tests
+      glob:
+        - '.github/workflows/*.{yaml,yml}'
+        - '.vscode/tasks.json'
+        - 'esbuild.mts'
+        - 'lefthook.yml'
+        - 'package.json'
+        - 'pnpm-lock.yaml'
+        - 'pnpm-workspace.yaml'
         - 'test/*.{ts,mts}'
         - 'test/**/*.{ts,mts}'
-      run: pnpm run test:unit
+      run: pnpm run test:contracts
