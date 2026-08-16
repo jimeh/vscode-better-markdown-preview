@@ -135,15 +135,17 @@ describe('Markdown composition', () => {
 
 	test('renders named emoji shortcodes without changing code, escapes, unknown names, or link destinations', () => {
 		const html = render(
-			'Named :joy:, unknown :bmp_unknown:, and escaped \\:joy:.\n\n[Label :joy:](https://example.com/:joy/) and https://example.com/:joy/.\n\n`inline :joy:`\n\n```text\nfenced :joy:\n```\n\n    indented :joy:\n',
+			'Named :joy:, unknown :bmp_unknown:, and escaped \\:joy:.\n\n[Label :joy:](https://example.com/:joy:/more) and https://example.com/:joy:/more.\n\n`inline :joy:`\n\n```text\nfenced :joy:\n```\n\n    indented :joy:\n',
 		);
 
 		expect(html).toContain(
 			'Named 😂, unknown :bmp_unknown:, and escaped :joy:.',
 		);
-		expect(html).toContain('<a href="https://example.com/:joy/">Label 😂</a>');
 		expect(html).toContain(
-			'<a href="https://example.com/:joy/">https://example.com/:joy/</a>',
+			'<a href="https://example.com/:joy:/more">Label 😂</a>',
+		);
+		expect(html).toContain(
+			'<a href="https://example.com/:joy:/more">https://example.com/:joy:/more</a>',
 		);
 		expect(html).toContain('<code>inline :joy:</code>');
 		expect(html).toContain('fenced :joy:');
@@ -159,6 +161,13 @@ describe('Markdown composition', () => {
 				configureRendering({ emoticonShortcuts: true }),
 			),
 		).toContain('<p>😂 😃</p>');
+		expect(
+			render(
+				'\\:) \\<3 \\;)\n',
+				undefined,
+				configureRendering({ emoticonShortcuts: true }),
+			),
+		).toContain('<p>:) &lt;3 ;)</p>');
 		expect(
 			render(
 				':joy: :)\n',

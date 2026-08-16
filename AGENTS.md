@@ -52,10 +52,10 @@ Better Markdown Preview extends VS Code's built-in Markdown preview. Read
   The extension's narrow post-native pass must therefore fill missing GFM HTTP,
   HTTPS, email, and `www.` literals without mutating `md.options.linkify`.
 - VS Code 1.125 collapses backslash-escaped punctuation into plain inline text
-  before contributed core rules run. When the resulting token is identical to
-  authored text (for example `www\.example.com` versus `www.example.com`), do
-  not guess at raw-source offsets in a core rule; preserve source maps and record
-  the native-host limitation instead.
+  before contributed core rules run. Protect syntax that needs the distinction
+  with a narrow inline rule before `escape`; when that is not practical (for
+  example `www\.example.com` versus `www.example.com`), do not guess at
+  raw-source offsets in a core rule and preserve source maps instead.
 - VS Code installs its `front_matter` YAML block rule after contributed
   Markdown-It plugins, immediately before `fence`. A contributed YAML rule
   inserted before `fence` therefore runs first when enabled; omitting it cleanly

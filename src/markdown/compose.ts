@@ -19,6 +19,8 @@ const columnsOpen = /^(:{4,})[ \t]+\{\.columns\}[ \t]*$/;
 const columnOpen =
 	/^(:{3,})[ \t]+\{\.column(?:[ \t]+width=(?:"((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%"|'((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%'|((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%))?\}[ \t]*$/;
 const colonClose = /^(:{3,})[ \t]*$/;
+const escapedEmojiShortcodeStart = /^\\:/;
+const escapedEmojiOrEmoticonStart = /^\\[:,;<>\]]/;
 const gfmLinkifier = new LinkifyIt({ fuzzyLink: true });
 let nestedBlockParseDepth = 0;
 type FenceRenderRule = NonNullable<MarkdownIt['renderer']['rules']['fence']>;
@@ -53,11 +55,17 @@ export function extendMarkdownIt(
 		installColumns(md);
 	}
 	if (configuration.rendering.emojiShortcodes) {
+		installEscapedEmojiProtection(
+			md,
+			configuration.rendering.emoticonShortcuts,
+		);
 		md.use(
 			emoji,
 			configuration.rendering.emoticonShortcuts ? {} : { shortcuts: {} },
 		);
 	}
+	// Both rules insert after `linkify`; installing emoji first keeps the
+	// extension's autolink pass ahead of emoji replacement in the final order.
 	if (configuration.rendering.enhancedAutolinks) {
 		installGfmAutolinks(md);
 	}
@@ -75,6 +83,41 @@ export function extendMarkdownIt(
 	}
 	installPreviewConfiguration(md, configuration);
 	return md;
+}
+
+function installEscapedEmojiProtection(
+	md: MarkdownIt,
+	includeEmoticons: boolean,
+): void {
+	// VS Code 1.125's escape rule otherwise merges escaped punctuation back into
+	// adjacent text before the emoji core rule can distinguish authored syntax.
+	md.inline.ruler.before(
+		'escape',
+		'better_markdown_preview_escaped_emoji',
+		(state, silent) => {
+			const match = (
+				includeEmoticons
+					? escapedEmojiOrEmoticonStart
+					: escapedEmojiShortcodeStart
+			).exec(state.src.slice(state.pos));
+			if (!match) {
+				return false;
+			}
+			if (!silent) {
+				const token = state.push(
+					'better_markdown_preview_escaped_emoji',
+					'',
+					0,
+				);
+				token.content = match[0].slice(1);
+				token.markup = match[0];
+			}
+			state.pos += match[0].length;
+			return true;
+		},
+	);
+	md.renderer.rules.better_markdown_preview_escaped_emoji = (tokens, index) =>
+		md.utils.escapeHtml(tokens[index].content);
 }
 
 function installGfmAutolinks(md: MarkdownIt): void {

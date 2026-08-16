@@ -16,7 +16,7 @@ Footnote[^1].
 > [!NOTE]
 > Known alert
 
-Emoji :joy:, emoticon :), and \`inline :joy:\`.
+Emoji :joy:, escaped \\:joy:, emoticon :), and \`inline :joy:\`.
 
 https://secure.example/path http://plain.example dev@example.com www.example.com example.com
 
@@ -56,7 +56,7 @@ enabled: true
 
 const configurationRoundTripFixture = `# Configuration round trip
 
-Named :joy:. Shortcut :).
+Named :joy:. Shortcut :). Escaped \\:).
 
 :::: {.columns}
 ::: {.column width=40%}
@@ -123,7 +123,7 @@ export async function assertConfigurationRoundTrip(
 			render,
 			(html) =>
 				html.includes('better-markdown-preview-columns') &&
-				html.includes('Named 😂. Shortcut :).') &&
+				html.includes('Named 😂. Shortcut :). Escaped :).') &&
 				html.includes('&quot;mermaidViewer&quot;:true'),
 			'start from default rendering settings',
 		);
@@ -131,14 +131,14 @@ export async function assertConfigurationRoundTrip(
 		await update('rendering.emoticonShortcuts', true);
 		await waitForRender(
 			render,
-			(html) => html.includes('Named 😂. Shortcut 😃.'),
+			(html) => html.includes('Named 😂. Shortcut 😃. Escaped :).'),
 			'enable emoticon shortcuts',
 		);
 
 		await update('rendering.emojiShortcodes', false);
 		await waitForRender(
 			render,
-			(html) => html.includes('Named :joy:. Shortcut :).'),
+			(html) => html.includes('Named :joy:. Shortcut :). Escaped :).'),
 			'delegate named emoji and emoticon shortcuts together',
 		);
 
@@ -165,6 +165,7 @@ export async function assertConfigurationRoundTrip(
 			render,
 			(html) =>
 				html.includes('better-markdown-preview-columns') &&
+				html.includes('Named 😂. Shortcut :). Escaped :).') &&
 				html.includes('&quot;mermaidViewer&quot;:true'),
 			'restore default rendering after resetting settings',
 		);
@@ -247,7 +248,9 @@ export function assertRenderCompatibility(html: string): void {
 		/better-markdown-preview-alert-note/,
 		'known GitHub alert semantics',
 	);
-	requireMatch(html, /Emoji 😂, emoticon :\),/, 'named emoji shortcodes');
+	requireMatch(html, /Emoji 😂,/, 'named emoji shortcodes');
+	requireMatch(html, /escaped :joy:/, 'escaped emoji shortcodes');
+	requireMatch(html, /emoticon :\),/, 'default-off emoticon shortcuts');
 	requireMatch(html, /<code>inline :joy:<\/code>/, 'inline code exclusion');
 	requireMatch(html, /href="https:\/\/secure\.example\/path"/, 'HTTPS link');
 	requireMatch(html, /href="http:\/\/plain\.example"/, 'HTTP link');

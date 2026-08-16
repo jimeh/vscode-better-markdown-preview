@@ -24,6 +24,12 @@ bare domains and other schemes and retaining native normalization, validation,
 nesting, and HTML-anchor guards. Emoji replacement runs after both linkifiers,
 so autolink text and destinations remain intact while ordinary text and link
 labels can contain shortcodes.
+
+An inline-stage guard keeps backslash-escaped emoji syntax in a separate token
+before VS Code 1.125's Markdown-It escape rule can collapse it into ordinary
+text. This preserves the same escaped-shortcode behavior across the engine floor
+and current hosts without reconstructing raw offsets in a later core rule.
+
 VS Code 1.125 collapses some backslash-escaped punctuation before contributed
 core rules run, so an escaped `www\.` is indistinguishable from authored
 `www.` at this boundary. Local rules cover GFM tag filtering, TOML and YAML
