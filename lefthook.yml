@@ -64,6 +64,7 @@ pre-commit:
     - name: run Node contract tests
       glob:
         - '.github/workflows/*.{yaml,yml}'
+        - '.oxfmtrc.json'
         - '.vscode/tasks.json'
         - 'CHANGELOG.md'
         - 'esbuild.mts'

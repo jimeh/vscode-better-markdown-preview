@@ -104,6 +104,7 @@ test('pre-commit routes configuration and test inputs to relevant checks', () =>
 	assert.doesNotMatch(unitTests, /'test\/\*\*/);
 
 	const contractTests = lefthookJob('run Node contract tests');
+	assert.match(contractTests, /'\.oxfmtrc\.json'/);
 	assert.match(contractTests, /'test\/\*\*/);
 	assert.match(contractTests, /'pnpm-lock\.yaml'/);
 	assert.match(contractTests, /'scripts\/\*\*/);
