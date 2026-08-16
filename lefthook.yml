@@ -65,11 +65,15 @@ pre-commit:
       glob:
         - '.github/workflows/*.{yaml,yml}'
         - '.vscode/tasks.json'
+        - 'CHANGELOG.md'
         - 'esbuild.mts'
         - 'lefthook.yml'
+        - 'media/preview.css'
         - 'package.json'
         - 'pnpm-lock.yaml'
         - 'pnpm-workspace.yaml'
+        - 'scripts/*.{ts,mts}'
+        - 'scripts/**/*.{ts,mts}'
         - 'test/*.{ts,mts}'
         - 'test/**/*.{ts,mts}'
       run: pnpm run test:contracts

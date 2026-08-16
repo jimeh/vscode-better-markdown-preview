@@ -8,6 +8,10 @@ interface PackageJson {
 	scripts: Record<string, string>;
 }
 
+interface OxfmtConfig {
+	ignorePatterns: string[];
+}
+
 interface VsCodeTask {
 	label: string;
 	command?: string;
@@ -21,6 +25,9 @@ interface VsCodeTasks {
 const packageJson = JSON.parse(
 	await readFile(new URL('../package.json', import.meta.url), 'utf8'),
 ) as PackageJson;
+const oxfmtConfig = JSON.parse(
+	await readFile(new URL('../.oxfmtrc.json', import.meta.url), 'utf8'),
+) as OxfmtConfig;
 const tasks = JSON.parse(
 	await readFile(new URL('../.vscode/tasks.json', import.meta.url), 'utf8'),
 ) as VsCodeTasks;
@@ -43,11 +50,19 @@ function lefthookJob(name: string): string {
 	return lefthookConfig.slice(start, end === -1 ? undefined : end);
 }
 
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 test('quality scripts use the Oxc toolchain, type-aware linting, and CSS linting', () => {
 	assert.equal(packageJson.scripts.format, 'oxfmt --write .');
 	assert.equal(packageJson.scripts['format:check'], 'oxfmt --check .');
 	assert.equal(packageJson.scripts['lint:code'], 'oxlint --deny-warnings .');
 	assert.match(packageJson.scripts['lint:types'], /oxlint --type-aware/);
+	assert.match(
+		packageJson.scripts['lint:types'],
+		/--ignore-pattern "src\/test\/\*\*"/,
+	);
 	assert.equal(packageJson.scripts['lint:css'], 'stylelint "media/**/*.css"');
 	assert.match(packageJson.devDependencies.typescript, /^\^?7\./);
 	for (const replaced of ['eslint', 'prettier', 'typescript-eslint']) {
@@ -68,8 +83,13 @@ test('pre-commit hooks check staged files before conditional project checks', ()
 test('pre-commit routes configuration and test inputs to relevant checks', () => {
 	const formatting = lefthookJob('check staged formatting');
 	assert.match(formatting, /exclude:/);
-	assert.match(formatting, /'docs\/plans\/\*\*'/);
-	assert.match(formatting, /'pnpm-lock\.yaml'/);
+	for (const pattern of oxfmtConfig.ignorePatterns) {
+		assert.match(
+			formatting,
+			new RegExp(`- '${escapeRegExp(pattern)}'`),
+			`expected staged format exclusion for ${pattern}`,
+		);
+	}
 
 	const typeAwareLint = lefthookJob('type-aware product lint');
 	assert.match(typeAwareLint, /'\.oxlintrc\.json'/);
@@ -86,6 +106,9 @@ test('pre-commit routes configuration and test inputs to relevant checks', () =>
 	const contractTests = lefthookJob('run Node contract tests');
 	assert.match(contractTests, /'test\/\*\*/);
 	assert.match(contractTests, /'pnpm-lock\.yaml'/);
+	assert.match(contractTests, /'scripts\/\*\*/);
+	assert.match(contractTests, /'media\/preview\.css'/);
+	assert.match(contractTests, /'CHANGELOG\.md'/);
 	assert.match(contractTests, /pnpm run test:contracts/);
 });
 
