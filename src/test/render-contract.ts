@@ -16,7 +16,7 @@ Footnote[^1].
 > [!NOTE]
 > Known alert
 
-Emoji :joy:, escaped \\:joy:, emoticon :), and \`inline :joy:\`.
+Emoji :joy:, escaped \\:joy:, internal :woman\\_technologist: and :\\+1:, emoticon :), and \`inline :joy:\`.
 
 https://secure.example/path http://plain.example dev@example.com www.example.com example.com
 
@@ -56,7 +56,7 @@ enabled: true
 
 const configurationRoundTripFixture = `# Configuration round trip
 
-Named :joy:. Shortcut :). Escaped \\:).
+Named :joy:. Shortcut :). Escaped \\:). Internal :\\).
 
 :::: {.columns}
 ::: {.column width=40%}
@@ -123,7 +123,7 @@ export async function assertConfigurationRoundTrip(
 			render,
 			(html) =>
 				html.includes('better-markdown-preview-columns') &&
-				html.includes('Named 😂. Shortcut :). Escaped :).') &&
+				html.includes('Named 😂. Shortcut :). Escaped :). Internal :).') &&
 				html.includes('&quot;mermaidViewer&quot;:true'),
 			'start from default rendering settings',
 		);
@@ -131,14 +131,16 @@ export async function assertConfigurationRoundTrip(
 		await update('rendering.emoticonShortcuts', true);
 		await waitForRender(
 			render,
-			(html) => html.includes('Named 😂. Shortcut 😃. Escaped :).'),
+			(html) =>
+				html.includes('Named 😂. Shortcut 😃. Escaped :). Internal :).'),
 			'enable emoticon shortcuts',
 		);
 
 		await update('rendering.emojiShortcodes', false);
 		await waitForRender(
 			render,
-			(html) => html.includes('Named :joy:. Shortcut :). Escaped :).'),
+			(html) =>
+				html.includes('Named :joy:. Shortcut :). Escaped :). Internal :).'),
 			'delegate named emoji and emoticon shortcuts together',
 		);
 
@@ -165,7 +167,7 @@ export async function assertConfigurationRoundTrip(
 			render,
 			(html) =>
 				html.includes('better-markdown-preview-columns') &&
-				html.includes('Named 😂. Shortcut :). Escaped :).') &&
+				html.includes('Named 😂. Shortcut :). Escaped :). Internal :).') &&
 				html.includes('&quot;mermaidViewer&quot;:true'),
 			'restore default rendering after resetting settings',
 		);
@@ -250,6 +252,11 @@ export function assertRenderCompatibility(html: string): void {
 	);
 	requireMatch(html, /Emoji 😂,/, 'named emoji shortcodes');
 	requireMatch(html, /escaped :joy:/, 'escaped emoji shortcodes');
+	requireMatch(
+		html,
+		/internal :woman_technologist: and :\+1:/,
+		'internally escaped emoji shortcodes',
+	);
 	requireMatch(html, /emoticon :\),/, 'default-off emoticon shortcuts');
 	requireMatch(html, /<code>inline :joy:<\/code>/, 'inline code exclusion');
 	requireMatch(html, /href="https:\/\/secure\.example\/path"/, 'HTTPS link');

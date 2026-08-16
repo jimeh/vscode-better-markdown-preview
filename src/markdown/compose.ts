@@ -19,8 +19,8 @@ const columnsOpen = /^(:{4,})[ \t]+\{\.columns\}[ \t]*$/;
 const columnOpen =
 	/^(:{3,})[ \t]+\{\.column(?:[ \t]+width=(?:"((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%"|'((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%'|((?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+))%))?\}[ \t]*$/;
 const colonClose = /^(:{3,})[ \t]*$/;
-const escapedEmojiShortcodeStart = /^\\:/;
-const escapedEmojiOrEmoticonStart = /^\\[:,;<>\]]/;
+const escapedMarkdownPunctuationToken =
+	'better_markdown_preview_escaped_punctuation';
 const gfmLinkifier = new LinkifyIt({ fuzzyLink: true });
 let nestedBlockParseDepth = 0;
 type FenceRenderRule = NonNullable<MarkdownIt['renderer']['rules']['fence']>;
@@ -55,10 +55,7 @@ export function extendMarkdownIt(
 		installColumns(md);
 	}
 	if (configuration.rendering.emojiShortcodes) {
-		installEscapedEmojiProtection(
-			md,
-			configuration.rendering.emoticonShortcuts,
-		);
+		installEscapedMarkdownProtection(md);
 		md.use(
 			emoji,
 			configuration.rendering.emoticonShortcuts ? {} : { shortcuts: {} },
@@ -85,38 +82,31 @@ export function extendMarkdownIt(
 	return md;
 }
 
-function installEscapedEmojiProtection(
-	md: MarkdownIt,
-	includeEmoticons: boolean,
-): void {
+function installEscapedMarkdownProtection(md: MarkdownIt): void {
 	// VS Code 1.125's escape rule otherwise merges escaped punctuation back into
 	// adjacent text before the emoji core rule can distinguish authored syntax.
 	md.inline.ruler.before(
 		'escape',
-		'better_markdown_preview_escaped_emoji',
+		escapedMarkdownPunctuationToken,
 		(state, silent) => {
-			const match = (
-				includeEmoticons
-					? escapedEmojiOrEmoticonStart
-					: escapedEmojiShortcodeStart
-			).exec(state.src.slice(state.pos));
-			if (!match) {
+			const position = state.pos;
+			if (
+				position + 1 >= state.posMax ||
+				state.src.charCodeAt(position) !== 0x5c ||
+				!md.utils.isMdAsciiPunct(state.src.charCodeAt(position + 1))
+			) {
 				return false;
 			}
 			if (!silent) {
-				const token = state.push(
-					'better_markdown_preview_escaped_emoji',
-					'',
-					0,
-				);
-				token.content = match[0].slice(1);
-				token.markup = match[0];
+				const token = state.push(escapedMarkdownPunctuationToken, '', 0);
+				token.content = state.src[position + 1];
+				token.markup = '\\';
 			}
-			state.pos += match[0].length;
+			state.pos = position + 2;
 			return true;
 		},
 	);
-	md.renderer.rules.better_markdown_preview_escaped_emoji = (tokens, index) =>
+	md.renderer.rules[escapedMarkdownPunctuationToken] = (tokens, index) =>
 		md.utils.escapeHtml(tokens[index].content);
 }
 
@@ -173,7 +163,8 @@ function installGfmAutolinks(md: MarkdownIt): void {
 					if (
 						matches[0]?.index === 0 &&
 						index > 0 &&
-						tokens[index - 1].type === 'text_special'
+						(tokens[index - 1].type === 'text_special' ||
+							tokens[index - 1].type === escapedMarkdownPunctuationToken)
 					) {
 						matches = matches.slice(1);
 					}

@@ -135,11 +135,11 @@ describe('Markdown composition', () => {
 
 	test('renders named emoji shortcodes without changing code, escapes, unknown names, or link destinations', () => {
 		const html = render(
-			'Named :joy:, unknown :bmp_unknown:, and escaped \\:joy:.\n\n[Label :joy:](https://example.com/:joy:/more) and https://example.com/:joy:/more.\n\n`inline :joy:`\n\n```text\nfenced :joy:\n```\n\n    indented :joy:\n',
+			'Named :joy:, unknown :bmp_unknown:, escaped \\:joy:, and internal :woman\\_technologist: and :\\+1:.\n\n[Label :joy:](https://example.com/:joy:/more) and https://example.com/:joy:/more.\n\n`inline :joy:`\n\n```text\nfenced :joy:\n```\n\n    indented :joy:\n',
 		);
 
 		expect(html).toContain(
-			'Named 😂, unknown :bmp_unknown:, and escaped :joy:.',
+			'Named 😂, unknown :bmp_unknown:, escaped :joy:, and internal :woman_technologist: and :+1:.',
 		);
 		expect(html).toContain(
 			'<a href="https://example.com/:joy:/more">Label 😂</a>',
@@ -163,11 +163,11 @@ describe('Markdown composition', () => {
 		).toContain('<p>😂 😃</p>');
 		expect(
 			render(
-				'\\:) \\<3 \\;)\n',
+				'\\:) \\<3 \\;) :\\)\n',
 				undefined,
 				configureRendering({ emoticonShortcuts: true }),
 			),
-		).toContain('<p>:) &lt;3 ;)</p>');
+		).toContain('<p>:) &lt;3 ;) :)</p>');
 		expect(
 			render(
 				':joy: :)\n',
@@ -240,9 +240,11 @@ describe('Markdown composition', () => {
 
 	test('uses native linkify guards for escapes and existing anchors', () => {
 		const html = render(
-			'Escaped http\\://escaped.example and [existing](https://existing.example).\n\n<a href="/raw">https://inside.example</a>\n',
+			'Escaped http\\://escaped.example, \\:www.example.com, and [existing](https://existing.example).\n\n<a href="/raw">https://inside.example</a>\n',
 		);
 		expect(html).not.toContain('href="http://escaped.example"');
+		expect(html).not.toContain('href="http://www.example.com"');
+		expect(html).toContain(':www.example.com');
 		expect(html).toContain('href="https://existing.example"');
 		expect(html).toContain('<a href="/raw">https://inside.example</a>');
 		expect(html.match(/<a /g)).toHaveLength(2);
