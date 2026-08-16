@@ -106,8 +106,9 @@ diagrams remain passive in the document so they do not capture preview
 scrolling. A preview-owned near-viewport dialog provides dedicated zoom and pan
 interaction, refreshes its SVG clone after theme or source rerenders, and
 rewrites cloned SVG IDs so Mermaid markers and gradients stay local to the
-dialog. Rewrites must cover selectors inside embedded `<style>` elements as
-well as `url(#id)`, ARIA references, and other ID-bearing attributes.
+dialog. Rewrites must cover selectors and `url(#id)` references inside embedded
+`<style>` elements as well as `url(#id)`, ARIA references, and other ID-bearing
+attributes.
 
 ## Runtime Boundary
 

@@ -143,9 +143,10 @@ rendering returns.
 
 Desktop host settings under `.vscode-test/user-data` persist across invocations.
 Tests that change global configuration must establish their own starting
-defaults and restore every prior value in `finally`; use `Promise.allSettled`
-when independent restores must all be attempted without masking the original
-test failure.
+defaults and restore every prior value in `finally`. When independent restores
+use `Promise.allSettled`, inspect every rejected result after all restores have
+settled. Report restoration failures while preserving an earlier test failure
+as the primary error.
 
 Detailed syntax and DOM edge cases stay in fast tests. Host tests prove real
 contribution discovery and compatibility without duplicating the unit suite.
