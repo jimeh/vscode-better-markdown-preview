@@ -145,11 +145,22 @@ export async function assertConfigurationRoundTrip(
 			update('mermaid.viewer', original['mermaid.viewer']),
 			update('rendering.columns', original['rendering.columns']),
 		]);
-		const restoreFailure = restoreResults.find(
-			(result) => result.status === 'rejected',
+		const restoreFailures = restoreResults.flatMap((result) =>
+			result.status === 'rejected' ? [result.reason] : [],
 		);
-		if (!failure && restoreFailure?.status === 'rejected') {
-			failure = { reason: restoreFailure.reason };
+		if (restoreFailures.length > 0) {
+			const restorationError = new AggregateError(
+				restoreFailures,
+				'Failed to restore global preview configuration.',
+			);
+			if (failure) {
+				console.error(
+					'Configuration restoration also failed:',
+					restorationError,
+				);
+			} else {
+				failure = { reason: restorationError };
+			}
 		}
 	}
 	if (failure) {

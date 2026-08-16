@@ -2,11 +2,16 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { DESKTOP_FLOOR_VERSION } from '../scripts/lib/host-tests.mts';
-import { assertConfigurationContribution } from './configuration-contract.mts';
+import {
+	assertConfigurationContribution,
+	assertConfigurationDocumentation,
+} from './configuration-contract.mts';
 
-const manifest = JSON.parse(
-	await readFile(new URL('../package.json', import.meta.url), 'utf8'),
-);
+const [manifestSource, readme] = await Promise.all([
+	readFile(new URL('../package.json', import.meta.url), 'utf8'),
+	readFile(new URL('../README.md', import.meta.url), 'utf8'),
+]);
+const manifest = JSON.parse(manifestSource);
 
 test('manifest exposes native Markdown preview hooks for desktop and web', () => {
 	assert.equal(manifest.version, '0.0.0');
@@ -29,4 +34,8 @@ test('manifest exposes native Markdown preview hooks for desktop and web', () =>
 
 test('manifest exposes the exact window-scoped feature settings enabled by default', () => {
 	assertConfigurationContribution(manifest.contributes.configuration);
+});
+
+test('README documents every public setting exactly once and in manifest order', () => {
+	assertConfigurationDocumentation(readme);
 });

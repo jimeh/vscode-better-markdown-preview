@@ -30,6 +30,15 @@ tooling projects. Stylelint checks CSS semantics; Oxfmt owns formatting for CSS,
 JavaScript, TypeScript, JSON, Markdown, and YAML, while Taplo remains the TOML
 formatter.
 
+Oxlint's type-aware discovery associates files only with the conventionally
+named root `tsconfig.json`; the type-aware task is therefore scoped to that
+product program while the four explicit TypeScript projects remain the
+authoritative repository typecheck. Oxfmt exits with an error when every
+explicit path is ignored, so Lefthook's staged-format exclusions must stay
+aligned with `.oxfmtrc.json`. Keep downloaded `.vscode-test/` and
+`.vscode-test-web/` distributions outside repository-wide format and lint
+discovery because they contain their own tool configurations.
+
 `mise run setup` also installs Lefthook. Its read-only parallel pre-commit jobs
 check Oxfmt, Taplo, and lint only against matching staged files, then
 conditionally run the fast type-aware product lint, full TypeScript typecheck,
@@ -95,19 +104,49 @@ next-frame or bounded-fallback cleanup.
 `test/fixtures/kitchen-sink.md` remains the shared manual/runtime document for
 light, dark, high-contrast, wide, and narrow preview checks.
 
+### Adding a Rendering Feature
+
+Trace an adjacent setting before editing; for example,
+`rg -n 'rendering\.columns'` reveals the existing public, runtime, test, host,
+and documentation contracts. Then:
+
+1. Declare the public setting and add its typed key, default, and host read.
+2. Install or intercept syntax only while the feature is enabled. Disabling a
+   rendering feature must leave VS Code and other Markdown extensions free to
+   handle it.
+3. Add focused success, failure, boundary, regression, and isolated-disable
+   coverage justified by the feature's concrete failure modes. Inline prose
+   transformations must explicitly preserve code, HTML, existing links, and
+   autolinks when those boundaries apply.
+4. Update the shared host contract when correctness depends on VS Code's
+   supplied Markdown-It, plugin ordering, renderer, source maps, or live
+   configuration reload. Keep detailed syntax permutations in fast tests.
+5. Update the README setting reference and the kitchen-sink fixture when the
+   behavior is user-visible. Configuration contracts keep the manifest,
+   runtime keys, and README reference aligned.
+6. For new packages, follow the release-age and `allowBuilds` policy, keep
+   runtime code browser-safe, and build both extension targets.
+
 ## Host Compatibility Contract
 
 Desktop and web integration share the browser-safe fixture and semantic
 assertions in `src/test/render-contract.ts`. Both activate the development
 extension and render with `markdown.api.render`; neither constructs its own
-Markdown-It instance. The contract covers default-on task lists, definitions, footnotes,
-known alerts, GFM literal links with native `fuzzyLink: false`, tag filtering,
-expanded and highlighted TOML/YAML frontmatter, columns, exact Mermaid fences,
-rich fence delegation, several
-extension-owned output markers, and native source-map attributes. The host
-matrix also changes a representative parser setting and preview-only setting,
-waits for the real Markdown plugin reload, verifies disabled output, then resets
-both settings and verifies default rendering returns.
+Markdown-It instance. The contract covers default-on task lists, definitions,
+footnotes, known alerts, GFM literal links with native `fuzzyLink: false`, tag
+filtering, expanded and highlighted TOML/YAML frontmatter, columns, exact
+Mermaid fences, rich fence delegation, several extension-owned output markers,
+and native source-map attributes. The host matrix also changes a representative
+parser setting and preview-only setting, waits for the real Markdown plugin
+reload, verifies disabled output, then resets both settings and verifies default
+rendering returns.
+
+Desktop host settings under `.vscode-test/user-data` persist across invocations.
+Tests that change global configuration must establish their own starting
+defaults and restore every prior value in `finally`. When independent restores
+use `Promise.allSettled`, inspect every rejected result after all restores have
+settled. Report restoration failures while preserving an earlier test failure
+as the primary error.
 
 Detailed syntax and DOM edge cases stay in fast tests. Host tests prove real
 contribution discovery and compatibility without duplicating the unit suite.
