@@ -7,8 +7,8 @@
 **A better, theme-aware Markdown preview for Visual Studio Code.**
 
 [![GitHub Release](https://img.shields.io/github/v/release/jimeh/vscode-better-markdown-preview?logo=github&label=Release)](https://github.com/jimeh/vscode-better-markdown-preview/releases/latest)
-[![VSCode](https://img.shields.io/badge/Marketplace-blue.svg?logo=visualstudiocode&logoColor=white)][vscode-ext]
-[![OpenVSX](https://img.shields.io/badge/OpenVSX-purple.svg?logo=eclipseide&logoColor=white)][openvsx-ext]
+[![VSCode](https://img.shields.io/badge/Marketplace-blue.svg?logoColor=white&logo=data:image/svg%2bxml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJtOTkuOTkgOS41NXY4My4zM3MtMjMuOCA5LjUxLTIzLjggOS41MWwtNDEuNjktNDAuNDYtMjUuMDIgMTkuMDUtOS40OC00Ljc1di01MHM5LjUzLTQuNzkgOS41My00Ljc5bDI1LjA0IDE5LjA2IDQxLjYtNDAuNSAyMy44MyA5LjU1em0tMjYuMjYgMjMuODgtMjMuOCAxNy43OSAyMy44MSAxNy45M3YtMzUuNzJ6bS02MS45NCA3LjA3djIxLjRzMTEuOS0xMC43NyAxMS45LTEwLjc3bC0xMS45MS0xMC42M3oiIGZpbGw9IiNmZmYiLz48L3N2Zz4=)][vscode-ext]
+[![OpenVSX](https://img.shields.io/badge/OpenVSX-purple.svg?logoColor=white&logo=data:image/svg%2bxml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTMxIDEzMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSIjZmZmIj48cGF0aCBkPSJtNDIuOCA0My4zNSAyMi42LTM5LjJoLTQ1LjN6bS0yNS40IDQ0LjNoNDUuM2wtMjIuNy0zOS4xem01MSAwIDIyLjYgMzkuMiAyMi42LTM5LjJ6Ii8+PHBhdGggZD0ibTY1LjQgNC4xNS0yMi42IDM5LjJoNDUuMnptLTI1LjQgNDQuNCAyMi43IDM5LjEgMjIuNi0zOS4xem01MSAwLTIyLjYgMzkuMWg0NS4yeiIvPjwvZz48L3N2Zz4=)][openvsx-ext]
 [![GitHub Issues](https://img.shields.io/github/issues/jimeh/vscode-better-markdown-preview?logo=github&label=Issues)](https://github.com/jimeh/vscode-better-markdown-preview/issues)
 [![GitHub Pull Requests](https://img.shields.io/github/issues-pr/jimeh/vscode-better-markdown-preview?logo=github&label=PRs)](https://github.com/jimeh/vscode-better-markdown-preview/pulls)
 [![License](https://img.shields.io/github/license/jimeh/vscode-better-markdown-preview?label=License)](https://github.com/jimeh/vscode-better-markdown-preview/blob/main/LICENSE)
@@ -47,11 +47,21 @@ It adds:
 Open a Markdown file and run **Markdown: Open Preview** or **Markdown: Open
 Preview to the Side**. The built-in preview is enhanced automatically.
 
+**Compatibility note:** Better Markdown Preview is intended as a one-stop
+preview enhancement and may conflict with other extensions that modify VS
+Code's Markdown preview. Disable or uninstall overlapping preview extensions to
+avoid duplicate rendering or unexpected behavior.
+
 ## Extended syntax
+
+### TOML and YAML frontmatter
 
 TOML frontmatter uses exact `+++` delimiter lines at the start of a document;
 YAML uses `---`. Both render expanded by default in a collapsible,
 syntax-highlighted code block without displaying their delimiter lines.
+
+### Columns
+
 Columns use the supported Pandoc fenced-div subset:
 
 ```markdown
@@ -65,6 +75,8 @@ Right column
 ::::
 ```
 
+### Rich code blocks
+
 Rich code metadata follows the language identifier:
 
 ````markdown
@@ -73,9 +85,13 @@ const needle = true; // [!code ++]
 ```
 ````
 
+### Mermaid
+
 Only an exact lowercase `mermaid` fence renders as a diagram. Mermaid is loaded
 from the extension package only when the document contains such a block; source
 remains visible if loading or rendering fails.
+
+### Emoji
 
 Named emoji shortcodes render as Unicode emoji in ordinary Markdown text and
 link labels, but remain literal in inline and block code. Emoticon shortcuts are
