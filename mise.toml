@@ -10,8 +10,12 @@ taplo = "0"
 zizmor = "1"
 
 [tasks.setup]
-description = "Install locked tools and dependencies"
-run = ["mise install --locked", "pnpm install --frozen-lockfile"]
+description = "Install locked tools, dependencies, and Git hooks"
+run = [
+  "mise install --locked",
+  "pnpm install --frozen-lockfile",
+  "pnpm exec lefthook install",
+]
 
 [tasks.dev]
 description = "Watch extension hosts, preview assets, and TypeScript"
@@ -30,8 +34,24 @@ description = "Check source, configuration, and documentation formatting"
 run = ["pnpm run format:check", "taplo format --check mise.toml"]
 
 [tasks.lint]
-description = "Run static analysis"
+description = "Run native, type-aware, CSS, and Markdown static analysis"
 run = "pnpm run lint"
+
+[tasks."lint:code"]
+description = "Run fast native Oxlint checks across JavaScript and TypeScript"
+run = "pnpm run lint:code"
+
+[tasks."lint:types"]
+description = "Run type-aware Oxlint checks for the root product program"
+run = "pnpm run lint:types"
+
+[tasks."lint:css"]
+description = "Run Stylelint against preview CSS"
+run = "pnpm run lint:css"
+
+[tasks."lint:markdown"]
+description = "Run Markdownlint against project documentation"
+run = "pnpm run lint:markdown"
 
 [tasks."lint:fix"]
 description = "Apply safe static-analysis fixes"
@@ -142,6 +162,11 @@ run = [
   "pinact --version",
   "taplo --version",
   "zizmor --version",
+  "pnpm exec tsc --version",
+  "pnpm exec oxlint --version",
+  "pnpm exec oxfmt --version",
+  "pnpm exec stylelint --version",
+  "pnpm exec lefthook version",
 ]
 
 [tasks.clean]

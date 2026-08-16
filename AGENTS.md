@@ -75,6 +75,18 @@ Better Markdown Preview extends VS Code's built-in Markdown preview. Read
   attributes such as `url(#id)` and ARIA ID references.
 - Use `mise run check` during implementation and `mise run verify` on the
   intended final head. Run focused tasks while iterating.
+- Oxlint's type-aware project discovery only associates files with the root
+  conventionally named `tsconfig.json`; keep its type-aware task scoped to that
+  product program. The four explicit TypeScript 7 projects remain the
+  authoritative full-repository typecheck.
+- TypeScript 7's default package export does not provide the legacy compiler
+  API. Keep repository tooling on CLI `tsc` invocations and parse strict JSON
+  directly instead of importing `typescript` for JSONC helpers.
+- Oxfmt owns source, configuration, documentation, and CSS formatting, but
+  `mise.toml` remains excluded because Taplo is the canonical TOML formatter.
+- Oxfmt exits with an error when every explicit path is ignored. Keep
+  Lefthook's staged-format exclusions aligned with `.oxfmtrc.json` so ignored
+  lockfiles and plan documents skip the job instead of blocking commits.
 
 ## Dependencies and Automation
 

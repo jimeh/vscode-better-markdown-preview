@@ -216,6 +216,7 @@ html.better-markdown-preview-smooth-scroll {
 		--vscode-markdownAlert-note\.foreground,
 		var(--vscode-markdownAlert-note-foreground, var(--vscode-editor-foreground))
 	);
+
 	margin: 1rem 0;
 	padding: 0.75rem 1rem;
 	border: 0;
@@ -301,8 +302,8 @@ html.better-markdown-preview-smooth-scroll {
 	display: inline-block;
 	min-width: 100%;
 	box-sizing: border-box;
-	box-decoration-break: clone;
 	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
 }
 
 .better-markdown-preview-code[data-bmp-line-numbers='true'] {

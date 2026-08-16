@@ -1,0 +1,80 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: check staged formatting
+      glob: '*.{css,html,js,json,jsonc,md,mjs,mts,ts,yaml,yml}'
+      exclude:
+        - '.vscode-test/**'
+        - '.vscode-test-web/**'
+        - 'artifacts/**'
+        - 'coverage/**'
+        - 'dist/**'
+        - 'docs/plans/**'
+        - 'mise.lock'
+        - 'mise.toml'
+        - 'node_modules/**'
+        - 'out/**'
+        - 'pnpm-lock.yaml'
+      run: pnpm exec oxfmt --check {staged_files}
+
+    - name: check staged TOML formatting
+      glob: 'mise.toml'
+      run: mise exec -- taplo format --check {staged_files}
+
+    - name: lint staged code
+      glob: '*.{js,mjs,mts,ts}'
+      run: pnpm exec oxlint --deny-warnings {staged_files}
+
+    - name: lint staged CSS
+      glob: '*.css'
+      run: pnpm exec stylelint {staged_files}
+
+    - name: lint staged Markdown
+      glob: '*.md'
+      run: pnpm exec markdownlint-cli2 --no-globs {staged_files}
+
+    - name: type-aware product lint
+      glob:
+        - '.oxlintrc.json'
+        - 'package.json'
+        - 'pnpm-lock.yaml'
+        - 'pnpm-workspace.yaml'
+        - 'src/*.{ts,mts}'
+        - 'src/**/*.{ts,mts}'
+        - 'tsconfig.json'
+      run: pnpm run lint:types
+
+    - name: typecheck TypeScript projects
+      glob:
+        - '*.{js,json,mjs,mts,ts}'
+        - 'pnpm-lock.yaml'
+        - 'pnpm-workspace.yaml'
+      run: pnpm run typecheck
+
+    - name: run unit tests
+      glob:
+        - 'package.json'
+        - 'pnpm-lock.yaml'
+        - 'pnpm-workspace.yaml'
+        - 'src/*.{ts,mts}'
+        - 'src/**/*.{ts,mts}'
+        - 'vitest.config.mts'
+      run: pnpm run test:unit
+
+    - name: run Node contract tests
+      glob:
+        - '.github/workflows/*.{yaml,yml}'
+        - '.oxfmtrc.json'
+        - '.vscode/tasks.json'
+        - 'CHANGELOG.md'
+        - 'esbuild.mts'
+        - 'lefthook.yml'
+        - 'media/preview.css'
+        - 'package.json'
+        - 'pnpm-lock.yaml'
+        - 'pnpm-workspace.yaml'
+        - 'scripts/*.{ts,mts}'
+        - 'scripts/**/*.{ts,mts}'
+        - 'test/*.{ts,mts}'
+        - 'test/**/*.{ts,mts}'
+      run: pnpm run test:contracts

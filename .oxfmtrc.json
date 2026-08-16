@@ -1,0 +1,21 @@
+{
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"ignorePatterns": [
+		".vscode-test/**",
+		".vscode-test-web/**",
+		"artifacts/**",
+		"coverage/**",
+		"dist/**",
+		"docs/plans/**",
+		"mise.lock",
+		"mise.toml",
+		"node_modules/**",
+		"out/**",
+		"pnpm-lock.yaml"
+	],
+	"printWidth": 80,
+	"singleQuote": true,
+	"sortPackageJson": false,
+	"trailingComma": "all",
+	"useTabs": true
+}

@@ -22,6 +22,21 @@ Use the narrowest task that proves the behavior under development:
   visibility, runner outputs, and workflow orchestration without publishing.
 - `mise run ci:workflows` validates workflow syntax, security, and action pins.
 
+Code quality has distinct, complementary owners. Oxlint runs fast native checks
+across every JavaScript and TypeScript file plus type-aware rules over the
+product program owned by the root `tsconfig.json`. TypeScript 7 remains the
+authoritative compiler gate for the product, desktop tests, web tests, and
+tooling projects. Stylelint checks CSS semantics; Oxfmt owns formatting for CSS,
+JavaScript, TypeScript, JSON, Markdown, and YAML, while Taplo remains the TOML
+formatter.
+
+`mise run setup` also installs Lefthook. Its read-only parallel pre-commit jobs
+check Oxfmt, Taplo, and lint only against matching staged files, then
+conditionally run the fast type-aware product lint, full TypeScript typecheck,
+unit suite, and Node contracts when relevant source, configuration, or
+dependency files are staged. Longer host and package checks remain explicit
+Mise and CI gates.
+
 `mise run check` is the fast handoff gate: formatting, lint, all TypeScript
 projects, Node contracts, and coverage. `mise run validate` adds the package and
 workflow contracts. `mise run verify` prepares one revision and then runs the
@@ -103,12 +118,12 @@ fixture and focused expectations only for accepted compatibility behavior.
 
 ## CI
 
-CI has one broad validation and preparation owner. It runs formatting, lint,
-strict product/desktop/web/tooling typechecks, Node contracts, all-files unit
-coverage, package inventory, and workflow policy once, then uploads `dist/` and
-`out/` for revision-bound host jobs. Desktop floor, desktop stable, and web
-stable jobs install only their runtime dependencies, download those prepared
-artifacts, and run their narrow compatibility consumer.
+CI has one broad validation and preparation owner with individually named
+formatting, lint, TypeScript, Node contract, unit coverage, package inventory,
+and workflow-policy steps, then uploads `dist/` and `out/` for revision-bound
+host jobs. Desktop floor, desktop stable, and web stable jobs install only their
+runtime dependencies, download those prepared artifacts, and run their narrow
+compatibility consumer.
 
 This gives clean-environment evidence for the pushed revision without running
 the complete repository gate in every host job.

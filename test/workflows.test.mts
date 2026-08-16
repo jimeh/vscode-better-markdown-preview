@@ -15,6 +15,27 @@ function occurrences(source: string, pattern: RegExp): number {
 	return [...source.matchAll(pattern)].length;
 }
 
+test('CI names every repository quality gate explicitly', () => {
+	assert.match(
+		ciWorkflow,
+		/name: Format, lint, typecheck, test, and prepare hosts/,
+	);
+	for (const [step, task] of [
+		['Check formatting', 'format:check'],
+		['Lint code, CSS, and Markdown', 'lint'],
+		['Typecheck all TypeScript projects', 'typecheck'],
+		['Run Node contract tests', 'test:contracts'],
+		['Run unit tests with coverage', 'test:coverage'],
+		['Validate package contents', 'package:validate'],
+		['Validate GitHub Actions workflows', 'ci:workflows'],
+	]) {
+		assert.match(
+			ciWorkflow,
+			new RegExp(`name: ${step}\\n\\s+run: mise run ${task}`),
+		);
+	}
+});
+
 test('semantic PR validation is metadata-only and enforces the release vocabulary', () => {
 	assert.match(semanticPrWorkflow, /^\s{2}pull_request_target:/m);
 	for (const event of ['opened', 'edited', 'reopened', 'synchronize']) {

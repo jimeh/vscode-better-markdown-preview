@@ -17,7 +17,7 @@
 		".vscode-test.mjs",
 		"release.config.mjs",
 		"esbuild.mts",
-		"eslint.config.mts",
+		"stylelint.config.mjs",
 		"vitest.config.mts",
 		"scripts/**/*.mts",
 		"test/**/*.mts"
