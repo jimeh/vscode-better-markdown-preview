@@ -236,7 +236,9 @@ describe('preview runtime', () => {
 		);
 		expect(document.querySelectorAll('[data-bmp-toc] a')).toHaveLength(2);
 		first.dispose();
+		expect(document.querySelectorAll('[data-bmp-toc]')).toHaveLength(1);
 		second.dispose();
+		expect(document.querySelector('[data-bmp-toc]')).toBeNull();
 
 		setDocument('<h1 id="title">Title</h1><h2 id="one">One</h2>');
 		const sparse = enhancePreview(document);
@@ -552,6 +554,154 @@ describe('preview runtime', () => {
 		controller.dispose();
 	});
 
+	test('does not commit a stale Mermaid success over a same-block edit', async () => {
+		setDocument(
+			'<pre data-bmp-mermaid-source data-bmp-mermaid-state="source">graph TD\nA--&gt;B</pre>',
+		);
+		let finishFirst: (() => void) | undefined;
+		const firstRender = new Promise<void>((resolve) => {
+			finishFirst = resolve;
+		});
+		const sources: string[] = [];
+		const render = vi.fn<MermaidAdapter['render']>(async (element, source) => {
+			sources.push(source);
+			if (source.includes('A-->B')) {
+				await firstRender;
+			}
+			element.innerHTML = `<svg data-source="${source.at(-1)}"></svg>`;
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await vi.waitFor(() => expect(render).toHaveBeenCalledOnce());
+		const block = document.querySelector<HTMLElement>(
+			'[data-bmp-mermaid-source]',
+		)!;
+		block.dataset.bmpMermaidState = 'source';
+		block.textContent = 'graph TD\nA-->C';
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		finishFirst?.();
+		await vi.waitFor(() => expect(render).toHaveBeenCalledTimes(2));
+		expect(sources).toEqual(['graph TD\nA-->B', 'graph TD\nA-->C']);
+		expect(block.querySelector('svg')?.dataset.source).toBe('C');
+		expect(block.dataset.bmpMermaidState).toBe('rendered');
+		controller.dispose();
+	});
+
+	test('does not restore stale Mermaid failure source over a same-block edit', async () => {
+		setDocument(
+			'<pre data-bmp-mermaid-source data-bmp-mermaid-state="source">graph TD\nA--&gt;B</pre>',
+		);
+		let failFirst: (() => void) | undefined;
+		const firstRender = new Promise<void>((_resolve, reject) => {
+			failFirst = () => reject(new Error('stale failure'));
+		});
+		const sources: string[] = [];
+		const render = vi.fn<MermaidAdapter['render']>(async (element, source) => {
+			sources.push(source);
+			if (source.includes('A-->B')) {
+				await firstRender;
+			}
+			element.innerHTML = `<svg data-source="${source.at(-1)}"></svg>`;
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await vi.waitFor(() => expect(render).toHaveBeenCalledOnce());
+		const block = document.querySelector<HTMLElement>(
+			'[data-bmp-mermaid-source]',
+		)!;
+		block.dataset.bmpMermaidState = 'source';
+		block.textContent = 'graph TD\nA-->C';
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		failFirst?.();
+		await vi.waitFor(() => expect(render).toHaveBeenCalledTimes(2));
+		expect(sources).toEqual(['graph TD\nA-->B', 'graph TD\nA-->C']);
+		expect(block.querySelector('svg')?.dataset.source).toBe('C');
+		expect(block.dataset.bmpMermaidState).toBe('rendered');
+		controller.dispose();
+	});
+
+	test('does not create Mermaid UI after disposal while loading', async () => {
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		let finishLoad: ((adapter: MermaidAdapter) => void) | undefined;
+		const loading = new Promise<MermaidAdapter>((resolve) => {
+			finishLoad = resolve;
+		});
+		const loadMermaid = vi.fn(() => loading);
+		const render = vi.fn<MermaidAdapter['render']>(async (element) => {
+			element.innerHTML = '<svg></svg>';
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid,
+		});
+		await vi.waitFor(() => expect(loadMermaid).toHaveBeenCalledOnce());
+		expect(render).not.toHaveBeenCalled();
+		controller.dispose();
+		finishLoad?.({ render });
+		await controller.ready;
+		expect(render).not.toHaveBeenCalled();
+		expect(document.querySelector('[data-bmp-mermaid-dialog]')).toBeNull();
+		expect(document.querySelector('[data-bmp-mermaid-open]')).toBeNull();
+	});
+
+	test('does not commit Mermaid output after disposal during rendering', async () => {
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		let finishRender: (() => void) | undefined;
+		const rendering = new Promise<void>((resolve) => {
+			finishRender = resolve;
+		});
+		const render = vi.fn<MermaidAdapter['render']>(async (element) => {
+			await rendering;
+			element.innerHTML = '<svg></svg>';
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await vi.waitFor(() => expect(render).toHaveBeenCalledOnce());
+		controller.dispose();
+		finishRender?.();
+		await controller.ready;
+		const block = document.querySelector('[data-bmp-mermaid-source]')!;
+		expect(block.querySelector('svg')).toBeNull();
+		expect(document.querySelector('[data-bmp-mermaid-dialog]')).toBeNull();
+		expect(document.querySelector('[data-bmp-mermaid-open]')).toBeNull();
+	});
+
+	test('removes owned interactive UI on dispose and rewires it on recreate', async () => {
+		setDocument(
+			'<h2 id="one">One</h2><h2 id="two">Two</h2><pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>',
+		);
+		const render = vi.fn<MermaidAdapter['render']>(async (element) => {
+			element.innerHTML = '<svg viewBox="0 0 100 50"></svg>';
+		});
+		const first = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await first.ready;
+		first.dispose();
+		expect(document.querySelector('[data-bmp-toc]')).toBeNull();
+		expect(document.querySelector('[data-bmp-toc-trigger]')).toBeNull();
+		expect(document.querySelector('[data-bmp-toc-dialog]')).toBeNull();
+		expect(document.querySelector('[data-bmp-mermaid-open]')).toBeNull();
+		expect(document.querySelector('[data-bmp-mermaid-dialog]')).toBeNull();
+
+		const second = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await second.ready;
+		const trigger = document.querySelector<HTMLButtonElement>(
+			'[data-bmp-mermaid-open]',
+		)!;
+		const dialog = document.querySelector<HTMLDialogElement>(
+			'[data-bmp-mermaid-dialog]',
+		)!;
+		dialog.showModal = vi.fn(() => dialog.setAttribute('open', ''));
+		trigger.click();
+		expect(dialog.hasAttribute('open')).toBe(true);
+		second.dispose();
+	});
+
 	test('opens a near-viewport Mermaid viewer with zoom, pan, fit, and focus restoration', async () => {
 		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
 		const controller = enhancePreview(document, {
@@ -633,6 +783,24 @@ describe('preview runtime', () => {
 		expect(
 			dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
 		).toBe('125%');
+		dialog
+			.querySelector<HTMLButtonElement>('[data-bmp-mermaid-zoom-out]')
+			?.click();
+		expect(
+			dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
+		).toBe('100%');
+		for (const [key, expected] of [
+			['+', '125%'],
+			['-', '100%'],
+			['0', '100%'],
+		] as const) {
+			dialog.dispatchEvent(
+				new KeyboardEvent('keydown', { key, bubbles: true }),
+			);
+			expect(
+				dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
+			).toBe(expected);
+		}
 		canvas.dispatchEvent(
 			new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
 		);
@@ -651,7 +819,7 @@ describe('preview runtime', () => {
 		);
 		expect(
 			dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
-		).toBe('150%');
+		).toBe('120%');
 		dialog.querySelector<HTMLButtonElement>('[data-bmp-mermaid-fit]')?.click();
 		expect(
 			dialog.querySelector<HTMLElement>('[data-bmp-mermaid-surface]')?.style
@@ -685,10 +853,18 @@ describe('preview runtime', () => {
 				.transform,
 		).toContain('translate(25px, 35px)');
 
+		dialog
+			.querySelector<HTMLButtonElement>('[data-bmp-mermaid-close]')
+			?.click();
+		expect(close).toHaveBeenCalledOnce();
+		trigger.click();
+		dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
+		expect(close).toHaveBeenCalledTimes(2);
+		trigger.click();
 		dialog.dispatchEvent(
 			new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
 		);
-		expect(close).toHaveBeenCalledOnce();
+		expect(close).toHaveBeenCalledTimes(3);
 		expect(document.activeElement).toBe(trigger);
 		controller.dispose();
 	});

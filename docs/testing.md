@@ -10,6 +10,8 @@ Use the narrowest task that proves the behavior under development:
   including files no test imports, with V8 coverage.
 - `mise run build` compiles production desktop, web, preview runtime, Mermaid,
   and CSS bundles.
+- `mise run test:preview-browser` builds and loads the actual preview bundles in
+  real Chromium, including the relative Mermaid dynamic import.
 - `mise run test:hosts:prepare` builds production artifacts plus the desktop and
   browser host runners once for the current revision.
 - `mise run test:desktop:floor` and `mise run test:desktop:stable` consume those
@@ -157,6 +159,24 @@ The direct `markdown-it` dependency is only a deterministic development/test
 fixture. When stable changes Markdown-It major versions, diagnose the stable
 host contract first, preserve the declared 1.125.0 floor, then update the local
 fixture and focused expectations only for accepted compatibility behavior.
+
+## Preview Browser Contract
+
+The preview browser contract serves a VS Code-shaped fixture and the production
+`dist/preview` assets over loopback. It exercises the actual `preview.js`, CSS,
+and relative Mermaid chunk in repository-managed Chromium under a restrictive
+fixture CSP. Scripts are same-origin only; `unsafe-inline` is limited to styles
+because the fixture and Mermaid output deliberately use inline style values. It
+covers TOC and code enhancement, Markdown body replacement, Mermaid rendering
+and theme rerendering, dialog behavior, focus restoration, console errors, and
+unhandled promise rejections.
+
+This is real browser evidence for the contributed assets, not privileged
+introspection of VS Code's native preview webview. VS Code contribution
+discovery and host-supplied Markdown rendering remain owned by the desktop and
+web Extension Host contracts. Fine-grained disposal and reinitialization remain
+covered by the focused DOM lifecycle tests because the contributed entry point
+intentionally does not publish a controller handle to the page.
 
 ## CI
 
