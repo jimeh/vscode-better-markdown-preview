@@ -426,6 +426,47 @@ describe('preview runtime', () => {
 		controller.dispose();
 	});
 
+	test('prunes an orphaned layout when VS Code replaces the body in one mutation batch', async () => {
+		setDocument(
+			'<h2 id="one">One</h2><h2 id="two">Two</h2><pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>',
+		);
+		const render = vi.fn<MermaidAdapter['render']>(async (element) => {
+			element.innerHTML = '<svg viewBox="0 0 100 50"></svg>';
+		});
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({ render }),
+		});
+		await controller.ready;
+
+		const oldBody = document.querySelector<HTMLElement>('.markdown-body')!;
+		const replacement = document.createElement('div');
+		replacement.className = 'markdown-body';
+		replacement.innerHTML =
+			'<h2 id="three">Three</h2><h2 id="four">Four</h2><pre data-bmp-mermaid-source>graph TD\nC--&gt;D</pre>';
+		oldBody.remove();
+		document.body.append(replacement);
+
+		await vi.waitFor(() => expect(render).toHaveBeenCalledTimes(2));
+		expect(document.querySelectorAll('[data-bmp-layout]')).toHaveLength(1);
+		expect(document.querySelectorAll('[data-bmp-toc]')).toHaveLength(1);
+		expect(document.querySelectorAll('[data-bmp-toc-trigger]')).toHaveLength(1);
+		expect(document.querySelectorAll('[data-bmp-toc-dialog]')).toHaveLength(1);
+		expect(document.querySelectorAll('[data-bmp-mermaid-open]')).toHaveLength(
+			1,
+		);
+		expect(document.querySelectorAll('[data-bmp-mermaid-dialog]')).toHaveLength(
+			1,
+		);
+		const toc = document.querySelector('[data-bmp-toc]')!;
+		expect(toc.textContent).toContain('Four');
+		expect(toc.textContent).not.toContain('One');
+		expect(replacement.closest('[data-bmp-layout]')).not.toBeNull();
+		expect(
+			replacement.querySelector('[data-bmp-mermaid-source] svg'),
+		).not.toBeNull();
+		controller.dispose();
+	});
+
 	test('clears owned UI while the markdown body is absent and recovers when it returns', async () => {
 		setDocument(
 			'<h2 id="one">One</h2><h2 id="two">Two</h2><pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>',

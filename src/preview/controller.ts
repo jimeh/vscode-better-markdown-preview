@@ -111,6 +111,17 @@ function createController(
 		mermaid.syncViewer(settings.mermaidViewer);
 	};
 
+	const pruneOrphanedLayouts = (): void => {
+		for (const layout of document.querySelectorAll<HTMLElement>(
+			'[data-bmp-layout]',
+		)) {
+			if (!layout.querySelector('.markdown-body')) {
+				clearToc(layout);
+				layout.remove();
+			}
+		}
+	};
+
 	const clearOwnedUi = (): void => {
 		if (scrollFrame) {
 			cancelAnimationFrame(scrollFrame);
@@ -118,14 +129,6 @@ function createController(
 		}
 		smoothScrollCleanup?.();
 		mermaid.syncViewer(false);
-		for (const layout of document.querySelectorAll<HTMLElement>(
-			'[data-bmp-layout]',
-		)) {
-			clearToc(layout);
-			if (!layout.querySelector('.markdown-body')) {
-				layout.remove();
-			}
-		}
 	};
 
 	const updateActiveHeading = (): void => {
@@ -169,6 +172,7 @@ function createController(
 		if (disposed) {
 			return;
 		}
+		pruneOrphanedLayouts();
 		const markdownBody = document.querySelector<HTMLElement>('.markdown-body');
 		if (!markdownBody) {
 			clearOwnedUi();
