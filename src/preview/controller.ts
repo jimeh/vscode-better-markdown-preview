@@ -29,6 +29,24 @@ interface SharedController {
 
 const sharedControllers = new WeakMap<Document, SharedController>();
 
+function revealTocLink(
+	nav: HTMLElement,
+	link: HTMLAnchorElement,
+	behavior: ScrollBehavior,
+): void {
+	const navBounds = nav.getBoundingClientRect();
+	const linkBounds = link.getBoundingClientRect();
+	let delta = 0;
+	if (linkBounds.top < navBounds.top) {
+		delta = linkBounds.top - navBounds.top;
+	} else if (linkBounds.bottom > navBounds.bottom) {
+		delta = linkBounds.bottom - navBounds.bottom;
+	}
+	if (delta !== 0) {
+		nav.scrollTo({ top: nav.scrollTop + delta, behavior });
+	}
+}
+
 /**
  * Shares one controller per document. The first active caller owns its options
  * until the final shared reference is disposed.
@@ -72,17 +90,19 @@ function createController(
 	let scrollFrame = 0;
 	let settings = previewConfiguration(defaultConfiguration);
 	let smoothScrollCleanup: (() => void) | undefined;
+	let activeTocLink: HTMLAnchorElement | undefined;
 	const cleanups: Array<() => void> = [];
 	const mermaid = createMermaidRenderer(
 		document,
 		options.loadMermaid ?? defaultMermaidLoader,
 	);
 
+	const smoothScrollingEnabled = (): boolean =>
+		settings.smoothScrolling &&
+		!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
 	const beginSmoothTocNavigation = (): void => {
-		if (
-			!settings.smoothScrolling ||
-			window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-		) {
+		if (!smoothScrollingEnabled()) {
 			return;
 		}
 		smoothScrollCleanup?.();
@@ -129,6 +149,7 @@ function createController(
 			cancelAnimationFrame(scrollFrame);
 			scrollFrame = 0;
 		}
+		activeTocLink = undefined;
 		smoothScrollCleanup?.();
 		mermaid.syncViewer(false);
 	};
@@ -157,6 +178,9 @@ function createController(
 				}
 			}
 		}
+		const nextActiveTocLink = trackedLinks.find(
+			(link) => link.dataset.bmpHeadingId === active?.id,
+		);
 		for (const link of document.querySelectorAll<HTMLAnchorElement>(
 			'[data-bmp-heading-id]',
 		)) {
@@ -166,6 +190,17 @@ function createController(
 				link.setAttribute('aria-current', 'location');
 			} else {
 				link.removeAttribute('aria-current');
+			}
+		}
+		if (nextActiveTocLink !== activeTocLink) {
+			activeTocLink = nextActiveTocLink;
+			const nav = nextActiveTocLink?.closest<HTMLElement>('[data-bmp-toc]');
+			if (nav && nextActiveTocLink) {
+				revealTocLink(
+					nav,
+					nextActiveTocLink,
+					smoothScrollingEnabled() ? 'smooth' : 'auto',
+				);
 			}
 		}
 	};
@@ -194,6 +229,7 @@ function createController(
 			buildToc(document, layout, markdownBody, beginSmoothTocNavigation);
 		} else {
 			clearToc(layout);
+			activeTocLink = undefined;
 			if (scrollFrame) {
 				cancelAnimationFrame(scrollFrame);
 				scrollFrame = 0;

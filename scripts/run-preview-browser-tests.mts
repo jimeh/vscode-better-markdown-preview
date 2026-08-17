@@ -4,6 +4,19 @@ import { extname, resolve } from 'node:path';
 import { chromium, type Browser, type Page } from 'playwright-core';
 import { isPathWithin } from './lib/paths.mts';
 
+interface BrowserElement {
+	readonly textContent: string | null;
+	readonly scrollTop: number;
+	getBoundingClientRect(): { top: number; bottom: number };
+	querySelector(selector: string): BrowserElement | null;
+}
+
+interface BrowserGlobal {
+	document: {
+		querySelector(selector: string): BrowserElement | null;
+	};
+}
+
 const repositoryRoot = resolve(import.meta.dirname, '..');
 const previewRoot = resolve(repositoryRoot, 'dist/preview');
 const fixtureCsp = [
@@ -112,7 +125,7 @@ let primaryFailure: unknown;
 try {
 	const port = await listen(server);
 	browser = await chromium.launch({ headless: true });
-	page = await browser.newPage();
+	page = await browser.newPage({ viewport: { width: 1280, height: 480 } });
 	const errors: string[] = [];
 	page.on('console', (message) => {
 		if (message.type() === 'error') {
@@ -251,6 +264,68 @@ window.addEventListener('unhandledrejection', event => {
 	);
 
 	await page.evaluate(`(() => {
+		const body = document.querySelector('.markdown-body');
+		body.innerHTML = '<h1 id="long-title">Long fixture</h1>' + Array.from(
+			{ length: 40 },
+			(_, index) => {
+				const number = index + 1;
+				return '<h2 id="section-' + number + '">Section ' + number +
+					'</h2><p style="min-height: 4rem">Section content</p>';
+			},
+		).join('');
+	})()`);
+	await page.locator('[data-bmp-toc] a', { hasText: 'Section 40' }).waitFor();
+	await page.evaluate(
+		'window.scrollTo(0, document.documentElement.scrollHeight)',
+	);
+	await page.waitForFunction(() => {
+		const browserDocument = (globalThis as unknown as BrowserGlobal).document;
+		const nav = browserDocument.querySelector('[data-bmp-toc]');
+		const active = nav?.querySelector('[aria-current="location"]');
+		if (!nav || active?.textContent !== 'Section 40') {
+			return false;
+		}
+		const navBounds = nav.getBoundingClientRect();
+		const activeBounds = active.getBoundingClientRect();
+		return (
+			nav.scrollTop > 0 &&
+			activeBounds.top >= navBounds.top &&
+			activeBounds.bottom <= navBounds.bottom
+		);
+	});
+	const longTocState = await page.evaluate<{
+		activeText: string | null;
+		atDocumentBottom: boolean;
+		activeWithinNav: boolean;
+		navScrollTop: number;
+	}>(`(() => {
+		const nav = document.querySelector('[data-bmp-toc]');
+		const active = nav.querySelector('[aria-current="location"]');
+		const navBounds = nav.getBoundingClientRect();
+		const activeBounds = active.getBoundingClientRect();
+		return {
+			activeText: active.textContent,
+			atDocumentBottom:
+				Math.ceil(window.scrollY + window.innerHeight) >=
+				document.documentElement.scrollHeight,
+			activeWithinNav:
+				activeBounds.top >= navBounds.top &&
+				activeBounds.bottom <= navBounds.bottom,
+			navScrollTop: nav.scrollTop,
+		};
+	})()`);
+	if (
+		longTocState.activeText !== 'Section 40' ||
+		!longTocState.atDocumentBottom ||
+		!longTocState.activeWithinNav ||
+		longTocState.navScrollTop <= 0
+	) {
+		throw new Error(
+			`The long TOC did not reveal its final active link: ${JSON.stringify(longTocState)}`,
+		);
+	}
+
+	await page.evaluate(`(() => {
 		const replacement = document.createElement('div');
 		replacement.className = 'markdown-body';
 		replacement.innerHTML =
@@ -272,7 +347,7 @@ window.addEventListener('unhandledrejection', event => {
 		throw new Error(`Browser errors:\n${errors.join('\n')}`);
 	}
 	console.log(
-		'Preview browser contract passed: CSP-restricted bundles, TOC/body replacement, code enhancement, Mermaid import/theme rerender, and dialog focus.',
+		'Preview browser contract passed: CSP-restricted bundles, long TOC active-link reveal, TOC/body replacement, code enhancement, Mermaid import/theme rerender, and dialog focus.',
 	);
 } catch (error) {
 	primaryFailure = error;
