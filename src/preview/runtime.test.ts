@@ -403,6 +403,169 @@ describe('preview runtime', () => {
 		controller.dispose();
 	});
 
+	test('reveals active sidebar links by the minimum smooth-scroll delta only on transitions', async () => {
+		setDocument(
+			'<h2 id="one">One</h2><h2 id="two">Two</h2><h2 id="three">Three</h2>',
+		);
+		const headingTops = [50, 300, 500];
+		for (const [index, heading] of Array.from(
+			document.querySelectorAll<HTMLElement>('h2'),
+		).entries()) {
+			vi.spyOn(heading, 'getBoundingClientRect').mockImplementation(
+				() => ({ top: headingTops[index] }) as DOMRect,
+			);
+		}
+		vi.spyOn(window, 'matchMedia').mockReturnValue({
+			matches: false,
+		} as MediaQueryList);
+		const controller = enhancePreview(document);
+		await controller.ready;
+
+		const nav = document.querySelector<HTMLElement>('[data-bmp-toc]')!;
+		const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('a'));
+		vi.spyOn(nav, 'getBoundingClientRect').mockReturnValue({
+			top: 100,
+			bottom: 300,
+		} as DOMRect);
+		const linkBounds = [
+			{ top: 70, bottom: 90 },
+			{ top: 200, bottom: 220 },
+			{ top: 320, bottom: 340 },
+		];
+		for (const [index, link] of links.entries()) {
+			vi.spyOn(link, 'getBoundingClientRect').mockImplementation(
+				() => linkBounds[index] as DOMRect,
+			);
+		}
+		const scrollTo = vi
+			.spyOn(nav, 'scrollTo')
+			.mockImplementation(() => undefined);
+		const documentScrollTo = vi.spyOn(window, 'scrollTo');
+		const update = async (): Promise<void> => {
+			window.dispatchEvent(new Event('scroll'));
+			await new Promise((resolve) => requestAnimationFrame(resolve));
+		};
+
+		await update();
+		const repeatedActiveCalls = scrollTo.mock.calls.length;
+
+		headingTops.splice(0, 3, -20, 90, 500);
+		await update();
+		const visibleTransitionCalls = scrollTo.mock.calls.length;
+
+		headingTops.splice(0, 3, -20, -10, 90);
+		await update();
+		const downwardCall = scrollTo.mock.lastCall;
+
+		scrollTo.mockClear();
+		nav.scrollTop = 17;
+		await update();
+		const manuallyScrolledCalls = scrollTo.mock.calls.length;
+
+		nav.scrollTop = 50;
+		headingTops.splice(0, 3, 90, 300, 500);
+		await update();
+		const upwardCall = scrollTo.mock.lastCall;
+		const documentScrollCalls = documentScrollTo.mock.calls.length;
+		controller.dispose();
+
+		expect(repeatedActiveCalls).toBe(0);
+		expect(visibleTransitionCalls).toBe(0);
+		expect(downwardCall).toEqual([{ top: 40, behavior: 'smooth' }]);
+		expect(manuallyScrolledCalls).toBe(0);
+		expect(upwardCall).toEqual([{ top: 20, behavior: 'smooth' }]);
+		expect(documentScrollCalls).toBe(0);
+	});
+
+	test.each([
+		{
+			name: 'when smooth scrolling is disabled',
+			configuration: { smoothScrolling: false },
+			reducedMotion: false,
+		},
+		{
+			name: 'when reduced motion is requested',
+			configuration: { smoothScrolling: true },
+			reducedMotion: true,
+		},
+	])('reveals active sidebar links immediately $name', async (scenario) => {
+		setDocument(
+			`<h2 id="one">One</h2><h2 id="two">Two</h2><span hidden data-bmp-preview-config='${JSON.stringify(scenario.configuration)}'></span>`,
+		);
+		const headingTops = [50, 300];
+		for (const [index, heading] of Array.from(
+			document.querySelectorAll<HTMLElement>('h2'),
+		).entries()) {
+			vi.spyOn(heading, 'getBoundingClientRect').mockImplementation(
+				() => ({ top: headingTops[index] }) as DOMRect,
+			);
+		}
+		vi.spyOn(window, 'matchMedia').mockReturnValue({
+			matches: scenario.reducedMotion,
+		} as MediaQueryList);
+		const controller = enhancePreview(document);
+		await controller.ready;
+
+		const nav = document.querySelector<HTMLElement>('[data-bmp-toc]')!;
+		const second = nav.querySelectorAll<HTMLAnchorElement>('a')[1];
+		vi.spyOn(nav, 'getBoundingClientRect').mockReturnValue({
+			top: 100,
+			bottom: 300,
+		} as DOMRect);
+		vi.spyOn(second, 'getBoundingClientRect').mockReturnValue({
+			top: 310,
+			bottom: 330,
+		} as DOMRect);
+		const scrollTo = vi.spyOn(nav, 'scrollTo');
+
+		headingTops.splice(0, 2, -20, 90);
+		window.dispatchEvent(new Event('scroll'));
+		await new Promise((resolve) => requestAnimationFrame(resolve));
+
+		const revealCall = scrollTo.mock.lastCall;
+		controller.dispose();
+		expect(revealCall).toEqual([{ top: 30, behavior: 'auto' }]);
+	});
+
+	test('reveals the active link when rebuilt TOC nodes replace the previous selection', async () => {
+		setDocument('<h2 id="one">One</h2><h2 id="two">Two</h2>');
+		vi.spyOn(window, 'matchMedia').mockReturnValue({
+			matches: false,
+		} as MediaQueryList);
+		vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+			function (this: HTMLElement) {
+				if (this.matches('[data-bmp-toc]')) {
+					return { top: 100, bottom: 300 } as DOMRect;
+				}
+				if (this.matches('[data-bmp-toc] [data-bmp-heading-id="three"]')) {
+					return { top: 330, bottom: 350 } as DOMRect;
+				}
+				if (this.matches('h2#one, h2#three')) {
+					return { top: 50 } as DOMRect;
+				}
+				if (this.matches('h2')) {
+					return { top: 300 } as DOMRect;
+				}
+				return { top: 150, bottom: 170 } as DOMRect;
+			},
+		);
+		const scrollTo = vi.spyOn(HTMLElement.prototype, 'scrollTo');
+		const controller = enhancePreview(document);
+		await controller.ready;
+		expect(scrollTo).not.toHaveBeenCalled();
+
+		document.querySelector('.markdown-body')!.innerHTML =
+			'<h2 id="three">Three</h2><h2 id="four">Four</h2>';
+		await vi.waitFor(() =>
+			expect(
+				document.querySelector('[data-bmp-heading-id="three"]'),
+			).not.toBeNull(),
+		);
+		const revealCall = scrollTo.mock.lastCall;
+		controller.dispose();
+		expect(revealCall).toEqual([{ top: 50, behavior: 'smooth' }]);
+	});
+
 	test('selects the first visible TOC link above the first section after a leading title', async () => {
 		setDocument(
 			'<h1 id="title">Title</h1><h2 id="one">One</h2><h2 id="two">Two</h2>',
