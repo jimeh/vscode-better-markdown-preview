@@ -52,6 +52,9 @@ export async function run(): Promise<void> {
 		(key, value) =>
 			configuration.update(key, value, vscode.ConfigurationTarget.Global),
 		{
+			'rendering.terraformCallouts': configuration.inspect<boolean>(
+				'rendering.terraformCallouts',
+			)?.globalValue,
 			'rendering.columns':
 				configuration.inspect<boolean>('rendering.columns')?.globalValue,
 			'rendering.emojiShortcodes': configuration.inspect<boolean>(

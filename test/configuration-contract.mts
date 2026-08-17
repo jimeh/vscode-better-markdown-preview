@@ -5,6 +5,7 @@ export const expectedConfigurationKeys = [
 	'betterMarkdownPreview.rendering.definitionLists',
 	'betterMarkdownPreview.rendering.footnotes',
 	'betterMarkdownPreview.rendering.githubAlerts',
+	'betterMarkdownPreview.rendering.terraformCallouts',
 	'betterMarkdownPreview.rendering.emojiShortcodes',
 	'betterMarkdownPreview.rendering.emoticonShortcuts',
 	'betterMarkdownPreview.rendering.tomlFrontmatter',

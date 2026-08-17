@@ -15,10 +15,13 @@ the native renderer itself.
 ## Rendering Boundary
 
 `src/markdown/compose.ts` orders standard Markdown-It plugins and the focused
-rules in `src/markdown/columns.ts`, `frontmatter.ts`, `inline.ts`, and
-`fences.ts`. Those modules own their feature-specific parsing and rendering.
+rules in `src/markdown/columns.ts`, `frontmatter.ts`, `inline.ts`,
+`fences.ts`, and `terraform-callouts.ts`. Those modules own their
+feature-specific parsing and rendering.
 The standard plugins cover task lists, definition lists, footnotes, GitHub
-alerts, and named Unicode emoji shortcodes.
+alerts, and named Unicode emoji shortcodes. The repository-owned Terraform
+callout rule converts only qualifying paragraph tokens, preserving ordinary
+inline parsing while excluding lists and every non-paragraph block boundary.
 Optional emoticon shortcuts are part of the emoji plugin and remain subordinate
 to the named-shortcode setting. Markdown-It's native linkify rule runs first
 when enabled. A narrow post-native `linkify-it` pass fills missing GFM HTTP,
@@ -27,8 +30,8 @@ bare domains and other schemes and retaining native normalization, validation,
 nesting, and HTML-anchor guards. Emoji replacement runs after both linkifiers,
 so autolink text and destinations remain intact while ordinary text and link
 labels can contain shortcodes.
-Local rules cover GFM tag filtering, TOML and YAML frontmatter, responsive
-columns, exact Mermaid fences, and rich fence metadata.
+Local rules cover GFM tag filtering, Terraform Registry callouts, TOML and YAML
+frontmatter, responsive columns, exact Mermaid fences, and rich fence metadata.
 
 VS Code 1.125 configures its supplied linkifier with `fuzzyLink: false` and
 reapplies per-render options after contributed plugins. The extension must not

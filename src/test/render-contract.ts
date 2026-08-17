@@ -16,6 +16,8 @@ Footnote[^1].
 > [!NOTE]
 > Known alert
 
+~> **Terraform callout**
+
 Emoji :joy:, escaped \\:joy:, internal :woman\\_technologist: and :\\+1:, emoticon :), and \`inline :joy:\`.
 
 https://secure.example/path http://plain.example dev@example.com www.example.com example.com
@@ -58,6 +60,8 @@ const configurationRoundTripFixture = `# Configuration round trip
 
 Named :joy:. Shortcut :). Escaped \\:). Internal :\\).
 
+-> Terraform note.
+
 :::: {.columns}
 ::: {.column width=40%}
 Left
@@ -72,6 +76,7 @@ type RenderMarkdown = (source: string) => PromiseLike<string | undefined>;
 
 type UpdateConfiguration = (
 	key:
+		| 'rendering.terraformCallouts'
 		| 'rendering.columns'
 		| 'rendering.emojiShortcodes'
 		| 'rendering.emoticonShortcuts'
@@ -80,6 +85,7 @@ type UpdateConfiguration = (
 ) => PromiseLike<void>;
 
 interface OriginalConfiguration {
+	'rendering.terraformCallouts': boolean | undefined;
 	'rendering.columns': boolean | undefined;
 	'rendering.emojiShortcodes': boolean | undefined;
 	'rendering.emoticonShortcuts': boolean | undefined;
@@ -116,12 +122,14 @@ export async function assertConfigurationRoundTrip(
 	let failure: { reason: unknown } | undefined;
 	try {
 		await update('mermaid.viewer', undefined);
+		await update('rendering.terraformCallouts', undefined);
 		await update('rendering.columns', undefined);
 		await update('rendering.emojiShortcodes', undefined);
 		await update('rendering.emoticonShortcuts', undefined);
 		await waitForRender(
 			render,
 			(html) =>
+				html.includes('better-markdown-preview-terraform-callout') &&
 				html.includes('better-markdown-preview-columns') &&
 				html.includes('Named 😂. Shortcut :). Escaped :). Internal :).') &&
 				html.includes('&quot;mermaidViewer&quot;:true'),
@@ -147,6 +155,15 @@ export async function assertConfigurationRoundTrip(
 		await update('rendering.emojiShortcodes', undefined);
 		await update('rendering.emoticonShortcuts', undefined);
 
+		await update('rendering.terraformCallouts', false);
+		await waitForRender(
+			render,
+			(html) =>
+				!html.includes('better-markdown-preview-terraform-callout') &&
+				html.includes('-&gt; Terraform note.'),
+			'delegate Terraform callouts after disabling the renderer',
+		);
+
 		await update('rendering.columns', false);
 		await waitForRender(
 			render,
@@ -162,10 +179,12 @@ export async function assertConfigurationRoundTrip(
 		);
 
 		await update('mermaid.viewer', undefined);
+		await update('rendering.terraformCallouts', undefined);
 		await update('rendering.columns', undefined);
 		await waitForRender(
 			render,
 			(html) =>
+				html.includes('better-markdown-preview-terraform-callout') &&
 				html.includes('better-markdown-preview-columns') &&
 				html.includes('Named 😂. Shortcut :). Escaped :). Internal :).') &&
 				html.includes('&quot;mermaidViewer&quot;:true'),
@@ -176,6 +195,10 @@ export async function assertConfigurationRoundTrip(
 	} finally {
 		const restoreResults = await Promise.allSettled([
 			update('mermaid.viewer', original['mermaid.viewer']),
+			update(
+				'rendering.terraformCallouts',
+				original['rendering.terraformCallouts'],
+			),
 			update('rendering.columns', original['rendering.columns']),
 			update(
 				'rendering.emojiShortcodes',
@@ -261,6 +284,11 @@ export function assertRenderCompatibility(html: string): void {
 		/better-markdown-preview-alert-note/,
 		'known GitHub alert semantics',
 	);
+	requireMatch(
+		html,
+		/<div(?=[^>]*better-markdown-preview-terraform-callout)(?=[^>]*better-markdown-preview-alert-warning)(?=[^>]*data-line="\d+")[^>]*>\s*<p class="better-markdown-preview-alert-title">Note<\/p>\s*<p><strong>Terraform callout<\/strong><\/p>/,
+		'Terraform callout semantics and native source map',
+	);
 	requireMatch(html, /Emoji 😂,/, 'named emoji shortcodes');
 	requireMatch(html, /escaped :joy:/, 'escaped emoji shortcodes');
 	requireMatch(
@@ -310,7 +338,7 @@ export function assertRenderCompatibility(html: string): void {
 	requireCountAtLeast(
 		html,
 		/better-markdown-preview-(?:alert|frontmatter|columns|mermaid|code)/g,
-		5,
+		6,
 		'Better Markdown Preview-owned output markers',
 	);
 	requireMatch(

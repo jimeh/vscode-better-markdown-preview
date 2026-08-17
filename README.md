@@ -32,8 +32,8 @@ It adds:
 - Complete visible GFM behavior, including task lists, literal autolinks, and
   tag filtering.
 - A responsive H1-H3 table of contents with active-heading tracking.
-- GitHub alerts, footnotes, definition lists, and collapsible highlighted TOML
-  and YAML frontmatter.
+- GitHub alerts, Terraform Registry callouts, footnotes, definition lists, and
+  collapsible highlighted TOML and YAML frontmatter.
 - Unicode emoji from named shortcodes such as `:joy:`, with optional emoticon
   shortcuts such as `:)`.
 - Responsive Pandoc-style columns.
@@ -75,6 +75,20 @@ Right column
 ::::
 ```
 
+### Terraform Registry callouts
+
+Terraform provider documentation callouts begin a paragraph with `->` for a
+blue note, `~>` for a yellow note, or `!>` for a red warning. A blank line ends
+the callout, and ordinary inline Markdown remains available inside it:
+
+```markdown
+-> This is a **note**.
+
+~> This note needs extra attention.
+
+!> This is a warning.
+```
+
 ### Rich code blocks
 
 Rich code metadata follows the language identifier:
@@ -112,6 +126,7 @@ shifts are percentages from 0 to 100:
 | `betterMarkdownPreview.rendering.definitionLists`         | Definition lists                                                  |
 | `betterMarkdownPreview.rendering.footnotes`               | Footnotes and backlinks                                           |
 | `betterMarkdownPreview.rendering.githubAlerts`            | GitHub-style alerts                                               |
+| `betterMarkdownPreview.rendering.terraformCallouts`       | Terraform Registry documentation callouts                         |
 | `betterMarkdownPreview.rendering.emojiShortcodes`         | Named emoji shortcodes such as `:joy:`                            |
 | `betterMarkdownPreview.rendering.emoticonShortcuts`       | Emoticons such as `:)`; requires emoji shortcodes                 |
 | `betterMarkdownPreview.rendering.tomlFrontmatter`         | Expanded, collapsible, highlighted TOML frontmatter               |

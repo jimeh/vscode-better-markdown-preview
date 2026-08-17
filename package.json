@@ -50,6 +50,12 @@
 					"scope": "window",
 					"description": "Render GitHub-style alerts. When disabled, alert syntax is delegated to VS Code and other Markdown extensions."
 				},
+				"betterMarkdownPreview.rendering.terraformCallouts": {
+					"type": "boolean",
+					"default": true,
+					"scope": "window",
+					"description": "Render Terraform Registry documentation callouts. When disabled, callout syntax is delegated to VS Code and other Markdown extensions."
+				},
 				"betterMarkdownPreview.rendering.emojiShortcodes": {
 					"type": "boolean",
 					"default": true,
