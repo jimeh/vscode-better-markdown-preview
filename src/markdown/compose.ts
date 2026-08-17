@@ -18,6 +18,7 @@ import {
 	installGfmAutolinks,
 	installGfmTagFilter,
 } from './inline';
+import { installTerraformCallouts } from './terraform-callouts';
 
 export function extendMarkdownIt(
 	md: MarkdownIt,
@@ -38,6 +39,9 @@ export function extendMarkdownIt(
 			matchCaseSensitive: true,
 			icons: {},
 		});
+	}
+	if (configuration.rendering.terraformCallouts) {
+		installTerraformCallouts(md);
 	}
 	const blockContext: BlockParseContext = { nestedDepth: 0 };
 	if (

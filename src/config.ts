@@ -5,6 +5,7 @@ export const configurationKeys = [
 	'rendering.definitionLists',
 	'rendering.footnotes',
 	'rendering.githubAlerts',
+	'rendering.terraformCallouts',
 	'rendering.emojiShortcodes',
 	'rendering.emoticonShortcuts',
 	'rendering.tomlFrontmatter',
@@ -35,6 +36,7 @@ export interface BetterMarkdownPreviewConfiguration {
 		definitionLists: boolean;
 		footnotes: boolean;
 		githubAlerts: boolean;
+		terraformCallouts: boolean;
 		emojiShortcodes: boolean;
 		emoticonShortcuts: boolean;
 		tomlFrontmatter: boolean;
@@ -78,6 +80,7 @@ export const defaultConfiguration: BetterMarkdownPreviewConfiguration = {
 		definitionLists: true,
 		footnotes: true,
 		githubAlerts: true,
+		terraformCallouts: true,
 		emojiShortcodes: true,
 		emoticonShortcuts: false,
 		tomlFrontmatter: true,
@@ -120,6 +123,7 @@ export function readConfiguration(
 			definitionLists: enabled('rendering.definitionLists'),
 			footnotes: enabled('rendering.footnotes'),
 			githubAlerts: enabled('rendering.githubAlerts'),
+			terraformCallouts: enabled('rendering.terraformCallouts'),
 			emojiShortcodes: enabled('rendering.emojiShortcodes'),
 			emoticonShortcuts: readBoolean('rendering.emoticonShortcuts', false),
 			tomlFrontmatter: enabled('rendering.tomlFrontmatter'),

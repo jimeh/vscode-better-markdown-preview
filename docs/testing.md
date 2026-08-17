@@ -96,9 +96,12 @@ Configuration tests assert the exact manifest keys, boolean defaults, window
 scope, typed host reads, change filtering, reload command, and disposable
 registration. Parser tests render the default feature set and then disable each
 feature independently, retaining tag filtering and checking Mermaid/rich-fence
-independence. Emoji parser tests cover named shortcodes, opt-in emoticon
-shortcuts, their master-setting dependency, code exclusions, escaping, unknown
-names, and link boundaries. DOM tests exercise marker defaults and live updates across reused
+independence. Terraform callout tests cover all three presentation mappings,
+paragraph and indentation boundaries, inline Markdown, Registry-compatible
+escaping, blockquote nesting, list exclusion, code and table exclusions, and
+independence from GitHub alerts. Emoji parser tests cover named shortcodes,
+opt-in emoticon shortcuts, their master-setting dependency, code exclusions,
+escaping, unknown names, and link boundaries. DOM tests exercise marker defaults and live updates across reused
 nodes and replaced Markdown bodies, including complete cleanup when the TOC,
 smooth scrolling, or Mermaid viewer is disabled. Presentation contracts pin the
 Mermaid backdrop opacity and the reduced-motion override. Navigation tests keep

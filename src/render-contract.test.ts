@@ -7,14 +7,15 @@ describe('host render contract', () => {
 	test('reports every configuration restoration failure', async () => {
 		const restoreFailures = [
 			new Error('failed to restore Mermaid viewer'),
-			new Error('failed to restore columns'),
+			new Error('failed to restore Terraform callouts'),
 		];
 		const defaultRender =
-			'better-markdown-preview-columns Named 😂. Shortcut :). Escaped :). Internal :). &quot;mermaidViewer&quot;:true';
+			'better-markdown-preview-terraform-callout better-markdown-preview-columns Named 😂. Shortcut :). Escaped :). Internal :). &quot;mermaidViewer&quot;:true';
 		const renders = [
 			defaultRender,
 			'Named 😂. Shortcut 😃. Escaped :). Internal :).',
 			'Named :joy:. Shortcut :). Escaped :). Internal :).',
+			'-&gt; Terraform note.',
 			'columns disabled',
 			'&quot;mermaidViewer&quot;:false',
 			defaultRender,
@@ -26,12 +27,13 @@ describe('host render contract', () => {
 				async () => renders.shift(),
 				async () => {
 					updateCount += 1;
-					if (updateCount === 13 || updateCount === 14) {
-						throw restoreFailures[updateCount - 13];
+					if (updateCount === 16 || updateCount === 17) {
+						throw restoreFailures[updateCount - 16];
 					}
 				},
 				{
 					'mermaid.viewer': true,
+					'rendering.terraformCallouts': false,
 					'rendering.columns': false,
 					'rendering.emojiShortcodes': false,
 					'rendering.emoticonShortcuts': true,
@@ -42,14 +44,14 @@ describe('host render contract', () => {
 			expect((error as AggregateError).errors).toEqual(restoreFailures);
 			return true;
 		});
-		expect(updateCount).toBe(16);
+		expect(updateCount).toBe(20);
 	});
 
 	test('keeps the test failure primary when restoration also fails', async () => {
 		const primaryFailure = new Error('render failed');
 		const restoreFailures = [
 			new Error('failed to restore Mermaid viewer'),
-			new Error('failed to restore columns'),
+			new Error('failed to restore Terraform callouts'),
 		];
 		const report = vi.spyOn(console, 'error').mockImplementation(() => {});
 		let updateCount = 0;
@@ -61,12 +63,13 @@ describe('host render contract', () => {
 				},
 				async () => {
 					updateCount += 1;
-					if (updateCount === 5 || updateCount === 6) {
-						throw restoreFailures[updateCount - 5];
+					if (updateCount === 6 || updateCount === 7) {
+						throw restoreFailures[updateCount - 6];
 					}
 				},
 				{
 					'mermaid.viewer': true,
+					'rendering.terraformCallouts': false,
 					'rendering.columns': false,
 					'rendering.emojiShortcodes': false,
 					'rendering.emoticonShortcuts': true,
@@ -74,7 +77,7 @@ describe('host render contract', () => {
 			),
 		).rejects.toBe(primaryFailure);
 
-		expect(updateCount).toBe(8);
+		expect(updateCount).toBe(10);
 		expect(report).toHaveBeenCalledOnce();
 		expect(report.mock.calls[0]?.[0]).toBe(
 			'Configuration restoration also failed:',

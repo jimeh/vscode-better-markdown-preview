@@ -38,13 +38,14 @@ function configureRendering(
 describe('Markdown composition', () => {
 	test('keeps every rendering feature enabled by default', () => {
 		const html = render(
-			'+++\ntitle = "Test"\n+++\n\n- [x] Task\n\nTerm\n: Definition\n\nFootnote[^1].\n\n[^1]: Note\n\n> [!NOTE]\n> Alert\n\nEmoji :joy:\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n\nhttps://example.com\n\n```mermaid\ngraph TD\nA-->B\n```\n\n```ts title="test.ts"\nvalue\n```\n',
+			'+++\ntitle = "Test"\n+++\n\n- [x] Task\n\nTerm\n: Definition\n\nFootnote[^1].\n\n[^1]: Note\n\n> [!NOTE]\n> Alert\n\n-> Terraform callout\n\nEmoji :joy:\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n\nhttps://example.com\n\n```mermaid\ngraph TD\nA-->B\n```\n\n```ts title="test.ts"\nvalue\n```\n',
 		);
 		for (const marker of [
 			'task-list-item',
 			'<dl>',
 			'footnote-ref',
 			'better-markdown-preview-alert-note',
+			'better-markdown-preview-terraform-callout',
 			'😂',
 			'better-markdown-preview-frontmatter',
 			'better-markdown-preview-columns',
@@ -60,7 +61,8 @@ describe('Markdown composition', () => {
 		['taskLists', 'task-list-item'],
 		['definitionLists', '<dl>'],
 		['footnotes', 'footnote-ref'],
-		['githubAlerts', 'better-markdown-preview-alert-note'],
+		['githubAlerts', '<p>Alert</p>'],
+		['terraformCallouts', 'better-markdown-preview-terraform-callout'],
 		['emojiShortcodes', '😂'],
 		['tomlFrontmatter', 'better-markdown-preview-frontmatter'],
 		['columns', 'better-markdown-preview-columns'],
@@ -70,14 +72,15 @@ describe('Markdown composition', () => {
 			'task-list-item',
 			'<dl>',
 			'footnote-ref',
-			'better-markdown-preview-alert-note',
+			'<p>Alert</p>',
+			'better-markdown-preview-terraform-callout',
 			'😂',
 			'better-markdown-preview-frontmatter',
 			'better-markdown-preview-columns',
 			'href="https://example.com"',
 		];
 		const html = render(
-			'+++\ntitle = "Test"\n+++\n\n- [x] Task\n\nTerm\n: Definition\n\nFootnote[^1].\n\n[^1]: Note\n\n> [!NOTE]\n> Alert\n\nEmoji :joy:\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n\nhttps://example.com\n\n<script>blocked()</script>\n',
+			'+++\ntitle = "Test"\n+++\n\n- [x] Task\n\nTerm\n: Definition\n\nFootnote[^1].\n\n[^1]: Note\n\n> [!NOTE]\n> Alert\n\n-> Terraform callout\n\nEmoji :joy:\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n\nhttps://example.com\n\n<script>blocked()</script>\n',
 			undefined,
 			disableRendering(feature),
 		);
@@ -500,7 +503,7 @@ describe('Markdown composition', () => {
 
 	test('preserves VS Code source-map attributes on owned block wrappers', () => {
 		const html = render(
-			'+++\ntitle = "Mapped"\n+++\n\n```mermaid\ngraph TD\nA-->B\n```\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n',
+			'+++\ntitle = "Mapped"\n+++\n\n```mermaid\ngraph TD\nA-->B\n```\n\n:::: {.columns}\n::: {.column}\nLeft\n:::\n::: {.column}\nRight\n:::\n::::\n\n-> Mapped callout\n',
 			(md) => {
 				md.core.ruler.push('source_map_like_vscode', (state) => {
 					for (const token of state.tokens) {
@@ -526,6 +529,9 @@ describe('Markdown composition', () => {
 			/<div(?=[^>]*better-markdown-preview-column)(?=[^>]*data-line="10")[^>]*>/,
 		);
 		expect(html).toMatch(/<p[^>]*data-line="11"[^>]*>Left<\/p>/);
+		expect(html).toMatch(
+			/<div(?=[^>]*better-markdown-preview-terraform-callout)(?=[^>]*data-line="18")[^>]*>/,
+		);
 	});
 
 	test('delegates highlighting and wraps recognized rich fence metadata safely', () => {

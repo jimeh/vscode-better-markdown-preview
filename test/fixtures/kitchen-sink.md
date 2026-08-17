@@ -30,6 +30,12 @@ preview@example.com.
 > [!WARNING]
 > The preview keeps source visible when a diagram fails.
 
+-> Terraform's blue note callout supports **inline Markdown**.
+
+~> Terraform's yellow note callout highlights extra attention.
+
+!> Terraform's red warning callout highlights risk.
+
 Definition
 : A definition-list value.
 
