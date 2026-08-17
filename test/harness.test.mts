@@ -179,6 +179,10 @@ test('preview browser verification is discoverable and part of the final gate', 
 	assert.match(miseTask('verify'), /"mise run test:preview-browser"/);
 });
 
+test('doctor checks host prerequisites after reporting locked tools', () => {
+	assert.match(miseTask('doctor'), /"node scripts\/doctor\.mts"/);
+});
+
 test('preview browser assets stay inside their root on POSIX and Windows', () => {
 	assert.equal(
 		isPathWithin('/repo/dist/preview', '/repo/dist/preview/preview.js', posix),

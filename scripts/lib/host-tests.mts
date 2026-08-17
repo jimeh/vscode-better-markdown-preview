@@ -10,13 +10,20 @@ export function isDesktopTestLabel(value: string): value is DesktopTestLabel {
 	return DESKTOP_TEST_LABELS.some((label) => label === value);
 }
 
+export function desktopHostPrerequisites(
+	platform: NodeJS.Platform = process.platform,
+	display = process.env.DISPLAY,
+): string[] {
+	return platform === 'linux' && !display ? ['xvfb-run'] : [];
+}
+
 export function desktopTestInvocation(
 	label: DesktopTestLabel,
 	platform: NodeJS.Platform = process.platform,
 	display = process.env.DISPLAY,
 ): CommandInvocation {
 	const args = ['exec', 'vscode-test', '--label', label];
-	if (platform === 'linux' && !display) {
+	if (desktopHostPrerequisites(platform, display).includes('xvfb-run')) {
 		return {
 			command: 'xvfb-run',
 			args: ['-a', 'pnpm', ...args],

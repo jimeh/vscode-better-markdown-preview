@@ -159,7 +159,7 @@ run = [
 ]
 
 [tasks.doctor]
-description = "Report locked development tool versions"
+description = "Report locked tool versions and host prerequisites"
 run = [
   "node --version",
   "pnpm --version",
@@ -172,6 +172,7 @@ run = [
   "pnpm exec oxfmt --version",
   "pnpm exec stylelint --version",
   "pnpm exec lefthook version",
+  "node scripts/doctor.mts",
 ]
 
 [tasks.clean]

@@ -32,8 +32,9 @@ record accepted intent but are not proof that later phases shipped.
 
 ## Repository Rules
 
-- Use pnpm, not npm or yarn. Keep `pnpm-lock.yaml` authoritative and install
-  with `--frozen-lockfile` outside intentional dependency updates.
+- Bootstrap with `mise run setup`; it installs locked tools, frozen pnpm
+  dependencies, and Lefthook. Use pnpm, not npm or yarn. Keep `pnpm-lock.yaml`
+  authoritative and update it only for intentional dependency changes.
 - Keep shared extension code browser-safe unless desktop and web entry points
   are deliberately split. Building both targets is an architectural check.
 - Treat `package.json` contribution points as public product behavior. Update

@@ -108,6 +108,33 @@ next-frame or bounded-fallback cleanup.
 `test/fixtures/kitchen-sink.md` remains the shared manual/runtime document for
 light, dark, high-contrast, wide, and narrow preview checks.
 
+### Real Preview Visual Check
+
+Use the real Extension Development Host for presentation changes that cannot be
+proved by DOM or browser contracts alone:
+
+1. Run `mise run setup`, open the repository in VS Code, and launch **Run Better
+   Markdown Preview** from Run and Debug. Its pre-launch task starts the desktop,
+   web, preview, Mermaid, CSS, and TypeScript watchers.
+2. In the Extension Development Host, open `test/fixtures/kitchen-sink.md` and
+   run **Markdown: Open Preview to the Side**.
+3. Inspect the built-in **Default Light Modern**, **Default Dark Modern**, and
+   **Default High Contrast** themes. Check text, links, alerts, tables, code
+   annotations, Mermaid fills and borders, focus indicators, and user-style
+   precedence relevant to the change.
+4. Resize the preview through the responsive boundaries. Above `64rem` (roughly
+   1024 px at the default root font size), the persistent table of contents is
+   visible. At or below `64rem`, it becomes a trigger and bottom dialog. At or
+   below `44rem` (roughly 704 px), columns stack and the Mermaid viewer uses its
+   compact layout.
+5. Exercise affected interaction with keyboard and pointer input. For navigation
+   or animation changes, also enable reduced motion. Open **Developer: Toggle
+   Developer Tools** in the Extension Development Host and require no relevant
+   console errors or unhandled rejections.
+6. Record the VS Code version, themes, viewport states, and interactions checked.
+   Attach screenshots or recorded DOM/computed-style evidence when appearance is
+   part of the acceptance criteria.
+
 ### Adding a Rendering Feature
 
 Trace an adjacent setting before editing; for example,
