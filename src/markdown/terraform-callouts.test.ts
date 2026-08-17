@@ -85,6 +85,15 @@ describe('Terraform Registry callouts', () => {
 		expect(html).toContain('!&gt; Ordered item');
 	});
 
+	test('leaves tight definition-list values delegated with balanced markup', () => {
+		const html = render('Term\n: -> Definition body\n');
+
+		expect(html).not.toContain('better-markdown-preview-terraform-callout');
+		expect(html).toContain(
+			'<dl>\n<dt>Term</dt>\n<dd>-&gt; Definition body</dd>\n</dl>',
+		);
+	});
+
 	test('leaves mid-paragraph, heading, code, table, and indented-code sigils delegated', () => {
 		const html = render(
 			'Before -> mid-paragraph\n\n# -> Heading\n\n`-> Inline code`\n\n```text\n-> Fenced code\n```\n\n    -> Indented code\n\n| Value |\n| --- |\n| -> Table cell |\n',

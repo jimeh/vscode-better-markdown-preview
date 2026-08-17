@@ -37,8 +37,10 @@ export function installTerraformCallouts(md: MarkdownIt): void {
 				const match =
 					listDepth === 0 &&
 					token.type === 'paragraph_open' &&
+					!token.hidden &&
 					inline?.type === 'inline' &&
-					close?.type === 'paragraph_close'
+					close?.type === 'paragraph_close' &&
+					!close.hidden
 						? calloutStart.exec(inline.content)
 						: null;
 				const definition = match
