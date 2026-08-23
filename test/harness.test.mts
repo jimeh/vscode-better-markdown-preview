@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { posix, win32 } from 'node:path';
+import { tmpdir } from 'node:os';
+import { join, posix, win32 } from 'node:path';
 import test from 'node:test';
+import vscodeTestConfig from '../.vscode-test.mjs';
 import { buildTargets, selectBuildTargets } from '../esbuild.mts';
 import { isPathWithin } from '../scripts/lib/paths.mts';
 
@@ -24,6 +26,11 @@ interface VsCodeTasks {
 	tasks: VsCodeTask[];
 }
 
+interface DesktopTestProfile {
+	label?: string;
+	launchArgs?: string[];
+}
+
 const packageJson = JSON.parse(
 	await readFile(new URL('../package.json', import.meta.url), 'utf8'),
 ) as PackageJson;
@@ -41,7 +48,6 @@ const miseConfig = await readFile(
 	new URL('../mise.toml', import.meta.url),
 	'utf8',
 );
-
 function taskByLabel(label: string): VsCodeTask {
 	const task = tasks.tasks.find((candidate) => candidate.label === label);
 	assert.ok(task, `expected task labeled ${label}`);
@@ -165,6 +171,21 @@ test('web host runner is browser-targeted and excluded from production builds', 
 		external: ['vscode'],
 	});
 	assert.equal(buildTargets.filter((target) => target.testOnly).length, 1);
+});
+
+test('desktop hosts use short isolated user-data paths', () => {
+	assert.ok(Array.isArray(vscodeTestConfig));
+	const profiles = vscodeTestConfig as DesktopTestProfile[];
+	for (const [label, suffix] of [
+		['desktop-floor', 'floor'],
+		['desktop-stable', 'stable'],
+	] as const) {
+		const profile = profiles.find((candidate) => candidate.label === label);
+		assert.ok(profile);
+		assert.deepEqual(profile.launchArgs, [
+			`--user-data-dir=${join(tmpdir(), `bmp-${suffix}-${process.pid}`)}`,
+		]);
+	}
 });
 
 test('preview browser verification is discoverable and part of the final gate', () => {

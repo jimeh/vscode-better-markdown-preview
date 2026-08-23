@@ -188,10 +188,13 @@ test('release package checks require current notes and a valid checksum', async 
 		assert.throws(
 			() =>
 				assertReleaseChangelog(
-					{ ...inspection, changelog: '# Changelog\n\n## [Unreleased]\n' },
+					{
+						...inspection,
+						changelog: '# Changelog\n\n## [Unreleased]\n\n## 1.2.3\n',
+					},
 					'1.2.3',
 				),
-			/The input did not match|The input was expected not to match/,
+			/Unreleased/,
 		);
 
 		const vsixPath = path.join(temporaryDirectory, 'extension.vsix');

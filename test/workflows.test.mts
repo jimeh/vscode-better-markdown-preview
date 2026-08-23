@@ -10,6 +10,10 @@ const semanticPrWorkflow = await readFile(
 	new URL('../.github/workflows/semantic-pr.yml', import.meta.url),
 	'utf8',
 );
+const dependabotConfig = await readFile(
+	new URL('../.github/dependabot.yml', import.meta.url),
+	'utf8',
+);
 
 function occurrences(source: string, pattern: RegExp): number {
 	return [...source.matchAll(pattern)].length;
@@ -34,6 +38,52 @@ test('CI names every repository quality gate explicitly', () => {
 			new RegExp(`name: ${step}\\n\\s+run: mise run ${task}`),
 		);
 	}
+});
+
+test('CI runs the production preview bundles in Chromium before release', () => {
+	assert.match(
+		ciWorkflow,
+		/^  preview-browser:\n    name: Preview browser \(Chromium\)$/m,
+	);
+	assert.match(
+		ciWorkflow,
+		/name: Run preview browser contract\n\s+run: mise run test:preview-browser/,
+	);
+	assert.match(
+		ciWorkflow,
+		/release:\n\s{4}name: Release[\s\S]*?needs:\n\s{6}- validate\n\s{6}- preview-browser\n\s{6}- desktop-host\n\s{6}- web-host/,
+	);
+});
+
+test('Dependabot batches low-risk weekly updates without enabling auto-merge', () => {
+	assert.match(dependabotConfig, /^version: 2$/m);
+	assert.equal(occurrences(dependabotConfig, /^  - package-ecosystem:/gm), 2);
+	for (const ecosystem of ['npm', 'github-actions']) {
+		assert.match(
+			dependabotConfig,
+			new RegExp(`package-ecosystem: ${ecosystem}`),
+		);
+	}
+	assert.equal(occurrences(dependabotConfig, /interval: weekly/g), 2);
+	assert.equal(occurrences(dependabotConfig, /timezone: Europe\/London/g), 2);
+	assert.match(dependabotConfig, /default-days: 7/);
+	assert.match(dependabotConfig, /prefix: fix\(deps\)/);
+	assert.match(dependabotConfig, /prefix-development: chore\(deps-dev\)/);
+	assert.match(dependabotConfig, /prefix: ci\(deps\)/);
+	for (const group of [
+		'runtime-minor-and-patch',
+		'development-minor-and-patch',
+		'release-tooling-minor-and-patch',
+		'host-compatibility-minor-and-patch',
+		'actions-all',
+	]) {
+		assert.match(dependabotConfig, new RegExp(`^      ${group}:$`, 'm'));
+	}
+	assert.match(
+		dependabotConfig,
+		/actions-all:\n\s+patterns:\n\s+- '\*'\n\s+update-types:\n\s+- major\n\s+- minor\n\s+- patch/,
+	);
+	assert.doesNotMatch(dependabotConfig, /auto-merge|automerge/i);
 });
 
 test('semantic PR validation is metadata-only and enforces the release vocabulary', () => {
@@ -93,7 +143,7 @@ test('main release waits for every host gate and cannot be cancelled', () => {
 	);
 	assert.match(
 		ciWorkflow,
-		/release:\n\s{4}name: Release[\s\S]*?needs:\n\s{6}- validate\n\s{6}- desktop-host\n\s{6}- web-host/,
+		/release:\n\s{4}name: Release[\s\S]*?needs:\n\s{6}- validate\n\s{6}- preview-browser\n\s{6}- desktop-host\n\s{6}- web-host/,
 	);
 	assert.match(
 		ciWorkflow,

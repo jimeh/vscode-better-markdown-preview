@@ -13,6 +13,9 @@ importers:
 
   .:
     dependencies:
+      dompurify:
+        specifier: 3.4.13
+        version: 3.4.13
       linkify-it:
         specifier: 6.1.0
         version: 6.1.0
