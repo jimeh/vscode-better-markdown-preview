@@ -30,7 +30,7 @@ importers:
         version: 4.0.0
       markdown-it-github-alerts:
         specifier: 1.0.1
-        version: 1.0.1(markdown-it@14.3.0)
+        version: 1.0.1(markdown-it@15.0.0)
       markdown-it-task-lists:
         specifier: 2.1.1
         version: 2.1.1
@@ -108,8 +108,8 @@ importers:
         specifier: 2.1.10
         version: 2.1.10
       markdown-it:
-        specifier: 14.3.0
-        version: 14.3.0
+        specifier: 15.0.0
+        version: 15.0.0
       markdownlint-cli2:
         specifier: 0.23.2
         version: 0.23.2(supports-color@8.1.1)
@@ -1928,6 +1928,9 @@ packages:
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
 
+  argparse@3.0.0:
+    resolution: {integrity: sha512-BOp5NMrHqKxmq/OLr+clzzrRxgOKSLkcjmkWuChp7Irqwn4s74WjOBPIgWfA/HMcBnVkZ5XEuf9uUqzlpfCQ6A==}
+
   argv-formatter@1.0.0:
     resolution: {integrity: sha512-F2+Hkm9xFaRg+GkaNnbwXNDV5O6pnCFEmqyhvfC/Ic5LbgOWjJh3L+mN/s91rxVL3znE7DYVpW0GJFT+4YBgWw==}
 
@@ -2715,6 +2718,10 @@ packages:
   entities@7.0.1:
     resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
+
+  entities@8.0.0:
+    resolution: {integrity: sha512-zwfzJecQ/Uej6tusMqwAqU/6KL2XaB2VZ2Jg54Je6ahNBGNH6Ek6g3jjNCF0fG9EWQKGZNddNjU5F1ZQn/sBnA==}
+    engines: {node: '>=20.19.0'}
 
   env-ci@11.2.0:
     resolution: {integrity: sha512-D5kWfzkmaOQDioPmiviWAVtKmpPT4/iJmMVQxWxMPJTFyTkdc5JQUfc5iXEeWxcOdsYTKSAiA/Age4NUOqKsRA==}
@@ -3812,6 +3819,10 @@ packages:
 
   markdown-it@14.3.0:
     resolution: {integrity: sha512-RCEsPjR+sr0x+AuYp601tKTkgFG4YEPLCzHST3cQ/fhlJkqAkz1L2/Qbp1j9qw5SBwQHFBoW8+hoN5xssOF0Tw==}
+    hasBin: true
+
+  markdown-it@15.0.0:
+    resolution: {integrity: sha512-Lf8ajvVNdRpzSNB4VegxNy7gjs8gU35l4b4+ET49LrQC5PKYwLZ72u60LeJ9gv3qiaesuYjJWCyVeQmv/QWKQw==}
     hasBin: true
 
   markdownlint-cli2-formatter-default@0.0.6:
@@ -7095,6 +7106,8 @@ snapshots:
 
   argparse@2.0.1: {}
 
+  argparse@3.0.0: {}
+
   argv-formatter@1.0.0: {}
 
   array-buffer-byte-length@1.0.2:
@@ -7905,6 +7918,8 @@ snapshots:
   entities@6.0.1: {}
 
   entities@7.0.1: {}
+
+  entities@8.0.0: {}
 
   env-ci@11.2.0:
     dependencies:
@@ -9089,9 +9104,9 @@ snapshots:
 
   markdown-it-footnote@4.0.0: {}
 
-  markdown-it-github-alerts@1.0.1(markdown-it@14.3.0):
+  markdown-it-github-alerts@1.0.1(markdown-it@15.0.0):
     dependencies:
-      markdown-it: 14.3.0
+      markdown-it: 15.0.0
 
   markdown-it-task-lists@2.1.1: {}
 
@@ -9103,6 +9118,15 @@ snapshots:
       mdurl: 2.1.0
       punycode.js: 2.3.1
       uc.micro: 2.1.0
+
+  markdown-it@15.0.0:
+    dependencies:
+      argparse: 3.0.0
+      entities: 8.0.0
+      linkify-it: 6.1.0
+      mdurl: 2.1.0
+      punycode.js: 2.3.1
+      uc.micro: 3.0.0
 
   markdownlint-cli2-formatter-default@0.0.6(markdownlint-cli2@0.23.2(supports-color@8.1.1)):
     dependencies:
