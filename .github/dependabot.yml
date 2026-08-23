@@ -64,9 +64,10 @@ updates:
     commit-message:
       prefix: ci(deps)
     groups:
-      actions-minor-and-patch:
+      actions-all:
         patterns:
           - '*'
         update-types:
+          - major
           - minor
           - patch

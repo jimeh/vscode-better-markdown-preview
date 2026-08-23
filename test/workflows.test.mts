@@ -75,10 +75,14 @@ test('Dependabot batches low-risk weekly updates without enabling auto-merge', (
 		'development-minor-and-patch',
 		'release-tooling-minor-and-patch',
 		'host-compatibility-minor-and-patch',
-		'actions-minor-and-patch',
+		'actions-all',
 	]) {
 		assert.match(dependabotConfig, new RegExp(`^      ${group}:$`, 'm'));
 	}
+	assert.match(
+		dependabotConfig,
+		/actions-all:\n\s+patterns:\n\s+- '\*'\n\s+update-types:\n\s+- major\n\s+- minor\n\s+- patch/,
+	);
 	assert.doesNotMatch(dependabotConfig, /auto-merge|automerge/i);
 });
 
