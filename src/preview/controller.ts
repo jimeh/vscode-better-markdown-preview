@@ -167,7 +167,7 @@ function createController(
 		let active: HTMLElement | undefined = headings[0];
 		const scrollHeight = document.documentElement.scrollHeight;
 		const atBottom =
-			scrollHeight > 0 &&
+			scrollHeight > window.innerHeight &&
 			Math.ceil(window.scrollY + window.innerHeight) >= scrollHeight;
 		if (atBottom) {
 			active = headings.at(-1);

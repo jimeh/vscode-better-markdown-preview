@@ -610,6 +610,29 @@ describe('preview runtime', () => {
 		expect(current).toBe('location');
 	});
 
+	test('selects the first TOC link when the document does not scroll', async () => {
+		setDocument('<h2 id="one">One</h2><h2 id="two">Two</h2>');
+		const headings = document.querySelectorAll<HTMLElement>('h2');
+		vi.spyOn(headings[0], 'getBoundingClientRect').mockReturnValue({
+			top: 50,
+		} as DOMRect);
+		vi.spyOn(headings[1], 'getBoundingClientRect').mockReturnValue({
+			top: 300,
+		} as DOMRect);
+		vi.spyOn(window, 'scrollY', 'get').mockReturnValue(0);
+		vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(1000);
+		vi.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(
+			1000,
+		);
+		const controller = enhancePreview(document);
+		await controller.ready;
+		const current = document
+			.querySelector('[data-bmp-heading-id="one"]')
+			?.getAttribute('aria-current');
+		controller.dispose();
+		expect(current).toBe('location');
+	});
+
 	test('re-enhances replaced body content without duplicate controls', async () => {
 		setDocument('<h2 id="one">One</h2><h2 id="two">Two</h2>');
 		const controller = enhancePreview(document);
