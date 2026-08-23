@@ -637,8 +637,12 @@ describe('preview runtime', () => {
 		const current = document
 			.querySelector('[data-bmp-heading-id="one"]')
 			?.getAttribute('aria-current');
+		const otherCurrent = document
+			.querySelector('[data-bmp-heading-id="two"]')
+			?.getAttribute('aria-current');
 		controller.dispose();
 		expect(current).toBe('location');
+		expect(otherCurrent).toBeNull();
 	});
 
 	test('re-enhances replaced body content without duplicate controls', async () => {
