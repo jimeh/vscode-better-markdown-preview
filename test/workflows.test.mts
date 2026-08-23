@@ -19,6 +19,10 @@ function occurrences(source: string, pattern: RegExp): number {
 	return [...source.matchAll(pattern)].length;
 }
 
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 test('CI names every repository quality gate explicitly', () => {
 	assert.match(
 		ciWorkflow,
@@ -83,6 +87,18 @@ test('Dependabot batches low-risk weekly updates without enabling auto-merge', (
 		dependabotConfig,
 		/actions-all:\n\s+patterns:\n\s+- '\*'\n\s+update-types:\n\s+- major\n\s+- minor\n\s+- patch/,
 	);
+	for (const dependency of [
+		'@types/node',
+		'markdown-it',
+		'conventional-changelog-conventionalcommits',
+	]) {
+		assert.match(
+			dependabotConfig,
+			new RegExp(
+				`- dependency-name: '${escapeRegExp(dependency)}'\\n\\s+update-types:\\n\\s+- version-update:semver-major`,
+			),
+		);
+	}
 	assert.doesNotMatch(dependabotConfig, /auto-merge|automerge/i);
 });
 

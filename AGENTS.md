@@ -59,6 +59,13 @@ record accepted intent but are not proof that later phases shipped.
 - Keep Mise tool selectors at the major version and commit exact
   multi-platform resolutions in `mise.lock`. Use `mise lock --bump` to refresh
   compatible tools.
+- Keep the `@types/node` major aligned with the Mise-selected Node major. Upgrade
+  the runtime and its types together.
+- Keep the direct `markdown-it` fixture on the major used by stable VS Code.
+  Exercise the host contract before adopting a new parser major.
+- Keep `conventional-changelog-conventionalcommits` on the preset major supported
+  by `@semantic-release/release-notes-generator` and its writer. Upgrade that
+  stack together and preserve the generated-notes contract.
 - New package releases cool down for three days. For an urgent reviewed
   security fix, add only the exact package to `minimumReleaseAgeExclude`, update
   the lockfile, and remove the exception once the release ages in.
