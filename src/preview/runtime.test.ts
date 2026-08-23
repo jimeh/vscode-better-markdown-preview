@@ -407,6 +407,10 @@ describe('preview runtime', () => {
 		setDocument(
 			'<h2 id="one">One</h2><h2 id="two">Two</h2><h2 id="three">Three</h2>',
 		);
+		vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(100);
+		vi.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(
+			1000,
+		);
 		const headingTops = [50, 300, 500];
 		for (const [index, heading] of Array.from(
 			document.querySelectorAll<HTMLElement>('h2'),
@@ -491,6 +495,10 @@ describe('preview runtime', () => {
 	])('reveals active sidebar links immediately $name', async (scenario) => {
 		setDocument(
 			`<h2 id="one">One</h2><h2 id="two">Two</h2><span hidden data-bmp-preview-config='${JSON.stringify(scenario.configuration)}'></span>`,
+		);
+		vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(100);
+		vi.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(
+			1000,
 		);
 		const headingTops = [50, 300];
 		for (const [index, heading] of Array.from(
@@ -608,6 +616,33 @@ describe('preview runtime', () => {
 			?.getAttribute('aria-current');
 		controller.dispose();
 		expect(current).toBe('location');
+	});
+
+	test('selects the first TOC link when the document does not scroll', async () => {
+		setDocument('<h2 id="one">One</h2><h2 id="two">Two</h2>');
+		const headings = document.querySelectorAll<HTMLElement>('h2');
+		vi.spyOn(headings[0], 'getBoundingClientRect').mockReturnValue({
+			top: 50,
+		} as DOMRect);
+		vi.spyOn(headings[1], 'getBoundingClientRect').mockReturnValue({
+			top: 90,
+		} as DOMRect);
+		vi.spyOn(window, 'scrollY', 'get').mockReturnValue(0);
+		vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(1000);
+		vi.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(
+			1000,
+		);
+		const controller = enhancePreview(document);
+		await controller.ready;
+		const current = document
+			.querySelector('[data-bmp-heading-id="one"]')
+			?.getAttribute('aria-current');
+		const otherCurrent = document
+			.querySelector('[data-bmp-heading-id="two"]')
+			?.getAttribute('aria-current');
+		controller.dispose();
+		expect(current).toBe('location');
+		expect(otherCurrent).toBeNull();
 	});
 
 	test('re-enhances replaced body content without duplicate controls', async () => {
