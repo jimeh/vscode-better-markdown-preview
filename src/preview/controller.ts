@@ -166,12 +166,13 @@ function createController(
 			.filter((heading): heading is HTMLElement => heading !== null);
 		let active: HTMLElement | undefined = headings[0];
 		const scrollHeight = document.documentElement.scrollHeight;
+		const canScroll = scrollHeight > window.innerHeight;
 		const atBottom =
-			scrollHeight > 0 &&
+			canScroll &&
 			Math.ceil(window.scrollY + window.innerHeight) >= scrollHeight;
 		if (atBottom) {
 			active = headings.at(-1);
-		} else {
+		} else if (canScroll) {
 			for (const heading of headings) {
 				if (heading.getBoundingClientRect().top <= 96) {
 					active = heading;
