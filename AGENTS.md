@@ -48,6 +48,9 @@ record accepted intent but are not proof that later phases shipped.
   `text_special`. Do not reconstruct raw-source offsets in a core rule.
 - Use focused tasks while iterating, `mise run check` for the fast handoff gate,
   and `mise run verify` on an intended final head.
+- Keep desktop Extension Host user-data directories under the system temporary
+  directory. Repository-relative paths in deep worktrees can exceed macOS's
+  Unix socket path limit before the tests start.
 - Oxfmt owns source, configuration, documentation, and CSS formatting; Taplo
   owns `mise.toml` formatting.
 

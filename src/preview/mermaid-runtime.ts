@@ -20,7 +20,16 @@ export async function render(
 	});
 	const id = `better-markdown-preview-mermaid-${diagramId++}`;
 	const result = await mermaid.render(id, source);
-	element.innerHTML = result.svg;
+	const parsed = new DOMParser().parseFromString(result.svg, 'image/svg+xml');
+	if (
+		parsed.documentElement.localName !== 'svg' ||
+		parsed.querySelector('parsererror')
+	) {
+		throw new Error('Mermaid returned invalid SVG');
+	}
+	element.replaceChildren(
+		element.ownerDocument.importNode(parsed.documentElement, true),
+	);
 	result.bindFunctions?.(element);
 }
 

@@ -1,9 +1,9 @@
 # Releases
 
 Every release-worthy squash commit that reaches `main` is released after the
-same CI run passes repository validation plus desktop-floor, desktop-stable,
-and web-stable host tests. There is no release pull request or manual approval
-step.
+same CI run passes repository validation, the real-Chromium preview contract,
+and the desktop-floor, desktop-stable, and web-stable host tests. There is no
+release pull request or manual approval step.
 
 ## Version and Notes Policy
 
@@ -78,10 +78,17 @@ After the new workflows have run once and their check names exist, protect
 `main` and require:
 
 - `Validate PR title`
-- `Validate and prepare hosts`
+- `Analyze (actions)`
+- `Analyze (javascript-typescript)`
+- `Format, lint, typecheck, test, and prepare hosts`
+- `Preview browser (Chromium)`
 - `Desktop host (1.125.0 floor)`
 - `Desktop host (stable)`
 - `Web host (stable Chromium)`
+
+Require branches to be current with `main` before merge. Dependabot pull
+requests use the same gates and remain manual merges; no workflow grants
+Dependabot or any other pull request author a merge path.
 
 The release and publication jobs are post-merge effects, so they are not branch
 protection requirements.

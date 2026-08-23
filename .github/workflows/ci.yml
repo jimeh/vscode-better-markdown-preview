@@ -133,11 +133,34 @@ jobs:
       - name: Run web compatibility contract
         run: mise run test:web:stable
 
+  preview-browser:
+    name: Preview browser (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install locked tools
+        uses: jdx/mise-action@3c2e0cf82a5b2e5249f0d3635a4d83d0ae861518 # v4.2.5
+        with:
+          install: true
+          version: '2026.8.4'
+
+      - name: Install locked dependencies
+        run: mise run setup
+
+      - name: Run preview browser contract
+        run: mise run test:preview-browser
+
   release:
     name: Release
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
       - validate
+      - preview-browser
       - desktop-host
       - web-host
     runs-on: ubuntu-latest

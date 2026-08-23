@@ -99,6 +99,30 @@ describe('Mermaid adapter', () => {
 		expect(element.textContent).toBe('graph TD\nA-->B');
 	});
 
+	test('rejects non-SVG Mermaid output without replacing fallback source', async () => {
+		const element = document.createElement('div');
+		element.textContent = 'graph TD\nA-->B';
+		mermaidMock.render.mockResolvedValue({
+			svg: '<script>window.mermaidOutputExecuted = true</script>',
+		});
+
+		await expect(
+			render(element, element.textContent, {
+				dark: false,
+				background: '#ffffff',
+				foreground: '#000000',
+				accent: '#0000ff',
+				colorShifts: {
+					primary: 12,
+					secondary: 18,
+					tertiary: 10,
+					border: 45,
+				},
+			}),
+		).rejects.toThrow('Mermaid returned invalid SVG');
+		expect(element.textContent).toBe('graph TD\nA-->B');
+	});
+
 	test('normalizes VS Code rgba theme colors to opaque Mermaid hex values', async () => {
 		mermaidMock.render.mockResolvedValue({ svg: '<svg></svg>' });
 		const element = document.createElement('div');

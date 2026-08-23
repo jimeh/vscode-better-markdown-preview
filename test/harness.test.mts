@@ -41,6 +41,10 @@ const miseConfig = await readFile(
 	new URL('../mise.toml', import.meta.url),
 	'utf8',
 );
+const vscodeTestConfig = await readFile(
+	new URL('../.vscode-test.mjs', import.meta.url),
+	'utf8',
+);
 
 function taskByLabel(label: string): VsCodeTask {
 	const task = tasks.tasks.find((candidate) => candidate.label === label);
@@ -165,6 +169,12 @@ test('web host runner is browser-targeted and excluded from production builds', 
 		external: ['vscode'],
 	});
 	assert.equal(buildTargets.filter((target) => target.testOnly).length, 1);
+});
+
+test('desktop hosts use short isolated user-data paths', () => {
+	assert.match(vscodeTestConfig, /import \{ tmpdir \} from 'node:os'/);
+	assert.match(vscodeTestConfig, /--user-data-dir=/);
+	assert.match(vscodeTestConfig, /process\.pid/);
 });
 
 test('preview browser verification is discoverable and part of the final gate', () => {

@@ -77,9 +77,13 @@ export function assertReleaseChangelog(
 	inspection: PackageInspection,
 	version: string,
 ): void {
-	assert.match(
-		inspection.changelog,
-		new RegExp(`\\b${version.replaceAll('.', '\\.')}\\b`),
+	assert.ok(
+		inspection.changelog
+			.split('\n')
+			.some(
+				(line) => line === `## ${version}` || line.startsWith(`## ${version} `),
+			),
+		`expected changelog heading for ${version}`,
 	);
 	assert.doesNotMatch(inspection.changelog, /^## \[Unreleased\]/m);
 }
