@@ -18,39 +18,50 @@
 [vscode-ext]: https://marketplace.visualstudio.com/items?itemName=jimeh.better-markdown-preview
 [openvsx-ext]: https://open-vsx.org/extension/jimeh/better-markdown-preview
 
-Better Markdown Preview is a standalone, all-in-one enhancement for Visual
-Studio Code's built-in Markdown preview. Its goal is to bring the common preview
-features you would otherwise need several extensions for into one place,
-without replacing the native preview. Source synchronization, resource
-resolution, security settings, code-copy controls, syntax highlighting, and
-user preview styles continue to work.
+Better Markdown Preview is an all-in-one replacement for the collection of
+extensions you would otherwise install to improve Visual Studio Code's built-in
+Markdown preview. It adds those features while keeping the native preview in
+place.
 
 ![Better Markdown Preview showing a table of contents, frontmatter, GitHub alert, columns, and a Mermaid diagram](img/preview.png)
 
-It adds:
+The extension adds:
 
-- Complete visible GFM behavior, including task lists, literal autolinks, and
-  tag filtering.
+- GitHub Flavored Markdown (GFM) task lists, literal autolinks, and tag
+  filtering.
 - A responsive H1-H3 table of contents with active-heading tracking.
 - GitHub alerts, Terraform Registry callouts, footnotes, definition lists, and
   collapsible highlighted TOML and YAML frontmatter.
 - Unicode emoji from named shortcodes such as `:joy:`, with optional emoticon
   shortcuts such as `:)`.
 - Responsive Pandoc-style columns.
-- Improved, locally bundled Mermaid rendering with a full-page viewer for
-  zooming and panning around large diagrams.
-- Code-block titles, highlighted lines and words, line numbers, and diff-line
-  annotations while retaining VS Code's native highlighter.
-- A clean layout driven entirely by the active VS Code theme, including high
-  contrast and print presentation.
+- Locally bundled Mermaid rendering with a full-page viewer for zooming and
+  panning around large diagrams.
+- Code-block titles, line and word highlighting, line numbers, and diff
+  annotations, while retaining VS Code's native highlighter.
+- A layout driven by the active VS Code theme, with high-contrast and print
+  styles.
+
+## Getting started
+
+Install the extension from the registry used by your editor:
+
+- [Visual Studio Marketplace][vscode-ext] for Visual Studio Code
+- [Open VSX Registry][openvsx-ext] for editors that use Open VSX
+
+VS Code users can also install it from the command line:
+
+```sh
+code --install-extension jimeh.better-markdown-preview
+```
 
 Open a Markdown file and run **Markdown: Open Preview** or **Markdown: Open
-Preview to the Side**. The built-in preview is enhanced automatically.
+Preview to the Side**. No separate preview command or setup is required.
 
-**Compatibility note:** Better Markdown Preview is intended as a one-stop
-preview enhancement and may conflict with other extensions that modify VS
-Code's Markdown preview. Disable or uninstall overlapping preview extensions to
-avoid duplicate rendering or unexpected behavior.
+**Compatibility note:** Better Markdown Preview may conflict with other
+extensions that modify VS Code's Markdown preview. Disable or uninstall
+overlapping preview extensions to avoid duplicate rendering or unexpected
+behavior.
 
 ## Extended syntax
 
@@ -116,9 +127,9 @@ available separately and disabled by default.
 
 ## Settings
 
-Better Markdown Preview features can be changed at user or workspace scope.
-Boolean features are enabled by default except emoticon shortcuts; Mermaid theme
-shifts are percentages from 0 to 100:
+Configure Better Markdown Preview at user or workspace scope. Boolean features
+are enabled by default except emoticon shortcuts; Mermaid theme shifts are
+percentages from 0 to 100:
 
 | Setting                                                   | Behavior                                                          |
 | --------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -146,8 +157,8 @@ shifts are percentages from 0 to 100:
 Disabling a rendering feature stops Better Markdown Preview from handling that
 syntax and delegates it to VS Code or another Markdown extension. It does not
 force the syntax to remain literal. Theme integration, accessibility, overflow
-handling, print safety, and GFM tag filtering remain enabled because they are
-baseline presentation, compatibility, and safety behavior.
+handling, print safety, and GFM tag filtering remain enabled because they apply
+to every preview.
 
 ## Development
 
@@ -161,12 +172,11 @@ mise run check
 mise run verify
 ```
 
-Use `mise tasks` to discover the complete task surface. The most common loops
-are:
+Use `mise tasks` to list all available tasks. Common development commands are:
 
 - `mise run dev` watches the desktop, web, preview runtime, Mermaid, CSS, and
   TypeScript targets.
-- `mise run check` runs the fast formatter, linter, type, and unit gate.
+- `mise run check` runs formatting, linting, type checks, and unit tests.
 - `mise run lint` runs native and type-aware Oxlint, Stylelint, and Markdownlint.
 - `mise run test:coverage` enforces all-files V8 coverage floors.
 - `mise run test:desktop` exercises the engine floor and stable desktop hosts.
@@ -175,7 +185,7 @@ are:
 - `mise run package:validate` builds and inspects the VSIX.
 - `mise run release:check` exercises versioning, notes, outputs, and workflow
   contracts without publishing.
-- `mise run verify` runs the intended-final-head local gate.
+- `mise run verify` runs all local checks expected before handoff.
 
 See [Architecture](docs/architecture.md) and [Testing](docs/testing.md) for the
 contracts those commands enforce. See [Releases](docs/releases.md) for the
