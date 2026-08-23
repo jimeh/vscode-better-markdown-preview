@@ -1,7 +1,9 @@
+import DOMPurify from 'dompurify';
 import mermaid from 'mermaid';
 import type { MermaidTheme } from './runtime';
 
 let diagramId = 0;
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
 export async function render(
 	element: HTMLElement,
@@ -20,16 +22,30 @@ export async function render(
 	});
 	const id = `better-markdown-preview-mermaid-${diagramId++}`;
 	const result = await mermaid.render(id, source);
-	const parsed = new DOMParser().parseFromString(result.svg, 'image/svg+xml');
+	const sanitized = DOMPurify.sanitize(`<div>${result.svg}</div>`, {
+		ADD_TAGS: ['foreignobject'],
+		ADD_ATTR: ['dominant-baseline'],
+		HTML_INTEGRATION_POINTS: { foreignobject: true },
+		RETURN_DOM_FRAGMENT: true,
+	});
+	const sanitizedRoot = sanitized.firstElementChild;
+	const svg =
+		sanitizedRoot?.localName === 'svg'
+			? sanitizedRoot
+			: sanitizedRoot?.localName === 'div' &&
+				  sanitizedRoot.childElementCount === 1 &&
+				  sanitizedRoot.firstElementChild?.localName === 'svg'
+				? sanitizedRoot.firstElementChild
+				: undefined;
 	if (
-		parsed.documentElement.localName !== 'svg' ||
-		parsed.querySelector('parsererror')
+		sanitized.childElementCount !== 1 ||
+		!svg ||
+		svg.namespaceURI !== SVG_NAMESPACE ||
+		svg.getAttribute('xmlns') !== SVG_NAMESPACE
 	) {
 		throw new Error('Mermaid returned invalid SVG');
 	}
-	element.replaceChildren(
-		element.ownerDocument.importNode(parsed.documentElement, true),
-	);
+	element.replaceChildren(svg);
 	result.bindFunctions?.(element);
 }
 

@@ -21,10 +21,12 @@ describe('Mermaid adapter', () => {
 		const bindFunctions = vi.fn();
 		mermaidMock.render
 			.mockResolvedValueOnce({
-				svg: '<svg data-diagram="one"></svg>',
+				svg: '<svg xmlns="http://www.w3.org/2000/svg" data-diagram="one"></svg>',
 				bindFunctions,
 			})
-			.mockResolvedValueOnce({ svg: '<svg data-diagram="two"></svg>' });
+			.mockResolvedValueOnce({
+				svg: '<svg xmlns="http://www.w3.org/2000/svg" data-diagram="two"></svg>',
+			});
 		const first = document.createElement('div');
 		const second = document.createElement('div');
 		const theme = {
@@ -99,6 +101,30 @@ describe('Mermaid adapter', () => {
 		expect(element.textContent).toBe('graph TD\nA-->B');
 	});
 
+	test('rejects Mermaid output outside the SVG namespace', async () => {
+		const element = document.createElement('div');
+		element.textContent = 'graph TD\nA-->B';
+		mermaidMock.render.mockResolvedValue({
+			svg: '<svg xmlns="urn:not-svg"><rect /></svg>',
+		});
+
+		await expect(
+			render(element, element.textContent, {
+				dark: false,
+				background: '#ffffff',
+				foreground: '#000000',
+				accent: '#0000ff',
+				colorShifts: {
+					primary: 12,
+					secondary: 18,
+					tertiary: 10,
+					border: 45,
+				},
+			}),
+		).rejects.toThrow('Mermaid returned invalid SVG');
+		expect(element.textContent).toBe('graph TD\nA-->B');
+	});
+
 	test('rejects non-SVG Mermaid output without replacing fallback source', async () => {
 		const element = document.createElement('div');
 		element.textContent = 'graph TD\nA-->B';
@@ -123,8 +149,40 @@ describe('Mermaid adapter', () => {
 		expect(element.textContent).toBe('graph TD\nA-->B');
 	});
 
+	test('sanitizes active content from Mermaid SVG output', async () => {
+		const element = document.createElement('div');
+		mermaidMock.render.mockResolvedValue({
+			svg: [
+				'<svg xmlns="http://www.w3.org/2000/svg">',
+				'<script>window.mermaidOutputExecuted = true</script>',
+				'<a href="javascript:alert(1)"><rect onload="alert(1)" /></a>',
+				'</svg>',
+			].join(''),
+		});
+
+		await render(element, 'graph TD\nA-->B', {
+			dark: false,
+			background: '#ffffff',
+			foreground: '#000000',
+			accent: '#0000ff',
+			colorShifts: {
+				primary: 12,
+				secondary: 18,
+				tertiary: 10,
+				border: 45,
+			},
+		});
+
+		expect(element.querySelector('svg')).not.toBeNull();
+		expect(element.querySelector('script')).toBeNull();
+		expect(element.querySelector('[onload]')).toBeNull();
+		expect(element.querySelector('[href]')).toBeNull();
+	});
+
 	test('normalizes VS Code rgba theme colors to opaque Mermaid hex values', async () => {
-		mermaidMock.render.mockResolvedValue({ svg: '<svg></svg>' });
+		mermaidMock.render.mockResolvedValue({
+			svg: '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+		});
 		const element = document.createElement('div');
 
 		await render(element, 'graph TD\nA-->B', {
