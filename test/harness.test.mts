@@ -90,6 +90,14 @@ test('quality scripts use the Oxc toolchain, type-aware linting, and CSS linting
 	}
 });
 
+test('Node types match the repository-managed Node major', () => {
+	const nodeSelector = miseConfig.match(/^node = "(\d+)"$/m)?.[1];
+	const nodeTypesMajor =
+		packageJson.devDependencies['@types/node'].match(/\d+/)?.[0];
+	assert.ok(nodeSelector);
+	assert.equal(nodeTypesMajor, nodeSelector);
+});
+
 test('pre-commit hooks check staged files before conditional project checks', () => {
 	assert.match(lefthookConfig, /^pre-commit:\n  parallel: true/m);
 	assert.match(lefthookConfig, /oxfmt --check \{staged_files\}/);

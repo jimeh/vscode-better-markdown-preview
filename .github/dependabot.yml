@@ -15,6 +15,19 @@ updates:
     commit-message:
       prefix: fix(deps)
       prefix-development: chore(deps-dev)
+    ignore:
+      # Match the repository's Node 24 execution target.
+      - dependency-name: '@types/node'
+        update-types:
+          - version-update:semver-major
+      # Upgrade after stable VS Code adopts the new parser major.
+      - dependency-name: 'markdown-it'
+        update-types:
+          - version-update:semver-major
+      # Upgrade with compatible Semantic Release generator and writer versions.
+      - dependency-name: 'conventional-changelog-conventionalcommits'
+        update-types:
+          - version-update:semver-major
     groups:
       runtime-minor-and-patch:
         dependency-type: production
