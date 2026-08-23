@@ -75,6 +75,37 @@ async function releaseType(message: string): Promise<string | null> {
 	});
 }
 
+async function releaseNotes(
+	commits: Commit[],
+	lastVersion = '1.0.0',
+	nextVersion = '1.0.1',
+): Promise<string> {
+	return generateNotes(pluginOptions(notesGeneratorModule), {
+		commits,
+		cwd: process.cwd(),
+		lastRelease: {
+			channels: [],
+			gitHead: '0000000',
+			gitTag: `v${lastVersion}`,
+			name: `v${lastVersion}`,
+			version: lastVersion,
+		},
+		logger: { log: () => undefined },
+		nextRelease: {
+			channel: '',
+			gitHead: '1111111',
+			gitTag: `v${nextVersion}`,
+			name: `v${nextVersion}`,
+			type: 'patch',
+			version: nextVersion,
+		},
+		options: {
+			repositoryUrl:
+				'https://github.com/jimeh/vscode-better-markdown-preview.git',
+		},
+	});
+}
+
 test('release policy maps conventional commits to intended versions', async () => {
 	assert.deepEqual(releaseConfig.branches, ['main']);
 	assert.equal(releaseConfig.tagFormat, 'v${version}');
@@ -113,33 +144,10 @@ test('release policy maps conventional commits to intended versions', async () =
 });
 
 test('generated notes show documentation and hide maintenance commits', async () => {
-	const notes = await generateNotes(pluginOptions(notesGeneratorModule), {
-		commits: [
-			{ hash: 'abc1234', message: 'docs: explain columns' },
-			{ hash: 'def5678', message: 'chore: reorder tooling' },
-		],
-		cwd: process.cwd(),
-		lastRelease: {
-			channels: [],
-			gitHead: '0000000',
-			gitTag: 'v1.0.0',
-			name: 'v1.0.0',
-			version: '1.0.0',
-		},
-		logger: { log: () => undefined },
-		nextRelease: {
-			channel: '',
-			gitHead: '1111111',
-			gitTag: 'v1.0.1',
-			name: 'v1.0.1',
-			type: 'patch',
-			version: '1.0.1',
-		},
-		options: {
-			repositoryUrl:
-				'https://github.com/jimeh/vscode-better-markdown-preview.git',
-		},
-	});
+	const notes = await releaseNotes([
+		{ hash: 'abc1234', message: 'docs: explain columns' },
+		{ hash: 'def5678', message: 'chore: reorder tooling' },
+	]);
 
 	assert.match(notes, /### Documentation/);
 	assert.match(notes, /explain columns/);
@@ -171,7 +179,16 @@ test('release package checks require current notes and a valid checksum', async 
 			cwd: temporaryDirectory,
 			logger: { log: () => undefined },
 			nextRelease: {
-				notes: '## 1.2.3\n\n### Documentation\n\n- explain release automation',
+				notes: await releaseNotes(
+					[
+						{
+							hash: 'abc1234',
+							message: 'docs: explain release automation',
+						},
+					],
+					'1.2.2',
+					'1.2.3',
+				),
 			},
 		});
 		const inspection = {
@@ -179,11 +196,24 @@ test('release package checks require current notes and a valid checksum', async 
 			changelog: await readFile(changelogPath, 'utf8'),
 			manifest: { contributes: {} },
 		} satisfies PackageInspection;
+		assert.match(inspection.changelog, /^## \[1\.2\.3\]\(/m);
 		assertReleaseChangelog(inspection, '1.2.3');
 		assert.match(inspection.changelog, /GitHub Releases/);
 		assert.equal(
 			[...inspection.changelog.matchAll(/^# Changelog$/gm)].length,
 			1,
+		);
+		assert.throws(
+			() =>
+				assertReleaseChangelog(
+					{
+						...inspection,
+						changelog:
+							'# Changelog\n\n## [1.2.30](https://example.com/v1.2.30)\n',
+					},
+					'1.2.3',
+				),
+			/expected changelog heading/,
 		);
 		assert.throws(
 			() =>
