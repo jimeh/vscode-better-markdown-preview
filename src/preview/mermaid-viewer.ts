@@ -68,8 +68,7 @@ export function createMermaidViewer(document: Document): MermaidViewer {
 	let sourceBlock: HTMLElement | undefined;
 	let returnFocus: HTMLElement | undefined;
 	let viewerSvg: SVGSVGElement | undefined;
-	let naturalWidth = 1;
-	let naturalHeight = 1;
+	let geometry: SvgGeometry = { x: 0, y: 0, width: 1, height: 1 };
 	let scale = 1;
 	let panX = 0;
 	let panY = 0;
@@ -79,12 +78,25 @@ export function createMermaidViewer(document: Document): MermaidViewer {
 	let pointerPanX = 0;
 	let pointerPanY = 0;
 
-	const applyTransform = (): void => {
-		surface.style.transform = `translate(${panX}px, ${panY}px)`;
-		if (viewerSvg) {
-			viewerSvg.style.transform = `translate(-50%, -50%) scale(${scale})`;
-		}
+	const applyViewBox = (): void => {
 		zoomValue.textContent = `${Math.round(scale * 100)}%`;
+		if (!viewerSvg) {
+			return;
+		}
+		const bounds = canvas.getBoundingClientRect();
+		const viewWidth = Math.max(bounds.width, 1) / scale;
+		const viewHeight = Math.max(bounds.height, 1) / scale;
+		const centerX = geometry.x + geometry.width / 2 + panX;
+		const centerY = geometry.y + geometry.height / 2 + panY;
+		viewerSvg.setAttribute(
+			'viewBox',
+			[
+				centerX - viewWidth / 2,
+				centerY - viewHeight / 2,
+				viewWidth,
+				viewHeight,
+			].join(' '),
+		);
 	};
 
 	const fitDiagram = (): void => {
@@ -93,8 +105,8 @@ export function createMermaidViewer(document: Document): MermaidViewer {
 		const availableHeight = Math.max(bounds.height - 48, 1);
 		scale = clamp(
 			Math.min(
-				availableWidth / naturalWidth,
-				availableHeight / naturalHeight,
+				availableWidth / geometry.width,
+				availableHeight / geometry.height,
 				1,
 			),
 			0.05,
@@ -102,7 +114,7 @@ export function createMermaidViewer(document: Document): MermaidViewer {
 		);
 		panX = 0;
 		panY = 0;
-		applyTransform();
+		applyViewBox();
 	};
 
 	const setZoom = (
@@ -116,32 +128,40 @@ export function createMermaidViewer(document: Document): MermaidViewer {
 		}
 		if (clientX !== undefined && clientY !== undefined) {
 			const bounds = canvas.getBoundingClientRect();
-			const offsetX = clientX - (bounds.left + bounds.width / 2) - panX;
-			const offsetY = clientY - (bounds.top + bounds.height / 2) - panY;
-			const ratio = clamped / scale;
-			panX += offsetX * (1 - ratio);
-			panY += offsetY * (1 - ratio);
+			const offsetX = clientX - (bounds.left + bounds.width / 2);
+			const offsetY = clientY - (bounds.top + bounds.height / 2);
+			panX += offsetX * (1 / scale - 1 / clamped);
+			panY += offsetY * (1 / scale - 1 / clamped);
 		}
 		scale = clamped;
-		applyTransform();
+		applyViewBox();
 	};
 
 	const showSvg = (svg: SVGSVGElement, reset: boolean): void => {
 		viewerSvg = cloneMermaidSvg(svg);
-		const size = readSvgSize(svg);
-		naturalWidth = size.width;
-		naturalHeight = size.height;
-		viewerSvg.style.width = `${naturalWidth}px`;
-		viewerSvg.style.height = `${naturalHeight}px`;
+		geometry = readSvgGeometry(svg);
+		viewerSvg.style.width = '100%';
+		viewerSvg.style.height = '100%';
 		viewerSvg.style.maxWidth = 'none';
 		viewerSvg.style.maxHeight = 'none';
 		surface.replaceChildren(viewerSvg);
 		if (reset) {
 			fitDiagram();
 		} else {
-			applyTransform();
+			applyViewBox();
 		}
 	};
+
+	const resizeObserver =
+		typeof ResizeObserver === 'function'
+			? new ResizeObserver(() => applyViewBox())
+			: undefined;
+	const resizeFallback = (): void => applyViewBox();
+	if (resizeObserver) {
+		resizeObserver.observe(canvas);
+	} else {
+		document.defaultView?.addEventListener('resize', resizeFallback);
+	}
 
 	const close = (restoreFocus = true): void => {
 		if (dialog.hasAttribute('open')) {
@@ -226,16 +246,16 @@ export function createMermaidViewer(document: Document): MermaidViewer {
 		}
 		const panStep = event.shiftKey ? 120 : 40;
 		const direction = {
-			ArrowLeft: [panStep, 0],
-			ArrowRight: [-panStep, 0],
-			ArrowUp: [0, panStep],
-			ArrowDown: [0, -panStep],
+			ArrowLeft: [-panStep, 0],
+			ArrowRight: [panStep, 0],
+			ArrowUp: [0, -panStep],
+			ArrowDown: [0, panStep],
 		}[event.key];
 		if (direction) {
 			event.preventDefault();
-			panX += direction[0];
-			panY += direction[1];
-			applyTransform();
+			panX += direction[0] / scale;
+			panY += direction[1] / scale;
+			applyViewBox();
 		}
 	});
 	canvas.addEventListener(
@@ -266,9 +286,9 @@ export function createMermaidViewer(document: Document): MermaidViewer {
 		if (activePointer !== event.pointerId) {
 			return;
 		}
-		panX = pointerPanX + event.clientX - pointerStartX;
-		panY = pointerPanY + event.clientY - pointerStartY;
-		applyTransform();
+		panX = pointerPanX - (event.clientX - pointerStartX) / scale;
+		panY = pointerPanY - (event.clientY - pointerStartY) / scale;
+		applyViewBox();
 	});
 	const stopPanning = (event: PointerEvent): void => {
 		if (activePointer !== event.pointerId) {
@@ -317,6 +337,10 @@ export function createMermaidViewer(document: Document): MermaidViewer {
 		},
 		dispose() {
 			close(false);
+			resizeObserver?.disconnect();
+			if (!resizeObserver) {
+				document.defaultView?.removeEventListener('resize', resizeFallback);
+			}
 			dialog.remove();
 		},
 	};
@@ -338,7 +362,14 @@ function createMermaidButton(
 	return button;
 }
 
-function readSvgSize(svg: SVGSVGElement): { width: number; height: number } {
+interface SvgGeometry {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+function readSvgGeometry(svg: SVGSVGElement): SvgGeometry {
 	const values = svg
 		.getAttribute('viewBox')
 		?.trim()
@@ -346,16 +377,20 @@ function readSvgSize(svg: SVGSVGElement): { width: number; height: number } {
 		.map(Number);
 	if (
 		values?.length === 4 &&
+		Number.isFinite(values[0]) &&
+		Number.isFinite(values[1]) &&
 		Number.isFinite(values[2]) &&
 		values[2] > 0 &&
 		Number.isFinite(values[3]) &&
 		values[3] > 0
 	) {
-		return { width: values[2], height: values[3] };
+		return { x: values[0], y: values[1], width: values[2], height: values[3] };
 	}
 	const width = Number.parseFloat(svg.getAttribute('width') ?? '');
 	const height = Number.parseFloat(svg.getAttribute('height') ?? '');
 	return {
+		x: 0,
+		y: 0,
 		width: Number.isFinite(width) && width > 0 ? width : 800,
 		height: Number.isFinite(height) && height > 0 ? height : 600,
 	};

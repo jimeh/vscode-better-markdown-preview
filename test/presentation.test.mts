@@ -77,6 +77,18 @@ test('Mermaid viewer owns a near-viewport, theme-aware interaction surface', () 
 	);
 	assert.match(
 		css,
+		/\.better-markdown-preview-mermaid-surface \{[\s\S]*?position: absolute;[\s\S]*?inset: 0;/,
+	);
+	assert.match(
+		css,
+		/\.better-markdown-preview-mermaid-surface svg \{[\s\S]*?width: 100%;[\s\S]*?height: 100%;/,
+	);
+	assert.doesNotMatch(
+		css,
+		/\.better-markdown-preview-mermaid-(?:surface|surface svg) \{[^}]*(?:transform|will-change):/,
+	);
+	assert.match(
+		css,
 		/@media print \{[\s\S]*?\.better-markdown-preview-mermaid-dialog[\s\S]*?display: none !important;/,
 	);
 	assert.match(
