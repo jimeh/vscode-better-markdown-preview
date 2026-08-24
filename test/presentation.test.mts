@@ -83,9 +83,26 @@ test('Mermaid viewer owns a near-viewport, theme-aware interaction surface', () 
 		css,
 		/\.better-markdown-preview-mermaid-surface svg \{[\s\S]*?width: 100%;[\s\S]*?height: 100%;/,
 	);
-	assert.doesNotMatch(
-		css,
-		/\.better-markdown-preview-mermaid-(?:surface|surface svg) \{[^}]*(?:transform|will-change):/,
+	const viewerLayers = new Set([
+		'.better-markdown-preview-mermaid-dialog',
+		'.better-markdown-preview-mermaid-dialog-shell',
+		'.better-markdown-preview-mermaid-canvas',
+		'.better-markdown-preview-mermaid-canvas-panning',
+		'.better-markdown-preview-mermaid-surface',
+		'.better-markdown-preview-mermaid-surface svg',
+	]);
+	const rasterizingRule = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find(
+		([, selectors, declarations]) =>
+			selectors
+				.split(',')
+				.map((selector) => selector.trim())
+				.some((selector) => viewerLayers.has(selector)) &&
+			/(?:^|;)\s*(?:transform|will-change)\s*:/.test(declarations),
+	);
+	assert.equal(
+		rasterizingRule,
+		undefined,
+		`Mermaid viewer layers must not use transform or will-change: ${rasterizingRule?.[0].trim()}`,
 	);
 	assert.match(
 		css,

@@ -206,7 +206,7 @@ window.addEventListener('unhandledrejection', event => {
 	}
 	const initialViewer = await page.evaluate<{
 		foreignObjects: number;
-		transforms: string[];
+		transforms: Array<{ element: string; transform: string }>;
 		viewBox: number[];
 		zoom: string | null;
 	}>(`(() => {
@@ -214,8 +214,14 @@ window.addEventListener('unhandledrejection', event => {
 		const canvas = dialog.querySelector('[data-bmp-mermaid-canvas]');
 		const svg = canvas.querySelector('svg');
 		const transforms = [];
-		for (let element = svg; element && element !== canvas; element = element.parentElement) {
-			transforms.push(window.getComputedStyle(element).transform);
+		for (let element = svg; element; element = element.parentElement) {
+			transforms.push({
+				element: element.matches('svg')
+					? 'svg'
+					: element.getAttribute('class') ?? element.tagName.toLowerCase(),
+				transform: window.getComputedStyle(element).transform,
+			});
+			if (element === dialog) break;
 		}
 		return {
 			foreignObjects: svg.querySelectorAll('foreignObject').length,
@@ -232,7 +238,7 @@ window.addEventListener('unhandledrejection', event => {
 	if (initialViewer.foreignObjects === 0) {
 		throw new Error('The Mermaid viewer clone lost the rendered foreignObject');
 	}
-	if (initialViewer.transforms.some((transform) => transform !== 'none')) {
+	if (initialViewer.transforms.some(({ transform }) => transform !== 'none')) {
 		throw new Error(
 			`The Mermaid viewer SVG path used a CSS transform: ${JSON.stringify(initialViewer.transforms)}`,
 		);
@@ -320,15 +326,22 @@ window.addEventListener('unhandledrejection', event => {
 		await page.locator('[data-bmp-mermaid-zoom-in]').click();
 	}
 	const maximumZoom = await page.evaluate<{
-		transforms: string[];
+		transforms: Array<{ element: string; transform: string }>;
 		viewBox: number[];
 		zoom: string | null;
 	}>(`(() => {
-		const canvas = document.querySelector('[data-bmp-mermaid-canvas]');
+		const dialog = document.querySelector('[data-bmp-mermaid-dialog]');
+		const canvas = dialog.querySelector('[data-bmp-mermaid-canvas]');
 		const svg = canvas.querySelector('svg');
 		const transforms = [];
-		for (let element = svg; element && element !== canvas; element = element.parentElement) {
-			transforms.push(window.getComputedStyle(element).transform);
+		for (let element = svg; element; element = element.parentElement) {
+			transforms.push({
+				element: element.matches('svg')
+					? 'svg'
+					: element.getAttribute('class') ?? element.tagName.toLowerCase(),
+				transform: window.getComputedStyle(element).transform,
+			});
+			if (element === dialog) break;
 		}
 		return {
 			transforms,
@@ -339,7 +352,7 @@ window.addEventListener('unhandledrejection', event => {
 	if (maximumZoom.zoom !== '800%') {
 		throw new Error(`The Mermaid viewer zoom cap was ${maximumZoom.zoom}`);
 	}
-	if (maximumZoom.transforms.some((transform) => transform !== 'none')) {
+	if (maximumZoom.transforms.some(({ transform }) => transform !== 'none')) {
 		throw new Error(
 			`The Mermaid viewer used a CSS transform at 800%: ${JSON.stringify(maximumZoom.transforms)}`,
 		);
