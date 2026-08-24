@@ -63,6 +63,10 @@ record accepted intent but are not proof that later phases shipped.
   the runtime and its types together.
 - Keep the direct `markdown-it` fixture on the major used by stable VS Code.
   Exercise the host contract before adopting a new parser major.
+- Release notes use linked version headings. Changelog package contracts must
+  validate the exact visible version in both linked and plain headings, and
+  tests must pass real generated notes through `@semantic-release/changelog`
+  instead of hand-writing release headings.
 - Keep `conventional-changelog-conventionalcommits` on the preset major supported
   by `@semantic-release/release-notes-generator` and its writer. Upgrade that
   stack together and preserve the generated-notes contract.

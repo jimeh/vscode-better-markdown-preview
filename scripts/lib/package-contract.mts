@@ -77,12 +77,23 @@ export function assertReleaseChangelog(
 	inspection: PackageInspection,
 	version: string,
 ): void {
+	const plainHeading = `## ${version}`;
+	const linkedHeading = `## [${version}](`;
 	assert.ok(
-		inspection.changelog
-			.split('\n')
-			.some(
-				(line) => line === `## ${version}` || line.startsWith(`## ${version} `),
-			),
+		inspection.changelog.split('\n').some((line) => {
+			if (line === plainHeading || line.startsWith(`${plainHeading} `)) {
+				return true;
+			}
+			if (!line.startsWith(linkedHeading)) {
+				return false;
+			}
+
+			const linkEnd = line.indexOf(')', linkedHeading.length);
+			return (
+				linkEnd > linkedHeading.length &&
+				(linkEnd === line.length - 1 || line[linkEnd + 1] === ' ')
+			);
+		}),
 		`expected changelog heading for ${version}`,
 	);
 	assert.doesNotMatch(inspection.changelog, /^## \[Unreleased\]/m);
