@@ -204,6 +204,169 @@ window.addEventListener('unhandledrejection', event => {
 			`The Mermaid viewer canvas did not receive focus; active element: ${active}`,
 		);
 	}
+	const initialViewer = await page.evaluate<{
+		foreignObjects: number;
+		transforms: Array<{ element: string; transform: string }>;
+		viewBox: number[];
+		zoom: string | null;
+	}>(`(() => {
+		const dialog = document.querySelector('[data-bmp-mermaid-dialog]');
+		const canvas = dialog.querySelector('[data-bmp-mermaid-canvas]');
+		const svg = canvas.querySelector('svg');
+		const transforms = [];
+		for (let element = svg; element; element = element.parentElement) {
+			transforms.push({
+				element: element.matches('svg')
+					? 'svg'
+					: element.getAttribute('class') ?? element.tagName.toLowerCase(),
+				transform: window.getComputedStyle(element).transform,
+			});
+			if (element === dialog) break;
+		}
+		return {
+			foreignObjects: svg.querySelectorAll('foreignObject').length,
+			transforms,
+			viewBox: svg.getAttribute('viewBox').trim().split(/\\s+/).map(Number),
+			zoom: dialog.querySelector('[data-bmp-mermaid-zoom-value]').textContent,
+		};
+	})()`);
+	if (initialViewer.zoom !== '100%') {
+		throw new Error(
+			`The Mermaid viewer did not open at 100%: ${initialViewer.zoom}`,
+		);
+	}
+	if (initialViewer.foreignObjects === 0) {
+		throw new Error('The Mermaid viewer clone lost the rendered foreignObject');
+	}
+	if (initialViewer.transforms.some(({ transform }) => transform !== 'none')) {
+		throw new Error(
+			`The Mermaid viewer SVG path used a CSS transform: ${JSON.stringify(initialViewer.transforms)}`,
+		);
+	}
+
+	const anchoredZoom = await page.evaluate<{
+		before: number[];
+		after: number[];
+		pointerRatio: [number, number];
+		zoom: string | null;
+	}>(`(() => {
+		const dialog = document.querySelector('[data-bmp-mermaid-dialog]');
+		const canvas = dialog.querySelector('[data-bmp-mermaid-canvas]');
+		const svg = canvas.querySelector('svg');
+		const bounds = canvas.getBoundingClientRect();
+		const pointerRatio = [0.75, 0.3];
+		const before = svg.getAttribute('viewBox').trim().split(/\\s+/).map(Number);
+		canvas.dispatchEvent(new WheelEvent('wheel', {
+			bubbles: true,
+			cancelable: true,
+			clientX: bounds.left + bounds.width * pointerRatio[0],
+			clientY: bounds.top + bounds.height * pointerRatio[1],
+			deltaY: -100,
+		}));
+		return {
+			before,
+			after: svg.getAttribute('viewBox').trim().split(/\\s+/).map(Number),
+			pointerRatio,
+			zoom: dialog.querySelector('[data-bmp-mermaid-zoom-value]').textContent,
+		};
+	})()`);
+	if (anchoredZoom.zoom !== '120%') {
+		throw new Error(`Off-center wheel zoom reached ${anchoredZoom.zoom}`);
+	}
+	for (const axis of [0, 1]) {
+		const size = axis + 2;
+		const beforePoint =
+			anchoredZoom.before[axis] +
+			anchoredZoom.pointerRatio[axis] * anchoredZoom.before[size];
+		const afterPoint =
+			anchoredZoom.after[axis] +
+			anchoredZoom.pointerRatio[axis] * anchoredZoom.after[size];
+		if (Math.abs(beforePoint - afterPoint) > 0.25) {
+			throw new Error(
+				`Off-center wheel zoom moved its SVG anchor on axis ${axis}: ${beforePoint} -> ${afterPoint}`,
+			);
+		}
+	}
+
+	const centerBeforePan = [
+		anchoredZoom.after[0] + anchoredZoom.after[2] / 2,
+		anchoredZoom.after[1] + anchoredZoom.after[3] / 2,
+	];
+	await page.keyboard.press('ArrowRight');
+	const afterKeyboardPan = await page.evaluate<number[]>(`(() => {
+		const values = document
+			.querySelector('[data-bmp-mermaid-canvas] svg')
+			.getAttribute('viewBox')
+			.trim()
+			.split(/\\s+/)
+			.map(Number);
+		return [values[0] + values[2] / 2, values[1] + values[3] / 2];
+	})()`);
+	if (
+		Math.abs(afterKeyboardPan[0] - centerBeforePan[0] - 40 / 1.2) > 0.001 ||
+		Math.abs(afterKeyboardPan[1] - centerBeforePan[1]) > 0.001
+	) {
+		throw new Error(
+			`Keyboard pan did not retain its screen-pixel step: ${JSON.stringify({ centerBeforePan, afterKeyboardPan })}`,
+		);
+	}
+
+	await page.locator('[data-bmp-mermaid-fit]').click();
+	const fitViewBox = await page.evaluate<number[]>(
+		`document.querySelector('[data-bmp-mermaid-canvas] svg').getAttribute('viewBox').trim().split(/\\s+/).map(Number)`,
+	);
+	for (const axis of [0, 1, 2, 3]) {
+		if (Math.abs(fitViewBox[axis] - initialViewer.viewBox[axis]) > 0.001) {
+			throw new Error(
+				`Fit did not restore the 100% viewBox: ${JSON.stringify({ initial: initialViewer.viewBox, fit: fitViewBox })}`,
+			);
+		}
+	}
+	for (let index = 0; index < 10; index += 1) {
+		await page.locator('[data-bmp-mermaid-zoom-in]').click();
+	}
+	const maximumZoom = await page.evaluate<{
+		transforms: Array<{ element: string; transform: string }>;
+		viewBox: number[];
+		zoom: string | null;
+	}>(`(() => {
+		const dialog = document.querySelector('[data-bmp-mermaid-dialog]');
+		const canvas = dialog.querySelector('[data-bmp-mermaid-canvas]');
+		const svg = canvas.querySelector('svg');
+		const transforms = [];
+		for (let element = svg; element; element = element.parentElement) {
+			transforms.push({
+				element: element.matches('svg')
+					? 'svg'
+					: element.getAttribute('class') ?? element.tagName.toLowerCase(),
+				transform: window.getComputedStyle(element).transform,
+			});
+			if (element === dialog) break;
+		}
+		return {
+			transforms,
+			viewBox: svg.getAttribute('viewBox').trim().split(/\\s+/).map(Number),
+			zoom: document.querySelector('[data-bmp-mermaid-zoom-value]').textContent,
+		};
+	})()`);
+	if (maximumZoom.zoom !== '800%') {
+		throw new Error(`The Mermaid viewer zoom cap was ${maximumZoom.zoom}`);
+	}
+	if (maximumZoom.transforms.some(({ transform }) => transform !== 'none')) {
+		throw new Error(
+			`The Mermaid viewer used a CSS transform at 800%: ${JSON.stringify(maximumZoom.transforms)}`,
+		);
+	}
+	for (const size of [2, 3]) {
+		if (
+			Math.abs(maximumZoom.viewBox[size] - initialViewer.viewBox[size] / 8) >
+			0.001
+		) {
+			throw new Error(
+				`The 800% viewBox span was not one eighth of 100%: ${JSON.stringify({ initial: initialViewer.viewBox, maximum: maximumZoom.viewBox })}`,
+			);
+		}
+	}
 	await page.keyboard.press('Escape');
 	await page.waitForFunction(
 		'!document.querySelector("[data-bmp-mermaid-dialog]")?.hasAttribute("open")',
@@ -347,7 +510,7 @@ window.addEventListener('unhandledrejection', event => {
 		throw new Error(`Browser errors:\n${errors.join('\n')}`);
 	}
 	console.log(
-		'Preview browser contract passed: CSP-restricted bundles, long TOC active-link reveal, TOC/body replacement, code enhancement, Mermaid import/theme rerender, and dialog focus.',
+		'Preview browser contract passed: CSP-restricted bundles, long TOC active-link reveal, TOC/body replacement, code enhancement, Mermaid import/theme rerender, and sharp Mermaid viewBox zoom/pan.',
 	);
 } catch (error) {
 	primaryFailure = error;

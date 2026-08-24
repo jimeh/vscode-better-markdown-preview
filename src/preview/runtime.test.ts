@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { defaultMermaidColorShifts } from '../config';
 import {
 	enhancePreview,
@@ -13,12 +13,41 @@ function setDocument(html: string): void {
 	document.body.innerHTML = `<div class="markdown-body">${html}</div>`;
 }
 
+function readViewBox(svg: SVGSVGElement): [number, number, number, number] {
+	return svg.getAttribute('viewBox')!.trim().split(/\s+/).map(Number) as [
+		number,
+		number,
+		number,
+		number,
+	];
+}
+
+function canvasBounds(
+	left: number,
+	top: number,
+	width: number,
+	height: number,
+): DOMRect {
+	return {
+		left,
+		top,
+		width,
+		height,
+		right: left + width,
+		bottom: top + height,
+	} as DOMRect;
+}
+
 describe('preview runtime', () => {
 	beforeEach(() => {
 		document.body.className = '';
 		document.body.removeAttribute('style');
 		setDocument('');
 		vi.restoreAllMocks();
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
 	});
 
 	test('defaults malformed or absent preview configuration to enabled', () => {
@@ -1114,13 +1143,13 @@ describe('preview runtime', () => {
 		second.dispose();
 	});
 
-	test('opens a near-viewport Mermaid viewer with zoom, pan, fit, and focus restoration', async () => {
+	test('uses a viewBox for non-zero-origin zoom, pan, fit, and focus restoration', async () => {
 		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
 		const controller = enhancePreview(document, {
 			loadMermaid: async () => ({
 				render: async (element: HTMLElement) => {
 					element.innerHTML =
-						'<svg id="diagram-root" viewBox="0 0 400 200" aria-labelledby="diagram-title"><title id="diagram-title">Diagram</title><defs><marker id="arrow"></marker></defs><path class="node" marker-end="url(#arrow)"></path><text>Rendered</text></svg>';
+						'<svg id="diagram-root" viewBox="-100 50 400 200" aria-labelledby="diagram-title"><title id="diagram-title">Diagram</title><defs><marker id="arrow"></marker></defs><path class="node" marker-end="url(#arrow)"></path><foreignObject x="-50" y="75" width="100" height="50"><div>Foreign label</div></foreignObject><text>Rendered</text></svg>';
 					const svg = element.querySelector('svg')!;
 					const style = element.ownerDocument.createElementNS(
 						'http://www.w3.org/2000/svg',
@@ -1143,14 +1172,9 @@ describe('preview runtime', () => {
 		const canvas = dialog.querySelector<HTMLElement>(
 			'[data-bmp-mermaid-canvas]',
 		)!;
-		vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
-			left: 0,
-			top: 0,
-			width: 800,
-			height: 600,
-			right: 800,
-			bottom: 600,
-		} as DOMRect);
+		vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue(
+			canvasBounds(0, 0, 800, 600),
+		);
 		const showModal = vi.fn(() => dialog.setAttribute('open', ''));
 		const close = vi.fn(() => dialog.removeAttribute('open'));
 		dialog.showModal = showModal;
@@ -1164,10 +1188,12 @@ describe('preview runtime', () => {
 		expect(
 			dialog.querySelectorAll('[data-bmp-mermaid-canvas] svg'),
 		).toHaveLength(1);
-		const clonedSvg = dialog.querySelector('[data-bmp-mermaid-canvas] svg');
+		const clonedSvg = dialog.querySelector<SVGSVGElement>(
+			'[data-bmp-mermaid-canvas] svg',
+		)!;
 		const clonedTitle = dialog.querySelector('[data-bmp-mermaid-canvas] title');
-		expect(clonedSvg?.id).not.toBe('diagram-root');
-		expect(clonedSvg?.getAttribute('aria-labelledby')).toBe(clonedTitle?.id);
+		expect(clonedSvg.id).not.toBe('diagram-root');
+		expect(clonedSvg.getAttribute('aria-labelledby')).toBe(clonedTitle?.id);
 		const clonedMarker = dialog.querySelector(
 			'[data-bmp-mermaid-canvas] marker',
 		);
@@ -1175,7 +1201,7 @@ describe('preview runtime', () => {
 		const clonedStyle = dialog.querySelector(
 			'[data-bmp-mermaid-canvas] style',
 		)?.textContent;
-		expect(clonedStyle).toContain(`#${clonedSvg?.id} .node`);
+		expect(clonedStyle).toContain(`#${clonedSvg.id} .node`);
 		expect(clonedStyle).toContain(`#${clonedMarker?.id} path`);
 		expect(clonedStyle).toContain(`url(#${clonedMarker?.id})`);
 		expect(clonedStyle).not.toContain('#diagram-root');
@@ -1185,6 +1211,18 @@ describe('preview runtime', () => {
 				.querySelector('[data-bmp-mermaid-canvas] path')
 				?.getAttribute('marker-end'),
 		).toBe(`url(#${clonedMarker?.id})`);
+		expect(
+			dialog.querySelector('[data-bmp-mermaid-canvas] foreignObject div')
+				?.textContent,
+		).toBe('Foreign label');
+		expect(clonedSvg.style.width).toBe('100%');
+		expect(clonedSvg.style.height).toBe('100%');
+		expect(clonedSvg.style.transform).toBe('');
+		expect(
+			dialog.querySelector<HTMLElement>('[data-bmp-mermaid-surface]')?.style
+				.transform,
+		).toBe('');
+		expect(readViewBox(clonedSvg)).toEqual([-300, -150, 800, 600]);
 		expect(
 			dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
 		).toBe('100%');
@@ -1213,30 +1251,17 @@ describe('preview runtime', () => {
 				dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
 			).toBe(expected);
 		}
-		canvas.dispatchEvent(
-			new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
-		);
-		expect(
-			dialog.querySelector<HTMLElement>('[data-bmp-mermaid-surface]')?.style
-				.transform,
-		).toContain('translate(-40px, 0px)');
-		canvas.dispatchEvent(
-			new WheelEvent('wheel', {
-				bubbles: true,
-				cancelable: true,
-				clientX: 400,
-				clientY: 300,
-				deltaY: -100,
-			}),
-		);
+		for (let index = 0; index < 10; index += 1) {
+			dialog
+				.querySelector<HTMLButtonElement>('[data-bmp-mermaid-zoom-in]')
+				?.click();
+		}
 		expect(
 			dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
-		).toBe('120%');
+		).toBe('800%');
+		expect(readViewBox(clonedSvg)).toEqual([50, 112.5, 100, 75]);
 		dialog.querySelector<HTMLButtonElement>('[data-bmp-mermaid-fit]')?.click();
-		expect(
-			dialog.querySelector<HTMLElement>('[data-bmp-mermaid-surface]')?.style
-				.transform,
-		).toContain('translate(0px, 0px)');
+		expect(readViewBox(clonedSvg)).toEqual([-300, -150, 800, 600]);
 		canvas.dispatchEvent(
 			new PointerEvent('pointerdown', {
 				bubbles: true,
@@ -1260,10 +1285,7 @@ describe('preview runtime', () => {
 				pointerId: 1,
 			}),
 		);
-		expect(
-			dialog.querySelector<HTMLElement>('[data-bmp-mermaid-surface]')?.style
-				.transform,
-		).toContain('translate(25px, 35px)');
+		expect(readViewBox(clonedSvg)).toEqual([-325, -185, 800, 600]);
 
 		dialog
 			.querySelector<HTMLButtonElement>('[data-bmp-mermaid-close]')
@@ -1278,6 +1300,101 @@ describe('preview runtime', () => {
 		);
 		expect(close).toHaveBeenCalledTimes(3);
 		expect(document.activeElement).toBe(trigger);
+		controller.dispose();
+	});
+
+	test('anchors off-center wheel zoom and keeps keyboard and pointer pan screen-relative', async () => {
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({
+				render: async (element) => {
+					element.innerHTML = '<svg viewBox="10 20 400 200"></svg>';
+				},
+			}),
+		});
+		await controller.ready;
+		const dialog = document.querySelector<HTMLDialogElement>(
+			'[data-bmp-mermaid-dialog]',
+		)!;
+		const canvas = dialog.querySelector<HTMLElement>(
+			'[data-bmp-mermaid-canvas]',
+		)!;
+		vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue(
+			canvasBounds(100, 50, 800, 600),
+		);
+		dialog.showModal = vi.fn(() => dialog.setAttribute('open', ''));
+		document
+			.querySelector<HTMLButtonElement>('[data-bmp-mermaid-open]')
+			?.click();
+		const svg = dialog.querySelector<SVGSVGElement>(
+			'[data-bmp-mermaid-canvas] svg',
+		)!;
+		const pointer = { x: 700, y: 200 };
+		const before = readViewBox(svg);
+		const anchoredBefore = [
+			before[0] + ((pointer.x - 100) / 800) * before[2],
+			before[1] + ((pointer.y - 50) / 600) * before[3],
+		];
+
+		const wheel = new WheelEvent('wheel', {
+			bubbles: true,
+			cancelable: true,
+			deltaY: -100,
+		});
+		Object.defineProperties(wheel, {
+			clientX: { value: pointer.x },
+			clientY: { value: pointer.y },
+		});
+		canvas.dispatchEvent(wheel);
+		const afterWheel = readViewBox(svg);
+		expect(afterWheel[2]).toBeCloseTo(800 / 1.2);
+		expect(afterWheel[3]).toBeCloseTo(600 / 1.2);
+		expect(
+			afterWheel[0] + ((pointer.x - 100) / 800) * afterWheel[2],
+		).toBeCloseTo(anchoredBefore[0]);
+		expect(
+			afterWheel[1] + ((pointer.y - 50) / 600) * afterWheel[3],
+		).toBeCloseTo(anchoredBefore[1]);
+
+		canvas.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+		);
+		const afterKeyboard = readViewBox(svg);
+		expect(afterKeyboard[0] - afterWheel[0]).toBeCloseTo(40 / 1.2);
+		expect(afterKeyboard[1]).toBeCloseTo(afterWheel[1]);
+
+		canvas.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				bubbles: true,
+				button: 0,
+				clientX: 200,
+				clientY: 150,
+				pointerId: 2,
+			}),
+		);
+		canvas.dispatchEvent(
+			new PointerEvent('pointermove', {
+				bubbles: true,
+				clientX: 224,
+				clientY: 186,
+				pointerId: 2,
+			}),
+		);
+		canvas.dispatchEvent(
+			new PointerEvent('pointerup', {
+				bubbles: true,
+				pointerId: 2,
+			}),
+		);
+		const afterPointer = readViewBox(svg);
+		expect(afterPointer[0] - afterKeyboard[0]).toBeCloseTo(-24 / 1.2);
+		expect(afterPointer[1] - afterKeyboard[1]).toBeCloseTo(-36 / 1.2);
+
+		dialog.querySelector<HTMLButtonElement>('[data-bmp-mermaid-fit]')?.click();
+		expect(readViewBox(svg)).toEqual([-190, -180, 800, 600]);
+		expect(
+			dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
+		).toBe('100%');
 		controller.dispose();
 	});
 
@@ -1329,13 +1446,111 @@ describe('preview runtime', () => {
 		expect(document.querySelector('[data-bmp-mermaid-dialog]')).toBeNull();
 	});
 
+	test('rebases an open rerender on shifted SVG geometry without losing zoom or relative pan', async () => {
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		let renderCount = 0;
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({
+				render: async (element) => {
+					renderCount += 1;
+					element.innerHTML =
+						renderCount === 1
+							? '<svg viewBox="-100 50 400 200"></svg>'
+							: '<svg viewBox="900 -450 800 400"></svg>';
+				},
+			}),
+		});
+		await controller.ready;
+		const dialog = document.querySelector<HTMLDialogElement>(
+			'[data-bmp-mermaid-dialog]',
+		)!;
+		const canvas = dialog.querySelector<HTMLElement>(
+			'[data-bmp-mermaid-canvas]',
+		)!;
+		vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue(
+			canvasBounds(0, 0, 800, 600),
+		);
+		dialog.showModal = vi.fn(() => dialog.setAttribute('open', ''));
+		document
+			.querySelector<HTMLButtonElement>('[data-bmp-mermaid-open]')
+			?.click();
+		dialog
+			.querySelector<HTMLButtonElement>('[data-bmp-mermaid-zoom-in]')
+			?.click();
+		canvas.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+		);
+
+		document.body.classList.add('vscode-dark');
+		await vi.waitFor(() => expect(renderCount).toBe(2));
+		const svg = dialog.querySelector<SVGSVGElement>(
+			'[data-bmp-mermaid-canvas] svg',
+		)!;
+		const viewBox = readViewBox(svg);
+		expect(viewBox[2]).toBeCloseTo(640);
+		expect(viewBox[3]).toBeCloseTo(480);
+		expect(viewBox[0] + viewBox[2] / 2).toBeCloseTo(1332);
+		expect(viewBox[1] + viewBox[3] / 2).toBeCloseTo(-250);
+		expect(
+			dialog.querySelector('[data-bmp-mermaid-zoom-value]')?.textContent,
+		).toBe('125%');
+		controller.dispose();
+	});
+
+	test('reapplies the viewBox on canvas resize and disconnects its observer', async () => {
+		let resizeCallback: ResizeObserverCallback | undefined;
+		const observe = vi.fn();
+		const disconnect = vi.fn();
+		vi.stubGlobal(
+			'ResizeObserver',
+			class {
+				constructor(callback: ResizeObserverCallback) {
+					resizeCallback = callback;
+				}
+
+				observe = observe;
+				disconnect = disconnect;
+			},
+		);
+		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
+		const controller = enhancePreview(document, {
+			loadMermaid: async () => ({
+				render: async (element) => {
+					element.innerHTML = '<svg viewBox="-100 50 400 200"></svg>';
+				},
+			}),
+		});
+		await controller.ready;
+		const dialog = document.querySelector<HTMLDialogElement>(
+			'[data-bmp-mermaid-dialog]',
+		)!;
+		const canvas = dialog.querySelector<HTMLElement>(
+			'[data-bmp-mermaid-canvas]',
+		)!;
+		let bounds = canvasBounds(0, 0, 800, 600);
+		vi.spyOn(canvas, 'getBoundingClientRect').mockImplementation(() => bounds);
+		dialog.showModal = vi.fn(() => dialog.setAttribute('open', ''));
+		document
+			.querySelector<HTMLButtonElement>('[data-bmp-mermaid-open]')
+			?.click();
+		const svg = dialog.querySelector<SVGSVGElement>('svg')!;
+		expect(observe).toHaveBeenCalledWith(canvas);
+		expect(readViewBox(svg)).toEqual([-300, -150, 800, 600]);
+
+		bounds = canvasBounds(0, 0, 1000, 500);
+		resizeCallback?.([], {} as ResizeObserver);
+		expect(readViewBox(svg)).toEqual([-400, -100, 1000, 500]);
+		controller.dispose();
+		expect(disconnect).toHaveBeenCalledOnce();
+	});
+
 	test('falls back from malformed SVG sizing and unavailable dialog methods', async () => {
 		setDocument('<pre data-bmp-mermaid-source>graph TD\nA--&gt;B</pre>');
 		const controller = enhancePreview(document, {
 			loadMermaid: async () => ({
 				render: async (element) => {
 					element.innerHTML =
-						'<svg viewBox="invalid" width="320" height="nope"></svg>';
+						'<svg viewBox="invalid 25 400 200" width="320" height="nope"></svg>';
 				},
 			}),
 		});
@@ -1346,13 +1561,23 @@ describe('preview runtime', () => {
 		dialog.showModal = vi.fn(() => {
 			throw new Error('unsupported');
 		});
+		const canvas = dialog.querySelector<HTMLElement>(
+			'[data-bmp-mermaid-canvas]',
+		)!;
+		vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue(
+			canvasBounds(0, 0, 800, 600),
+		);
 		document
 			.querySelector<HTMLButtonElement>('[data-bmp-mermaid-open]')
 			?.click();
 		const svg = dialog.querySelector<SVGSVGElement>('svg')!;
 		expect(dialog.hasAttribute('open')).toBe(true);
-		expect(svg.style.width).toBe('320px');
-		expect(svg.style.height).toBe('600px');
+		expect(svg.style.width).toBe('100%');
+		expect(svg.style.height).toBe('100%');
+		const viewBox = readViewBox(svg);
+		expect(viewBox.every(Number.isFinite)).toBe(true);
+		expect(viewBox[0] + viewBox[2] / 2).toBeCloseTo(160);
+		expect(viewBox[1] + viewBox[3] / 2).toBeCloseTo(300);
 
 		dialog.close = undefined as unknown as typeof dialog.close;
 		dialog.dispatchEvent(
