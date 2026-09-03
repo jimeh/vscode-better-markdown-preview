@@ -43,6 +43,8 @@ record accepted intent but are not proof that later phases shipped.
   `.vscode-test/`, or `.vscode-test-web/` and must stay untracked.
 - Keep Mermaid viewer zoom and pan in the cloned SVG's `viewBox`. CSS transforms
   on the SVG or its ancestors can make Chromium rasterize and blur high zoom.
+- Keep the real-browser Mermaid contract on C4 wrapping and class relation
+  markers. Adapter mocks cannot catch upstream SVG and layout regressions.
 - VS Code 1.125 collapses backslash-escaped punctuation into plain inline text
   before contributed core rules run. While emoji parsing is active, preserve
   every Markdown-escaped punctuation mark as a distinct token with an inline

@@ -48,6 +48,26 @@ const fixture = `<!doctype html>
 </body>
 </html>`;
 
+const mermaidCompatibilityFixture = `<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<link rel="stylesheet" href="/dist/preview/preview.css">
+	<style>
+		:root { --vscode-editor-background: #fff; --vscode-editor-foreground: #222; --vscode-panel-border: #888; --vscode-textLink-foreground: #06c; }
+	</style>
+</head>
+<body class="vscode-light">
+	<div class="markdown-body">
+		<pre data-bmp-mermaid-source data-bmp-mermaid-state="source" data-bmp-mermaid-contract="c4">C4Context
+System(system, "Internet Banking System", "Allows customers to view information about their bank accounts")</pre>
+		<pre data-bmp-mermaid-source data-bmp-mermaid-state="source" data-bmp-mermaid-contract="class">classDiagram
+Animal &lt;|-- Duck</pre>
+	</div>
+	<script src="/dist/preview/preview.js"></script>
+</body>
+</html>`;
+
 function contentType(path: string): string {
 	return (
 		{
@@ -94,12 +114,16 @@ async function expectCount(
 const server = createServer(async (request, response) => {
 	try {
 		const url = new URL(request.url ?? '/', 'http://127.0.0.1');
-		if (url.pathname === '/') {
+		if (url.pathname === '/' || url.pathname === '/mermaid-compatibility') {
 			response.writeHead(200, {
 				'content-security-policy': fixtureCsp,
 				'content-type': 'text/html; charset=utf-8',
 			});
-			response.end(fixture);
+			response.end(
+				url.pathname === '/mermaid-compatibility'
+					? mermaidCompatibilityFixture
+					: fixture,
+			);
 			return;
 		}
 		if (!url.pathname.startsWith('/dist/preview/')) {
@@ -140,6 +164,50 @@ window.addEventListener('unhandledrejection', event => {
 });`,
 	});
 
+	const compatibilityNavigation = await page.goto(
+		`http://127.0.0.1:${port}/mermaid-compatibility`,
+		{ waitUntil: 'networkidle' },
+	);
+	if (
+		compatibilityNavigation?.headers()['content-security-policy'] !== fixtureCsp
+	) {
+		throw new Error(
+			'The Mermaid compatibility fixture did not apply its expected CSP',
+		);
+	}
+	await page.waitForFunction(
+		`document.querySelectorAll('[data-bmp-mermaid-state="rendered"] svg').length === 2`,
+	);
+	const mermaidCompatibility = await page.evaluate<{
+		c4WrappedLineCount: number;
+		classMarkerUnits: Array<string | null>;
+	}>(`(() => {
+		const diagram = name => document.querySelector(
+			'[data-bmp-mermaid-contract="' + name + '"] svg'
+		);
+		return {
+			c4WrappedLineCount: diagram('c4')
+				.querySelectorAll('tspan.text-outer-tspan').length,
+			classMarkerUnits: Array.from(
+				diagram('class').querySelectorAll('marker')
+			).map(marker => marker.getAttribute('markerUnits')),
+		};
+	})()`);
+	if (mermaidCompatibility.c4WrappedLineCount <= 3) {
+		throw new Error(
+			`Mermaid did not wrap the long C4 label: ${JSON.stringify(mermaidCompatibility)}`,
+		);
+	}
+	if (
+		mermaidCompatibility.classMarkerUnits.length === 0 ||
+		mermaidCompatibility.classMarkerUnits.some(
+			(markerUnits) => markerUnits !== 'userSpaceOnUse',
+		)
+	) {
+		throw new Error(
+			`Mermaid class relation markers can scale with edge width: ${JSON.stringify(mermaidCompatibility)}`,
+		);
+	}
 	const navigation = await page.goto(`http://127.0.0.1:${port}/`, {
 		waitUntil: 'networkidle',
 	});
@@ -510,7 +578,7 @@ window.addEventListener('unhandledrejection', event => {
 		throw new Error(`Browser errors:\n${errors.join('\n')}`);
 	}
 	console.log(
-		'Preview browser contract passed: CSP-restricted bundles, long TOC active-link reveal, TOC/body replacement, code enhancement, Mermaid import/theme rerender, and sharp Mermaid viewBox zoom/pan.',
+		'Preview browser contract passed: CSP-restricted bundles, long TOC active-link reveal, TOC/body replacement, code enhancement, Mermaid diagram compatibility/import/theme rerender, and sharp Mermaid viewBox zoom/pan.',
 	);
 } catch (error) {
 	primaryFailure = error;
