@@ -65,6 +65,12 @@ record accepted intent but are not proof that later phases shipped.
   compatible tools.
 - Keep the `@types/node` major aligned with the Mise-selected Node major. Upgrade
   the runtime and its types together.
+- Keep `@types/vscode` aligned with the `engines.vscode` compatibility floor.
+  VSCE rejects packages whose types require a newer API, so upgrade both only as
+  an intentional host-floor change.
+- Keep `@types/markdown-it` on 14.1.2 while the plugin declarations import its
+  legacy entry point. Version 14.2.0 creates incompatible Markdown-It type
+  identities at `md.use(...)` calls.
 - Keep the direct `markdown-it` fixture on the major used by stable VS Code.
   Exercise the host contract before adopting a new parser major.
 - Release notes use linked version headings. Changelog package contracts must
