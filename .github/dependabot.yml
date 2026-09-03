@@ -20,6 +20,10 @@ updates:
       - dependency-name: '@types/node'
         update-types:
           - version-update:semver-major
+      # Avoid the incompatible dual type identities introduced in 14.2.0.
+      - dependency-name: '@types/markdown-it'
+      # Match the oldest supported VS Code API and engines.vscode declaration.
+      - dependency-name: '@types/vscode'
       # Upgrade after stable VS Code adopts the new parser major.
       - dependency-name: 'markdown-it'
         update-types:

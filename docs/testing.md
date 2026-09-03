@@ -11,7 +11,8 @@ Use the narrowest task that proves the behavior under development:
 - `mise run build` compiles production desktop, web, preview runtime, Mermaid,
   and CSS bundles.
 - `mise run test:preview-browser` builds and loads the actual preview bundles in
-  real Chromium, including the relative Mermaid dynamic import.
+  real Chromium, including the relative Mermaid dynamic import and compatibility
+  checks for C4 wrapping and class relation markers.
 - `mise run test:hosts:prepare` builds production artifacts plus the desktop and
   browser host runners once for the current revision.
 - `mise run test:desktop:floor` and `mise run test:desktop:stable` consume those
@@ -90,7 +91,9 @@ cover native linkification both enabled and disabled, including VS Code's
 and Mermaid adapter to cover conditional loading, loader and render failure
 fallback, theme rerender and defaults, reused Mermaid blocks, body replacement,
 TOC focus behavior, Mermaid viewer zoom/pan/focus, SVG sizing and clone
-isolation, and source-preserving highlighted code presentation.
+isolation, and source-preserving highlighted code presentation. The Chromium
+contract renders real C4 and class diagrams so upstream renderer migrations
+cannot satisfy the adapter mocks while breaking label wrapping or marker sizing.
 
 Configuration tests assert the exact manifest keys, boolean defaults, window
 scope, typed host reads, change filtering, reload command, and disposable

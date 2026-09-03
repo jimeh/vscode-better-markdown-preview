@@ -99,6 +99,14 @@ test('Dependabot batches low-risk weekly updates without enabling auto-merge', (
 			),
 		);
 	}
+	assert.match(
+		dependabotConfig,
+		/# Avoid the incompatible dual type identities introduced in 14\.2\.0\.\n\s+- dependency-name: '@types\/markdown-it'/,
+	);
+	assert.match(
+		dependabotConfig,
+		/# Match the oldest supported VS Code API and engines\.vscode declaration\.\n\s+- dependency-name: '@types\/vscode'/,
+	);
 	assert.doesNotMatch(dependabotConfig, /auto-merge|automerge/i);
 });
 
